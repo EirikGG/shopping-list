@@ -1,6 +1,6 @@
-package no.eirikgg.data.sqllite.db.user;
+package no.eirikgg.tgg.db.user;
 
-import no.eirikgg.data.sqllite.db.DbIdentity;
+import no.eirikgg.tgg.db.DbIdentity;
 
 public class Authorization extends DbIdentity {
     private String username;

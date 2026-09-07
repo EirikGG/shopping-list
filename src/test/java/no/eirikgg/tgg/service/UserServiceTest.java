@@ -1,9 +1,9 @@
-package no.eirikgg.data.sqllite.service;
+package no.eirikgg.tgg.service;
 
-import no.eirikgg.data.sqllite.db.EmbeddedPostgresDb;
-import no.eirikgg.data.sqllite.db.user.Authorization;
-import no.eirikgg.data.sqllite.db.user.User;
-import no.eirikgg.data.sqllite.db.user.UserTestDataGenerator;
+import no.eirikgg.tgg.db.EmbeddedPostgresDb;
+import no.eirikgg.tgg.db.user.Authorization;
+import no.eirikgg.tgg.db.user.User;
+import no.eirikgg.tgg.db.user.UserTestDataGenerator;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;

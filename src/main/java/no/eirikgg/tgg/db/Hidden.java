@@ -1,4 +1,4 @@
-package no.eirikgg.data.sqllite.db;
+package no.eirikgg.tgg.db;
 
 public class Hidden<T> {
     public T value;

@@ -1,15 +1,15 @@
-package no.eirikgg.data.sqllite;
+package no.eirikgg.tgg;
 
-import no.eirikgg.data.sqllite.db.Db;
-import no.eirikgg.data.sqllite.db.PostgresDb;
-import no.eirikgg.data.sqllite.db.LiquibaseMigrator;
-import no.eirikgg.data.sqllite.db.user.Authorization;
-import no.eirikgg.data.sqllite.db.user.Email;
-import no.eirikgg.data.sqllite.db.user.Person;
-import no.eirikgg.data.sqllite.db.user.PhoneNumber;
-import no.eirikgg.data.sqllite.db.user.User;
-import no.eirikgg.data.sqllite.service.PasswordService;
-import no.eirikgg.data.sqllite.service.UserService;
+import no.eirikgg.tgg.db.Db;
+import no.eirikgg.tgg.db.PostgresDb;
+import no.eirikgg.tgg.db.LiquibaseMigrator;
+import no.eirikgg.tgg.db.user.Authorization;
+import no.eirikgg.tgg.db.user.Email;
+import no.eirikgg.tgg.db.user.Person;
+import no.eirikgg.tgg.db.user.PhoneNumber;
+import no.eirikgg.tgg.db.user.User;
+import no.eirikgg.tgg.service.PasswordService;
+import no.eirikgg.tgg.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

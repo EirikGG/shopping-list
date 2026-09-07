@@ -1,4 +1,4 @@
-package no.eirikgg.data.sqllite.db;
+package no.eirikgg.tgg.db;
 
 import liquibase.Contexts;
 import liquibase.LabelExpression;

@@ -1,4 +1,4 @@
-package no.eirikgg.data.sqllite.db;
+package no.eirikgg.tgg.db;
 
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 

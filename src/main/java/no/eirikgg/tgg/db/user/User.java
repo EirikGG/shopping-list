@@ -1,4 +1,4 @@
-package no.eirikgg.data.sqllite.db.user;
+package no.eirikgg.tgg.db.user;
 
 public class User {
 

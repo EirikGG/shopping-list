@@ -1,9 +1,9 @@
-package no.eirikgg.data.sqllite.service;
+package no.eirikgg.tgg.service;
 
-import no.eirikgg.data.sqllite.db.Db;
-import no.eirikgg.data.sqllite.db.user.Authorization;
-import no.eirikgg.data.sqllite.db.user.User;
-import no.eirikgg.data.sqllite.db.user.UserRepository;
+import no.eirikgg.tgg.db.Db;
+import no.eirikgg.tgg.db.user.Authorization;
+import no.eirikgg.tgg.db.user.User;
+import no.eirikgg.tgg.db.user.UserRepository;
 
 import java.sql.SQLException;
 import java.util.Optional;

@@ -1,7 +1,7 @@
-package no.eirikgg.data.sqllite.db.user;
+package no.eirikgg.tgg.db.user;
 
-import no.eirikgg.data.sqllite.db.Db;
-import no.eirikgg.data.sqllite.service.PasswordService;
+import no.eirikgg.tgg.db.Db;
+import no.eirikgg.tgg.service.PasswordService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

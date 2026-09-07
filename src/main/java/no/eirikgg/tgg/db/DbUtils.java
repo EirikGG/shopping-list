@@ -1,4 +1,4 @@
-package no.eirikgg.data.sqllite.db;
+package no.eirikgg.tgg.db;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
