@@ -3,12 +3,8 @@ package no.eirikgg.data.sqllite.db.user;
 import no.eirikgg.data.sqllite.service.PasswordService;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 public class UserTestDataGenerator {
-
-
-
 
 
     public static User getUser() {

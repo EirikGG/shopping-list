@@ -1,6 +1,6 @@
 package no.eirikgg.data.sqllite.service;
 
-import no.eirikgg.data.sqllite.db.InMemoryH2Db;
+import no.eirikgg.data.sqllite.db.EmbeddedPostgresDb;
 import no.eirikgg.data.sqllite.db.user.Authorization;
 import no.eirikgg.data.sqllite.db.user.User;
 import no.eirikgg.data.sqllite.db.user.UserTestDataGenerator;
@@ -14,7 +14,7 @@ class UserServiceTest {
 
     @Test
     void createUser() {
-        UserService service = new UserService(InMemoryH2Db.createMigratedInstance());
+        UserService service = new UserService(EmbeddedPostgresDb.createMigratedInstance());
 
         User newUser = UserTestDataGenerator.getUser();
         User persisted = service.createUser(newUser);
@@ -46,7 +46,7 @@ class UserServiceTest {
 
     @Test
     void login() {
-        UserService service = new UserService(InMemoryH2Db.createMigratedInstance());
+        UserService service = new UserService(EmbeddedPostgresDb.createMigratedInstance());
 
         User newUser = UserTestDataGenerator.getUser();
         User persisted = service.createUser(newUser);

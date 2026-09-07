@@ -7,7 +7,6 @@ class LiquibaseMigratorTest {
 
     @Test
     void migrate() {
-        InMemoryH2Db h2Db2 = new InMemoryH2Db();
-        h2Db2.createMigratedInstance();
+        EmbeddedPostgresDb.createMigratedInstance();
     }
 }

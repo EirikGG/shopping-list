@@ -1,7 +1,7 @@
 package no.eirikgg.data.sqllite;
 
 import no.eirikgg.data.sqllite.db.Db;
-import no.eirikgg.data.sqllite.db.H2Db;
+import no.eirikgg.data.sqllite.db.PostgresDb;
 import no.eirikgg.data.sqllite.db.LiquibaseMigrator;
 import no.eirikgg.data.sqllite.db.user.Authorization;
 import no.eirikgg.data.sqllite.db.user.Email;
@@ -22,7 +22,13 @@ public class Main {
 
 
     public static void main(String[] args) {
-        Db db = new H2Db("jdbc:h2:file:C:/Users/Eirik/Projects/tgg-website/dev-db");
+        Db db = PostgresDb.createMigratedInstance(
+                System.getProperty("DB.HOSTNAME"),
+                System.getProperty("DB.PORT"),
+                System.getProperty("DB.NAME"),
+                System.getProperty("DB.USERNAME"),
+                System.getProperty("DB.PASSWORD")
+        );
         migrator.migrate(db);
 
         UserService userService = new UserService(db);
