@@ -1,5 +1,8 @@
 package no.eirikgg.tgg.db;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -13,6 +16,7 @@ import java.util.Optional;
 
 public interface Db {
 
+    Logger log = LoggerFactory.getLogger(Db.class);
     DbUtils dbUtils = new DbUtils();
 
 
@@ -101,6 +105,16 @@ public interface Db {
         finally {
             Duration duration = Duration.between(startTime, LocalDateTime.now());
             dbUtils.logSql(duration, sql, params);
+        }
+    }
+
+    default boolean dbConnectionOk() {
+        try (Connection connection = getConnection()) {
+            return connection.isValid(2);
+        }
+        catch (SQLException e) {
+            log.error(e.getMessage(), e);
+            return false;
         }
     }
 }

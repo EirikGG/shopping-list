@@ -46,18 +46,20 @@ class UserServiceTest {
 
     @Test
     void login() {
-        UserService service = new UserService(EmbeddedPostgresDb.createMigratedInstance());
+        EmbeddedPostgresDb db = EmbeddedPostgresDb.createMigratedInstance();
+        UserService userService = new UserService(db);
+        AuthenticationService authenticationService = new AuthenticationService(db);
 
         User newUser = UserTestDataGenerator.getUser();
-        User persisted = service.createUser(newUser);
+        User persisted = userService.createUser(newUser);
 
         Authorization authorization = newUser.getAuthorization();
-        UUID sessionId = service.login(authorization).orElse(null);
+        UUID sessionId = authenticationService.login(authorization).orElse(null);
 
         assertNotNull(sessionId);
 
 
-        User getLoggedInUser = service.getLoggedInUser(sessionId).orElse(null);
+        User getLoggedInUser = authenticationService.getLoggedInUser(sessionId).orElse(null);
         assertEquals(persisted.getPerson().getId().orElse(-1), getLoggedInUser.getPerson().getId().orElse(-2));
         assertEquals(newUser.getPerson().getFirstName(), getLoggedInUser.getPerson().getFirstName());
         assertEquals(newUser.getPerson().getLastName(), getLoggedInUser.getPerson().getLastName());
@@ -73,9 +75,9 @@ class UserServiceTest {
                 "Not correct password"
         );
 
-        UUID notOkSessionId = service.login(notOkAuthorization).orElse(null);
+        UUID notOkSessionId = authenticationService.login(notOkAuthorization).orElse(null);
         assertNull(notOkSessionId);
-        assertNull(service.getLoggedInUser(notOkSessionId).orElse(null));
+        assertNull(authenticationService.getLoggedInUser(notOkSessionId).orElse(null));
 
 
 

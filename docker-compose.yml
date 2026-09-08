@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgres:16
+    command:
+      - postgres
+      - -p
+      - "${DB_PORT}"
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "${DB_PORT}:${DB_PORT}"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${DB_USERNAME} -d ${DB_NAME} -p ${DB_PORT}
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: rest/
+      dockerfile: Dockerfile
+    environment:
+      JAVA_TOOL_OPTIONS: >-
+        -DDB.HOSTNAME=db
+        -DDB.PORT=${DB_PORT}
+        -DDB.NAME=${DB_NAME}
+        -DDB.USERNAME=${DB_USERNAME}
+        -DDB.PASSWORD=${DB_PASSWORD}
+        -DAPP.PORT=${APP_PORT}
+    ports:
+      - "${APP_PORT}:${APP_PORT}"
+    networks:
+      - backend
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+
+networks:
+  backend:

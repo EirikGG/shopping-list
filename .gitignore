@@ -41,3 +41,6 @@ build/
 
 ### H2 db files ###
 *.db
+
+### DOCKER###
+.env

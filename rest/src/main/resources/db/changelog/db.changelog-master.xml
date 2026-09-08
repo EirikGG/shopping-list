@@ -5,7 +5,7 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <include file="db/updates/0001-person.sql"/>
+    <include file="/db/updates/0001-person.sql"/>
     <include file="/db/updates/0002-person_email.sql"/>
     <include file="/db/updates/0003-person_phone.sql"/>
     <include file="/db/updates/0004-person_login.sql"/>

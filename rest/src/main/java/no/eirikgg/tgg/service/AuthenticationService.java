@@ -1,6 +1,7 @@
 package no.eirikgg.tgg.service;
 
 import no.eirikgg.tgg.db.Db;
+import no.eirikgg.tgg.db.authentication.AuthenticationRepository;
 import no.eirikgg.tgg.db.user.Authorization;
 import no.eirikgg.tgg.db.user.User;
 import no.eirikgg.tgg.db.user.UserRepository;
@@ -9,23 +10,15 @@ import java.sql.SQLException;
 import java.util.Optional;
 import java.util.UUID;
 
-public class UserService {
+public class AuthenticationService {
 
     private UserRepository userRepository;
+    private AuthenticationRepository authenticationRepository;
 
 
-    public UserService(Db db){
+    public AuthenticationService(Db db){
         this.userRepository = new UserRepository(db);
-    }
-
-
-    public User createUser(User newUser) {
-        try {
-            return userRepository.createUser(newUser);
-        }
-        catch (SQLException e) {
-            throw new RuntimeException("Failed to create new user", e);
-        }
+        this.authenticationRepository = new AuthenticationRepository(db);
     }
 
 
@@ -46,8 +39,8 @@ public class UserService {
         }
 
         try {
-            UUID sessionId = userRepository.createSession(user);
-            boolean isValidSession = userRepository.isValidSessionId(sessionId);
+            UUID sessionId = authenticationRepository.createSession(user);
+            boolean isValidSession = authenticationRepository.isValidSessionId(sessionId);
             if (!isValidSession) {
                 return Optional.empty();
             }
@@ -61,11 +54,11 @@ public class UserService {
 
 
     public Optional<User> getLoggedInUser(UUID sessionId) {
-        boolean isValidSession = userRepository.isValidSessionId(sessionId);
+        boolean isValidSession = authenticationRepository.isValidSessionId(sessionId);
         if (!isValidSession) {
             return Optional.empty();
         }
 
-        return userRepository.getUserFromSession(sessionId);
+        return authenticationRepository.getUserFromSession(sessionId);
     }
 }
