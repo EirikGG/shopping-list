@@ -20,8 +20,10 @@ public final class PostgresDb implements Db {
             String username,
             String password
     ) {
-        String url = "jdbc:postgresql://%s:%s/%s".formatted(hostname, port, databaseName);
-        this.jdbcUrl = Objects.requireNonNull(url);
+        int portNum = Integer.parseInt(port);
+        Objects.requireNonNull(hostname);
+        Objects.requireNonNull(databaseName);
+        this.jdbcUrl = "jdbc:postgresql://%s:%d/%s".formatted(hostname, portNum, databaseName);
         this.username = Objects.requireNonNull(username);
         this.password = Objects.requireNonNull(password);
     }
@@ -35,7 +37,7 @@ public final class PostgresDb implements Db {
         );
     }
 
-    public static PostgresDb createMigratedInstance(
+    public static PostgresDb getMigratedInstance(
             String hostname,
             String port,
             String databaseName,
@@ -43,8 +45,7 @@ public final class PostgresDb implements Db {
             String password
     ) {
 
-        if  (INSTANCE == null) {
-
+        if  (null == INSTANCE) {
             INSTANCE = new PostgresDb(
                 hostname,
                 port,

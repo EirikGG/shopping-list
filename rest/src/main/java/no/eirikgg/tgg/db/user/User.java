@@ -1,19 +1,24 @@
 package no.eirikgg.tgg.db.user;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class User {
 
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Person person;
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Authorization authorization;
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Email email;
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private PhoneNumber phonenumber;
 
 
-    public User(
-            Person person,
-            Authorization authorization,
-            Email email,
-            PhoneNumber phonenumber
-    ) {
+    public User(Person person, Authorization authorization, Email email, PhoneNumber phonenumber) {
         this.person = person;
         this.authorization = authorization;
         this.email = email;
@@ -33,7 +38,7 @@ public class User {
         return email;
     }
 
-    public PhoneNumber getPhoneNumber() {
+    public PhoneNumber getPhonenumber() {
         return phonenumber;
     }
 }

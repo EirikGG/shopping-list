@@ -17,7 +17,7 @@ class UserServiceTest {
         UserService service = new UserService(EmbeddedPostgresDb.createMigratedInstance());
 
         User newUser = UserTestDataGenerator.getUser();
-        User persisted = service.createUser(newUser);
+        User persisted = service.persistUser(newUser);
 
 
         assertNotNull(persisted.getPerson().getId().orElse(null));
@@ -38,8 +38,8 @@ class UserServiceTest {
 
         assertEquals(newUser.getEmail().getEmail(), persisted.getEmail().getEmail());
 
-        assertEquals(newUser.getPhoneNumber().getCountryCode(), persisted.getPhoneNumber().getCountryCode());
-        assertEquals(newUser.getPhoneNumber().getPhoneNumber(), persisted.getPhoneNumber().getPhoneNumber());
+        assertEquals(newUser.getPhonenumber().getCountryCode(), persisted.getPhonenumber().getCountryCode());
+        assertEquals(newUser.getPhonenumber().getPhoneNumber(), persisted.getPhonenumber().getPhoneNumber());
     }
 
 
@@ -51,7 +51,7 @@ class UserServiceTest {
         AuthenticationService authenticationService = new AuthenticationService(db);
 
         User newUser = UserTestDataGenerator.getUser();
-        User persisted = userService.createUser(newUser);
+        User persisted = userService.persistUser(newUser);
 
         Authorization authorization = newUser.getAuthorization();
         UUID sessionId = authenticationService.login(authorization).orElse(null);

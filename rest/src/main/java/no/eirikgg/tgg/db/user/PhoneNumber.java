@@ -1,8 +1,14 @@
 package no.eirikgg.tgg.db.user;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class PhoneNumber {
 
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String countryCode;
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String phoneNumber;
 
 

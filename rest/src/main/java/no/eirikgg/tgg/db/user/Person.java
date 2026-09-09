@@ -1,8 +1,12 @@
 package no.eirikgg.tgg.db.user;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import no.eirikgg.tgg.db.DbIdentity;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 public class Person extends DbIdentity {
 
@@ -10,9 +14,17 @@ public class Person extends DbIdentity {
         MALE, FEMALE, OTHER
     }
 
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String firstName;
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String lastName;
+    @JsonProperty(value = "birthdate", access = JsonProperty.Access.READ_ONLY)
     private LocalDate birthdate;
+
+    @JsonIgnore
+    public static final DateTimeFormatter birthdateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Gender gender;
 
     public Person(Integer id, String firstName, String lastName, LocalDate birthdate, Gender gender) {
@@ -38,6 +50,13 @@ public class Person extends DbIdentity {
     public LocalDate getBirthdate() {
         return birthdate;
     }
+
+    @JsonGetter("birthdate")
+    public String getBirthdateAsText() {
+        return birthdateFormat.format(birthdate);
+    }
+
+
 
     public Gender getGender() {
         return gender;

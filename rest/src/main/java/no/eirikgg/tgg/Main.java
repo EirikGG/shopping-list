@@ -18,25 +18,33 @@ public class Main {
     public static void main(String[] args) {
         log.info("Starting application...");
 
-        Db db = PostgresDb.createMigratedInstance(
+        Db db = PostgresDb.getMigratedInstance(
                 System.getProperty("DB.HOSTNAME"),
                 System.getProperty("DB.PORT"),
                 System.getProperty("DB.NAME"),
                 System.getProperty("DB.USERNAME"),
                 System.getProperty("DB.PASSWORD")
         );
-
         log.info("Completed setup and migration");
 
+        Javalin app = setupJavalinApp(db);
+        log.info("Configured javalin routes");
+
+        String appPortProperty = System.getProperty("APP.PORT");
+        int appPort = Integer.parseInt(appPortProperty);
+        app.start(appPort);
+    }
+
+
+    public static Javalin setupJavalinApp(Db db) {
+        AuthenticationService authenticationService = new AuthenticationService(db);
+        UserService userService = new UserService(db);
+
         LogFilter logFilter = new LogFilter();
-        AuthenticationFilter authenticationFilter = new AuthenticationFilter(
-                new AuthenticationService(db)
-        );
+        AuthenticationFilter authenticationFilter = new AuthenticationFilter(authenticationService);
 
         GeneralController generalController = new GeneralController(db);
-        UserController userController = new UserController(
-                new UserService(db)
-        );
+        UserController userController = new UserController(userService, authenticationService);
 
         Javalin app = Javalin.create(config -> {
             config.routes.beforeMatched(logFilter::filter);
@@ -45,13 +53,10 @@ public class Main {
             config.routes.get("/ping", generalController::pingDb);
             config.routes.get("/noop", generalController::noop);
 
-            config.routes.post("/user", userController::createUser);
+            config.routes.post(Utils.PATH_USER, userController::createUser);
+            config.routes.post(Utils.PATH_LOGIN, userController::login);
         });
 
-        log.info("Configured javalin routes");
-
-        String appPortProperty = System.getProperty("APP.PORT");
-        int appPort = Integer.parseInt(appPortProperty);
-        app.start(appPort);
+        return app;
     }
 }

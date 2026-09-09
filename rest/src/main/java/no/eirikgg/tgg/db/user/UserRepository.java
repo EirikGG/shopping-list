@@ -10,7 +10,6 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 public class UserRepository {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -29,7 +28,7 @@ public class UserRepository {
             Person person = savePerson(conn, user.getPerson());
             Authorization authorization = saveAutorization(conn, person, user.getAuthorization());
             Email email = saveEmail(conn, person, user.getEmail());
-            PhoneNumber phoneNumber = savePhonenumber(conn, person, user.getPhoneNumber());
+            PhoneNumber phoneNumber = savePhonenumber(conn, person, user.getPhonenumber());
 
             conn.commit();
 
@@ -152,8 +151,6 @@ public class UserRepository {
                 rs.getString("username").orElseThrow(),
                 rs.getString("password").orElseThrow()
         ));
-
-        persistedAuthorization.forEach(System.out::println);
 
         if (1 != persistedAuthorization.size()) {
             throw new RuntimeException("Failed to save authorization");

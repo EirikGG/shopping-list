@@ -1,13 +1,10 @@
 package no.eirikgg.tgg.service;
 
 import no.eirikgg.tgg.db.Db;
-import no.eirikgg.tgg.db.user.Authorization;
 import no.eirikgg.tgg.db.user.User;
 import no.eirikgg.tgg.db.user.UserRepository;
 
 import java.sql.SQLException;
-import java.util.Optional;
-import java.util.UUID;
 
 public class UserService {
 
@@ -19,7 +16,7 @@ public class UserService {
     }
 
 
-    public User createUser(User newUser) {
+    public User persistUser(User newUser) {
         try {
             return userRepository.createUser(newUser);
         }

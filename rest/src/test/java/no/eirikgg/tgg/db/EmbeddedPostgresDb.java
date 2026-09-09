@@ -13,7 +13,7 @@ public final class EmbeddedPostgresDb implements Db, AutoCloseable {
     private final EmbeddedPostgres postgres;
     private final DataSource dataSource;
 
-    public EmbeddedPostgresDb() {
+    private EmbeddedPostgresDb() {
         try {
             this.postgres = EmbeddedPostgres.builder().start();
             this.dataSource = postgres.getPostgresDatabase();
