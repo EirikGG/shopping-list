@@ -1,11 +1,11 @@
-package no.eirikgg.tgg.db.authentication;
+package no.eirikgg.tgg.db.repository;
 
+import no.eirikgg.tgg.datamodel.Authorization;
 import no.eirikgg.tgg.db.Db;
-import no.eirikgg.tgg.db.user.Authorization;
-import no.eirikgg.tgg.db.user.Email;
-import no.eirikgg.tgg.db.user.Person;
-import no.eirikgg.tgg.db.user.PhoneNumber;
-import no.eirikgg.tgg.db.user.User;
+import no.eirikgg.tgg.datamodel.Email;
+import no.eirikgg.tgg.datamodel.Person;
+import no.eirikgg.tgg.datamodel.PhoneNumber;
+import no.eirikgg.tgg.datamodel.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,8 +1,9 @@
 package no.eirikgg.tgg.service;
 
 import no.eirikgg.tgg.db.Db;
-import no.eirikgg.tgg.db.user.User;
-import no.eirikgg.tgg.db.user.UserRepository;
+import no.eirikgg.tgg.datamodel.User;
+import no.eirikgg.tgg.db.repository.UserRepository;
+import no.eirikgg.tgg.errors.UsernameAlreadyExistsException;
 
 import java.sql.SQLException;
 
@@ -16,7 +17,7 @@ public class UserService {
     }
 
 
-    public User persistUser(User newUser) {
+    public User persistUser(User newUser) throws UsernameAlreadyExistsException {
         try {
             return userRepository.createUser(newUser);
         }

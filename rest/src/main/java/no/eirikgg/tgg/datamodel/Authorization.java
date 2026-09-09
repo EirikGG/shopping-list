@@ -1,4 +1,4 @@
-package no.eirikgg.tgg.db.user;
+package no.eirikgg.tgg.datamodel;
 
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonProperty;

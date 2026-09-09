@@ -1,12 +1,17 @@
 package no.eirikgg.tgg;
 
 import io.javalin.Javalin;
+import io.javalin.config.RoutesConfig;
+import io.javalin.http.HttpStatus;
 import no.eirikgg.tgg.controller.AuthenticationFilter;
 import no.eirikgg.tgg.controller.GeneralController;
 import no.eirikgg.tgg.controller.LogFilter;
 import no.eirikgg.tgg.controller.UserController;
 import no.eirikgg.tgg.db.Db;
 import no.eirikgg.tgg.db.PostgresDb;
+import no.eirikgg.tgg.errors.Error;
+import no.eirikgg.tgg.errors.PublicError;
+import no.eirikgg.tgg.errors.UsernameAlreadyExistsException;
 import no.eirikgg.tgg.service.AuthenticationService;
 import no.eirikgg.tgg.service.UserService;
 import org.slf4j.Logger;
@@ -14,6 +19,9 @@ import org.slf4j.LoggerFactory;
 
 public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
+
+    public static final String USER_PARAM = "user";
+    public static final String SESSION_ID_PARAM = "session-id";
 
     public static void main(String[] args) {
         log.info("Starting application...");
@@ -47,15 +55,25 @@ public class Main {
         UserController userController = new UserController(userService, authenticationService);
 
         Javalin app = Javalin.create(config -> {
-            config.routes.beforeMatched(logFilter::filter);
-            config.routes.beforeMatched(authenticationFilter::filter);
+            RoutesConfig routes = config.routes;
+            routes.beforeMatched(logFilter::filter);
+            routes.beforeMatched(authenticationFilter::filter);
 
-            config.routes.get("/ping", generalController::pingDb);
-            config.routes.get("/noop", generalController::noop);
+            routes.get(GeneralController.PING_PATH, generalController::pingDb);
+            routes.get(GeneralController.NOOP_PATH, generalController::noop);
 
-            config.routes.post(Utils.PATH_USER, userController::createUser);
-            config.routes.post(Utils.PATH_LOGIN, userController::login);
+            routes.post(UserController.USER_PATH, userController::createUser);
+            routes.post(UserController.LOGIN_PATH, userController::login);
+
+
+            routes.exception(UsernameAlreadyExistsException.class, (ex, ctx) -> {
+                HttpStatus errorStatus = HttpStatus.BAD_REQUEST;
+                PublicError publicError = new PublicError(errorStatus, Error.DUPLICATE_USERNAME);
+                ctx.status(errorStatus).json(publicError);
+            });
         });
+
+
 
         return app;
     }

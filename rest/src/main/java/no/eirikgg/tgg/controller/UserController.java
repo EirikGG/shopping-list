@@ -1,28 +1,29 @@
 package no.eirikgg.tgg.controller;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.UnauthorizedResponse;
-import no.eirikgg.tgg.db.user.Authorization;
-import no.eirikgg.tgg.db.user.Email;
-import no.eirikgg.tgg.db.user.Person;
-import no.eirikgg.tgg.db.user.PhoneNumber;
-import no.eirikgg.tgg.db.user.User;
+import no.eirikgg.tgg.datamodel.Authorization;
+import no.eirikgg.tgg.datamodel.Email;
+import no.eirikgg.tgg.datamodel.Person;
+import no.eirikgg.tgg.datamodel.PhoneNumber;
+import no.eirikgg.tgg.datamodel.User;
+import no.eirikgg.tgg.errors.UsernameAlreadyExistsException;
 import no.eirikgg.tgg.service.AuthenticationService;
 import no.eirikgg.tgg.service.PasswordService;
 import no.eirikgg.tgg.service.UserService;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 public class UserController {
+    public static final String USER_PATH = "/user";
+    public static final String LOGIN_PATH = "/login";
 
     private UserService userService;
     private AuthenticationService authenticationService;
@@ -33,7 +34,8 @@ public class UserController {
         this.authenticationService = authenticationService;
     }
 
-    public void createUser(Context ctx) throws JsonProcessingException {
+
+    public void createUser(Context ctx) throws JsonProcessingException, UsernameAlreadyExistsException {
         JsonNode json = mapper.readTree(ctx.body());
 
         String firstName = json.get("firstName").asText();
@@ -65,10 +67,8 @@ public class UserController {
         JsonNode json = mapper.readTree(ctx.body());
         String username = json.get("username").asText();
         String password = json.get("password").asText();
-        String passwordHash = PasswordService.hashPassword(password);
 
-        Authorization authorization = new Authorization(username, passwordHash);
-        Optional<UUID> sessionId = authenticationService.login(authorization);
+        Optional<UUID> sessionId = authenticationService.login(username, password);
 
         if (sessionId.isEmpty()) {
             ctx.status(HttpStatus.UNAUTHORIZED);

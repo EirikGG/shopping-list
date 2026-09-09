@@ -10,6 +10,10 @@ import java.util.Map;
 
 public class GeneralController {
 
+    public static final String PING_PATH = "/ping";
+    public static final String NOOP_PATH = "/noop";
+
+
     private Db db;
 
     public GeneralController(Db db) {

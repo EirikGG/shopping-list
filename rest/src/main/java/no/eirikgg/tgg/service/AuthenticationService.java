@@ -1,16 +1,18 @@
 package no.eirikgg.tgg.service;
 
 import no.eirikgg.tgg.db.Db;
-import no.eirikgg.tgg.db.authentication.AuthenticationRepository;
-import no.eirikgg.tgg.db.user.Authorization;
-import no.eirikgg.tgg.db.user.User;
-import no.eirikgg.tgg.db.user.UserRepository;
+import no.eirikgg.tgg.db.repository.AuthenticationRepository;
+import no.eirikgg.tgg.db.repository.UserRepository;
+import no.eirikgg.tgg.datamodel.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.util.Optional;
 import java.util.UUID;
 
 public class AuthenticationService {
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     private UserRepository userRepository;
     private AuthenticationRepository authenticationRepository;
@@ -22,18 +24,16 @@ public class AuthenticationService {
     }
 
 
-    public Optional<UUID> login(Authorization auth) {
-        String username = auth.getUsername();
-        String hashedPassword = auth.getPasswordHash();
-
+    public Optional<UUID> login(String username, String password) {
         User user = userRepository.getUser(username).orElse(null);
 
         if (null == user) {
+            log.debug("User with username \"{}\" not found", username);
             return Optional.empty();
         }
 
         String savedPasswordHash = user.getAuthorization().getPasswordHash();
-        boolean correctPassword = PasswordService.verify(hashedPassword, savedPasswordHash);
+        boolean correctPassword = PasswordService.verify(password, savedPasswordHash);
         if (!correctPassword) {
             return Optional.empty();
         }

@@ -68,6 +68,20 @@ public interface Db {
         }
     }
 
+    default <R> Optional<R> selectSingle(Connection conn, String sql, Object param, RowHandler<R> rowMapper) {
+        List<R> values = select(conn, sql, new Object[]{param}, rowMapper);
+        if (values.isEmpty()) {
+            return Optional.empty();
+        }
+        else if  (values.size() == 1) {
+            R value = values.get(0);
+            return Optional.of(value);
+        }
+        else {
+            throw new IllegalStateException("Multiple values found in select one method");
+        }
+    }
+
     default Optional<Integer> insert(Connection conn, String sql, Object... params) {
         LocalDateTime startTime = LocalDateTime.now();
         dbUtils.validateSql(sql);

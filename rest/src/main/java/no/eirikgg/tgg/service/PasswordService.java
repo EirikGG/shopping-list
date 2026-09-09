@@ -1,10 +1,14 @@
 package no.eirikgg.tgg.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Objects;
 
@@ -44,23 +48,26 @@ public class PasswordService {
         );
     }
 
-    public static boolean verify(
-            String password,
-            String storedPassword
+public static boolean verify(
+        String plainTextPassword,
+        String passwordHash
     ) {
-        Objects.requireNonNull(password, "password");
+        Objects.requireNonNull(plainTextPassword, "plainTextPassword");
 
-        if (storedPassword == null) {
+        if (passwordHash == null || passwordHash.isBlank()) {
             return false;
         }
 
-        char[] passwordChar = password.toCharArray();
+        char[] passwordChars = plainTextPassword.toCharArray();
 
         try {
-            String[] parts = storedPassword.split("\\$");
+            String[] parts = passwordHash.split("\\$", -1);
 
-            if (parts.length != 4 ||
-                    !STORAGE_NAME.equals(parts[0])) {
+            if (parts.length != 4) {
+                return false;
+            }
+
+            if (!STORAGE_NAME.equals(parts[0])) {
                 return false;
             }
 
@@ -71,23 +78,23 @@ public class PasswordService {
             }
 
             byte[] salt = Base64.getDecoder().decode(parts[2]);
-
             byte[] expectedHash = Base64.getDecoder().decode(parts[3]);
 
             byte[] actualHash = deriveHash(
-                    passwordChar,
+                    passwordChars,
                     salt,
                     iterations,
                     expectedHash.length
             );
 
-            return MessageDigest.isEqual(
-                    expectedHash,
-                    actualHash
-            );
-        } catch (IllegalArgumentException exception) {
-            // Invalid iteration count or Base64 data.
+            return MessageDigest.isEqual(expectedHash, actualHash);
+
+        }
+        catch (IllegalArgumentException e) {
             return false;
+        }
+        finally {
+            Arrays.fill(passwordChars, '\0');
         }
     }
 
@@ -117,7 +124,7 @@ public class PasswordService {
     }
 
 
-
+private static final Logger log = LoggerFactory.getLogger(PasswordService.class);
     public static String hashPassword(String password) {
         char[] passwordBytes = password.toCharArray();
         String hash = PasswordService.hash(passwordBytes);

@@ -1,7 +1,12 @@
-package no.eirikgg.tgg.db.user;
+package no.eirikgg.tgg.db.repository;
 
+import no.eirikgg.tgg.datamodel.Authorization;
+import no.eirikgg.tgg.datamodel.Email;
+import no.eirikgg.tgg.datamodel.Person;
+import no.eirikgg.tgg.datamodel.PhoneNumber;
+import no.eirikgg.tgg.datamodel.User;
 import no.eirikgg.tgg.db.Db;
-import no.eirikgg.tgg.service.PasswordService;
+import no.eirikgg.tgg.errors.UsernameAlreadyExistsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +26,7 @@ public class UserRepository {
     }
 
 
-    public User createUser(User user) throws SQLException {
+    public User createUser(User user) throws SQLException, UsernameAlreadyExistsException {
         Connection conn = db.getConnection();
         try {
             conn.setAutoCommit(false);
@@ -34,7 +39,7 @@ public class UserRepository {
 
             return new User(person, authorization, email, phoneNumber);
         }
-        catch (SQLException e) {
+        catch (Exception e) {
             conn.rollback();
             throw e;
         }
@@ -106,9 +111,22 @@ public class UserRepository {
         return persistedPersons.get(0);
     }
 
-    private Authorization saveAutorization(Connection conn, Person persistedPerson, Authorization authorization) {
-        String password = authorization.getPasswordHash();
-        String hashedPassword = PasswordService.hashPassword(password);
+    private Authorization saveAutorization(Connection conn, Person persistedPerson, Authorization authorization) throws UsernameAlreadyExistsException {
+        String username = authorization.getUsername();
+        int numberOfLogins = db.selectSingle(conn, """
+            select count(*) as number_of_logins 
+            from person_login 
+            where username = ?
+            """,
+                username,
+            rs -> rs.getInt("number_of_logins").orElse(0)
+        ).orElse(0);
+
+        if (0 < numberOfLogins) {
+            String msg = "Cant have multiple logins with the same username \"%s\"".formatted(username);
+            log.warn(msg, username);
+            throw new UsernameAlreadyExistsException(msg);
+        }
 
         LocalDateTime created = LocalDateTime.now();
         int personLoginId = db.insert(conn, """
@@ -127,9 +145,9 @@ public class UserRepository {
             )
             """,
             persistedPerson.getId().orElseThrow(),
-            authorization.getUsername(),
-            hashedPassword,
-                created,
+                username,
+            authorization.getPasswordHash(),
+            created,
             LocalDateTime.of(9999, 12, 31, 23, 59)
         ).orElseThrow(
             () -> new RuntimeException("Failed to save autorization")
@@ -304,7 +322,7 @@ public class UserRepository {
             );
 
             if (1 < users.size()) {
-                throw new RuntimeException("Failed to save user");
+                throw new RuntimeException("Found more than one user with username: " + username);
             }
 
             if (users.isEmpty()) {

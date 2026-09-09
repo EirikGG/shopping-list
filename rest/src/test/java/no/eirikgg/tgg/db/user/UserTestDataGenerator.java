@@ -1,5 +1,10 @@
 package no.eirikgg.tgg.db.user;
 
+import no.eirikgg.tgg.datamodel.Authorization;
+import no.eirikgg.tgg.datamodel.Email;
+import no.eirikgg.tgg.datamodel.Person;
+import no.eirikgg.tgg.datamodel.PhoneNumber;
+import no.eirikgg.tgg.datamodel.User;
 import no.eirikgg.tgg.service.PasswordService;
 
 import java.time.LocalDate;

@@ -4,8 +4,8 @@ import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
 import io.javalin.http.Header;
 import io.javalin.http.UnauthorizedResponse;
-import no.eirikgg.tgg.Utils;
-import no.eirikgg.tgg.db.user.User;
+import no.eirikgg.tgg.Main;
+import no.eirikgg.tgg.datamodel.User;
 import no.eirikgg.tgg.service.AuthenticationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +31,10 @@ public class AuthenticationFilter {
             return;
         }
 
-        if (HandlerType.POST.equals(method) && Utils.PATH_USER.equals(path)) {
+        if (HandlerType.POST.equals(method) && (
+                UserController.USER_PATH.equals(path) ||
+                UserController.LOGIN_PATH.equals(path)
+        )) {
             log.debug("Skipping authentication filter on path [{}] - {}", method, path);
             return;
         }
@@ -48,8 +51,8 @@ public class AuthenticationFilter {
 
         if (user.isPresent()) {
             log.debug("Logged in user: {}", user.get().getAuthorization().getUsername());
-            ctx.attribute(Utils.USER_PARAM, user.orElseThrow());
-            ctx.attribute(Utils.SESSION_ID_PARAM, sessionId);
+            ctx.attribute(Main.USER_PARAM, user.orElseThrow());
+            ctx.attribute(Main.SESSION_ID_PARAM, sessionId);
         }
         else {
             log.debug("{} requires login - not authorized", path);
