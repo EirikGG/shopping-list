@@ -20,9 +20,6 @@ import org.slf4j.LoggerFactory;
 public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
 
-    public static final String USER_PARAM = "user";
-    public static final String SESSION_ID_PARAM = "session-id";
-
     public static void main(String[] args) {
         log.info("Starting application...");
 
@@ -62,8 +59,9 @@ public class Main {
             routes.get(GeneralController.PING_PATH, generalController::pingDb);
             routes.get(GeneralController.NOOP_PATH, generalController::noop);
 
-            routes.post(UserController.USER_PATH, userController::createUser);
-            routes.post(UserController.LOGIN_PATH, userController::login);
+            routes.post(UserController.PATH_USER, userController::createUser);
+            routes.post(UserController.PATH_LOGIN, userController::login);
+            routes.get(UserController.PATH_SESSION_IS_VALID, userController::isValid);
 
 
             routes.exception(UsernameAlreadyExistsException.class, (ex, ctx) -> {

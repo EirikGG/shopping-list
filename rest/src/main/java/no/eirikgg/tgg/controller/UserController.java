@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.UnauthorizedResponse;
+import no.eirikgg.tgg.Main;
+import no.eirikgg.tgg.Utils;
 import no.eirikgg.tgg.datamodel.Authorization;
 import no.eirikgg.tgg.datamodel.Email;
 import no.eirikgg.tgg.datamodel.Person;
@@ -22,8 +24,21 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class UserController {
-    public static final String USER_PATH = "/user";
-    public static final String LOGIN_PATH = "/login";
+
+    public static final String PATH_USER = "/user";
+    public static final String PATH_LOGIN = "/login_user";
+    public static final String PATH_SESSION_IS_VALID = "/session_is_valid";
+
+    public static final String PARAM_FIRSTNAME = "firstname";
+    public static final String PARAM_LASTNAME = "lastname";
+    public static final String PARAM_BIRTHDATE = "birthdate";
+    public static final String PARAM_GENDER = "gender";
+    public static final String PARAM_USERNAME = "username";
+    public static final String PARAM_PASSWORD = "password";
+    public static final String PARAM_EMAIL = "email";
+    public static final String PARAM_COUNTRYCODE = "countrycode";
+    public static final String PARAM_PHONENUMBER = "phonenumber";
+
 
     private UserService userService;
     private AuthenticationService authenticationService;
@@ -38,18 +53,18 @@ public class UserController {
     public void createUser(Context ctx) throws JsonProcessingException, UsernameAlreadyExistsException {
         JsonNode json = mapper.readTree(ctx.body());
 
-        String firstName = json.get("firstName").asText();
-        String lastName = json.get("lastName").asText();
+        String firstName = json.get(PARAM_FIRSTNAME).asText();
+        String lastName = json.get(PARAM_LASTNAME).asText();
         LocalDate birthdate = LocalDate.parse(
-                json.get("birthdate").asText(),
+                json.get(PARAM_BIRTHDATE).asText(),
                 Person.birthdateFormat
         );
-        Person.Gender gender = Person.Gender.valueOf(json.get("gender").asText());
-        String username = json.get("username").asText();
-        String password = PasswordService.hashPassword(json.get("password").asText());
-        String email = json.get("email").asText();
-        String countryCode = json.get("countryCode").asText();
-        String phoneNumber = json.get("phoneNumber").asText();
+        Person.Gender gender = Person.Gender.valueOf(json.get(PARAM_GENDER).asText());
+        String username = json.get(PARAM_USERNAME).asText();
+        String password = PasswordService.hashPassword(json.get(PARAM_PASSWORD).asText());
+        String email = json.get(PARAM_EMAIL).asText();
+        String countryCode = json.get(PARAM_COUNTRYCODE).asText();
+        String phoneNumber = json.get(PARAM_PHONENUMBER).asText();
 
         User userRequest = new User(
                 new Person(firstName, lastName, birthdate, gender),
@@ -65,8 +80,8 @@ public class UserController {
 
     public void login(Context ctx) throws JsonProcessingException {
         JsonNode json = mapper.readTree(ctx.body());
-        String username = json.get("username").asText();
-        String password = json.get("password").asText();
+        String username = json.get(PARAM_USERNAME).asText();
+        String password = json.get(PARAM_PASSWORD).asText();
 
         Optional<UUID> sessionId = authenticationService.login(username, password);
 
@@ -76,6 +91,20 @@ public class UserController {
         }
 
         ctx.status(HttpStatus.OK);
-        ctx.json(Map.of("sessionId", sessionId.get()));
+        ctx.json(Map.of(AuthenticationFilter.PARAM_SESSION_ID, sessionId.get()));
+    }
+
+    public void isValid(Context ctx) {
+        UUID sessionId = Utils.getSessionIdFromRequest(ctx).orElseThrow(
+                () -> new UnauthorizedResponse("UNAUTHORIZED")
+        );
+
+        boolean isValid = authenticationService.isValidSessionId(sessionId);
+        if (!isValid) {
+            ctx.status(HttpStatus.UNAUTHORIZED);
+            throw new UnauthorizedResponse("UNAUTHORIZED");
+        }
+
+        ctx.status(HttpStatus.OK);
     }
 }

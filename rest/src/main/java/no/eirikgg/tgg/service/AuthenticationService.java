@@ -61,4 +61,8 @@ public class AuthenticationService {
 
         return authenticationRepository.getUserFromSession(sessionId);
     }
+
+    public boolean isValidSessionId(UUID sessionId) {
+        return authenticationRepository.isValidSessionId(sessionId);
+    }
 }
