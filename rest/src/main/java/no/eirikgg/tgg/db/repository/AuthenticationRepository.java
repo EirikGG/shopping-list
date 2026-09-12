@@ -6,6 +6,7 @@ import no.eirikgg.tgg.datamodel.Email;
 import no.eirikgg.tgg.datamodel.Person;
 import no.eirikgg.tgg.datamodel.PhoneNumber;
 import no.eirikgg.tgg.datamodel.User;
+import org.intellij.lang.annotations.Language;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

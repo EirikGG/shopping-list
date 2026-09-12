@@ -1,5 +1,7 @@
 package no.eirikgg.tgg.service;
 
+import io.javalin.http.Context;
+import io.javalin.http.Header;
 import no.eirikgg.tgg.db.Db;
 import no.eirikgg.tgg.db.repository.AuthenticationRepository;
 import no.eirikgg.tgg.db.repository.UserRepository;
@@ -64,5 +66,14 @@ public class AuthenticationService {
 
     public boolean isValidSessionId(UUID sessionId) {
         return authenticationRepository.isValidSessionId(sessionId);
+    }
+
+
+
+    public static Optional<UUID> getSessionIdFromRequest(Context ctx) {
+        return Optional.ofNullable(ctx)
+                .map(context -> context.header(Header.AUTHORIZATION))
+                .map(header -> header.replace("Bearer ", ""))
+                .map(UUID::fromString);
     }
 }

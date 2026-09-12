@@ -111,7 +111,10 @@ public class UserRepository {
         return persistedPersons.get(0);
     }
 
-    private Authorization saveAutorization(Connection conn, Person persistedPerson, Authorization authorization) throws UsernameAlreadyExistsException {
+    private Authorization saveAutorization(
+            Connection conn, Person persistedPerson, Authorization authorization
+    ) throws UsernameAlreadyExistsException {
+
         String username = authorization.getUsername();
         int numberOfLogins = db.selectSingle(conn, """
             select count(*) as number_of_logins 

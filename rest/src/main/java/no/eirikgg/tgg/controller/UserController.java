@@ -3,16 +3,16 @@ package no.eirikgg.tgg.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.javalin.config.JavalinConfig;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.UnauthorizedResponse;
-import no.eirikgg.tgg.Main;
-import no.eirikgg.tgg.Utils;
 import no.eirikgg.tgg.datamodel.Authorization;
 import no.eirikgg.tgg.datamodel.Email;
 import no.eirikgg.tgg.datamodel.Person;
 import no.eirikgg.tgg.datamodel.PhoneNumber;
 import no.eirikgg.tgg.datamodel.User;
+import no.eirikgg.tgg.db.Db;
 import no.eirikgg.tgg.errors.UsernameAlreadyExistsException;
 import no.eirikgg.tgg.service.AuthenticationService;
 import no.eirikgg.tgg.service.PasswordService;
@@ -47,6 +47,16 @@ public class UserController {
     public UserController(UserService userService, AuthenticationService authenticationService) {
         this.userService = userService;
         this.authenticationService = authenticationService;
+    }
+
+    public static void setup(JavalinConfig config, Db db) {
+        UserController userController = new UserController(
+                new UserService(db),
+                new AuthenticationService(db)
+        );
+        config.routes.post(UserController.PATH_USER, userController::createUser);
+        config.routes.post(UserController.PATH_LOGIN, userController::login);
+        config.routes.get(UserController.PATH_SESSION_IS_VALID, userController::isValid);
     }
 
 
@@ -95,7 +105,7 @@ public class UserController {
     }
 
     public void isValid(Context ctx) {
-        UUID sessionId = Utils.getSessionIdFromRequest(ctx).orElseThrow(
+        UUID sessionId = AuthenticationService.getSessionIdFromRequest(ctx).orElseThrow(
                 () -> new UnauthorizedResponse("UNAUTHORIZED")
         );
 

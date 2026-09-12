@@ -1,5 +1,6 @@
 package no.eirikgg.tgg.db;
 
+import org.intellij.lang.annotations.Language;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,15 +26,15 @@ public interface Db {
 
 
 
-    default <R> List<R> select(Connection conn, String sql, RowHandler<R> rowMapper) {
-        return select(conn, sql, new Object[0], rowMapper);
-    }
-
-    default <R> List<R> select(Connection conn, String sql, Object param, RowHandler<R> rowMapper) {
+    default <R> List<R> select(
+            Connection conn, @Language("SQL") String sql, Object param, RowHandler<R> rowMapper
+    ) {
         return select(conn, sql, new Object[] {param}, rowMapper);
     }
 
-    default <R> List<R> select(Connection conn, String sql, Object[] params, RowHandler<R> rowMapper) {
+    default <R> List<R> select(
+            Connection conn, @Language("SQL") String sql, Object[] params, RowHandler<R> rowMapper
+    ) {
         LocalDateTime startTime = LocalDateTime.now();
         dbUtils.validateSql(sql);
 
@@ -68,7 +69,9 @@ public interface Db {
         }
     }
 
-    default <R> Optional<R> selectSingle(Connection conn, String sql, Object param, RowHandler<R> rowMapper) {
+    default <R> Optional<R> selectSingle(
+            Connection conn, @Language("SQL") String sql, Object param, RowHandler<R> rowMapper
+    ) {
         List<R> values = select(conn, sql, new Object[]{param}, rowMapper);
         if (values.isEmpty()) {
             return Optional.empty();
@@ -82,7 +85,9 @@ public interface Db {
         }
     }
 
-    default Optional<Integer> insert(Connection conn, String sql, Object... params) {
+    default Optional<Integer> insert(
+            Connection conn, @Language("SQL") String sql, Object... params
+    ) {
         LocalDateTime startTime = LocalDateTime.now();
         dbUtils.validateSql(sql);
 

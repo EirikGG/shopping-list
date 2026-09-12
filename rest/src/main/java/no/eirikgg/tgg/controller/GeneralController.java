@@ -1,5 +1,6 @@
 package no.eirikgg.tgg.controller;
 
+import io.javalin.config.JavalinConfig;
 import io.javalin.http.ContentType;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -18,6 +19,13 @@ public class GeneralController {
 
     public GeneralController(Db db) {
         this.db = db;
+    }
+
+    public static void setup(JavalinConfig config, Db db) {
+        GeneralController gc = new GeneralController(db);
+
+        config.routes.get(PING_PATH, gc::pingDb);
+        config.routes.get(NOOP_PATH, gc::noop);
     }
 
     public void pingDb(Context ctx) {

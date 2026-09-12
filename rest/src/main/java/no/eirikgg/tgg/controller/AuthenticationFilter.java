@@ -1,11 +1,11 @@
 package no.eirikgg.tgg.controller;
 
+import io.javalin.config.JavalinConfig;
 import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
 import io.javalin.http.UnauthorizedResponse;
-import no.eirikgg.tgg.Main;
-import no.eirikgg.tgg.Utils;
 import no.eirikgg.tgg.datamodel.User;
+import no.eirikgg.tgg.db.Db;
 import no.eirikgg.tgg.service.AuthenticationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +28,12 @@ public class AuthenticationFilter {
         this.authenticationService = authenticationService;
     }
 
+    public static void setup(JavalinConfig config, Db db) {
+        AuthenticationService authenticationService = new AuthenticationService(db);
+        AuthenticationFilter authenticationFilter = new AuthenticationFilter(authenticationService);
+        config.routes.beforeMatched(authenticationFilter::filter);
+    }
+
     public void filter(Context ctx) {
         String path = ctx.path();
         HandlerType method = ctx.method();
@@ -44,7 +50,7 @@ public class AuthenticationFilter {
             return;
         }
 
-        UUID sessionId = Utils.getSessionIdFromRequest(ctx).orElseThrow(
+        UUID sessionId = AuthenticationService.getSessionIdFromRequest(ctx).orElseThrow(
                 () -> new UnauthorizedResponse("User not authorized")
         );
         Optional<User> user = authenticationService.getLoggedInUser(sessionId);

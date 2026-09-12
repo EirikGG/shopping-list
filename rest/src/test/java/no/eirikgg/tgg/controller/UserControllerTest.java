@@ -70,7 +70,10 @@ class UserControllerTest {
     }
 
 
-    private static void testSessionId(HttpClient client, UUID okSessionId) throws IOException, InterruptedException {
+    private static void testSessionId(
+            HttpClient client, UUID okSessionId
+    ) throws IOException, InterruptedException {
+
         HttpRequest request = HttpRequest.newBuilder()
                  .uri(URI.create(client.getOrigin() + UserController.PATH_SESSION_IS_VALID))
                  .header(Header.AUTHORIZATION, okSessionId.toString())
@@ -110,6 +113,7 @@ class UserControllerTest {
     private static Response createUserAndPersistExpectStatus(
             HttpClient client, int status
     ) throws JsonProcessingException {
+
         Response userResponse = client.post(UserController.PATH_USER, Map.ofEntries(
                 Map.entry(UserController.PARAM_FIRSTNAME, FIRSTNAME),
                 Map.entry(UserController.PARAM_LASTNAME, LASTNAME),
@@ -127,9 +131,7 @@ class UserControllerTest {
         if (200 == userResponse.code()) {
             JsonNode json = mapper.readTree(userResponse.getBody().string());
 
-
             JsonNode authorization = json.get("authorization");
-            String username = authorization.get(UserController.PARAM_USERNAME).asText();
             String password = authorization.get(UserController.PARAM_PASSWORD).asText();
 
             assertNotEquals(UserController.PARAM_PASSWORD, password);
