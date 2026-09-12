@@ -1,8 +1,10 @@
 <script setup>
-import { ref } from 'vue'
-import { createUser } from '../api/auth.js'
+import { computed, onUnmounted, ref, watch } from 'vue'
+import { createUser, usernameIsAvailable } from '../api/auth.js'
 
 const emit = defineEmits(['created'])
+
+const CHECK_DELAY_MS = 400
 
 // The backend reads every field unconditionally, so all of them are required.
 const form = ref({
@@ -17,8 +19,63 @@ const form = ref({
   phonenumber: ''
 })
 
+const passwordRepeat = ref('')
 const error = ref('')
 const busy = ref(false)
+
+// 'idle' | 'checking' | 'available' | 'taken' | 'error'
+const usernameStatus = ref('idle')
+
+let checkTimer = null
+// Guards against a slow earlier check overwriting a newer one's result.
+let latestCheck = 0
+
+const passwordsMatch = computed(
+  () => form.value.password === passwordRepeat.value
+)
+
+const showPasswordMismatch = computed(
+  () => passwordRepeat.value !== '' && !passwordsMatch.value
+)
+
+const canSubmit = computed(
+  () =>
+    !busy.value &&
+    passwordsMatch.value &&
+    usernameStatus.value !== 'taken' &&
+    usernameStatus.value !== 'checking'
+)
+
+watch(() => form.value.username, username => {
+  clearTimeout(checkTimer)
+
+  const trimmed = username.trim()
+  if (trimmed === '') {
+    usernameStatus.value = 'idle'
+    latestCheck++
+    return
+  }
+
+  usernameStatus.value = 'checking'
+  checkTimer = setTimeout(() => checkUsername(trimmed), CHECK_DELAY_MS)
+})
+
+async function checkUsername(username) {
+  const check = ++latestCheck
+
+  try {
+    const available = await usernameIsAvailable(username)
+    if (check === latestCheck) {
+      usernameStatus.value = available ? 'available' : 'taken'
+    }
+  } catch {
+    if (check === latestCheck) {
+      usernameStatus.value = 'error'
+    }
+  }
+}
+
+onUnmounted(() => clearTimeout(checkTimer))
 
 async function submit() {
   error.value = ''
@@ -28,9 +85,12 @@ async function submit() {
     await createUser(form.value)
     emit('created', form.value.username)
   } catch (e) {
-    error.value = e.code === 'DUPLICATE_USERNAME'
-      ? 'That username is already taken.'
-      : 'Could not create the account. Try again.'
+    if (e.code === 'DUPLICATE_USERNAME') {
+      error.value = 'That username is already taken.'
+      usernameStatus.value = 'taken'
+    } else {
+      error.value = 'Could not create the account. Try again.'
+    }
   } finally {
     busy.value = false
   }
@@ -91,8 +151,20 @@ async function submit() {
         id="signup-username"
         v-model="form.username"
         autocomplete="username"
+        aria-describedby="signup-username-status"
         required
       />
+      <p
+        id="signup-username-status"
+        class="hint"
+        :class="usernameStatus"
+        aria-live="polite"
+      >
+        <template v-if="usernameStatus === 'checking'">Checking availability…</template>
+        <template v-else-if="usernameStatus === 'available'">Username is available.</template>
+        <template v-else-if="usernameStatus === 'taken'">Username is already taken.</template>
+        <template v-else-if="usernameStatus === 'error'">Could not check availability.</template>
+      </p>
     </div>
 
     <div class="field">
@@ -106,9 +178,29 @@ async function submit() {
       />
     </div>
 
+    <div class="field">
+      <label for="signup-password-repeat">Repeat password</label>
+      <input
+        id="signup-password-repeat"
+        v-model="passwordRepeat"
+        type="password"
+        autocomplete="new-password"
+        aria-describedby="signup-password-repeat-status"
+        required
+      />
+      <p
+        v-if="showPasswordMismatch"
+        id="signup-password-repeat-status"
+        class="hint taken"
+        aria-live="polite"
+      >
+        Passwords do not match.
+      </p>
+    </div>
+
     <p v-if="error" class="error">{{ error }}</p>
 
-    <button type="submit" :disabled="busy">
+    <button type="submit" :disabled="!canSubmit">
       {{ busy ? 'Creating account…' : 'Create account' }}
     </button>
   </form>
@@ -134,6 +226,22 @@ async function submit() {
 
 button[type='submit'] {
   width: 100%;
+}
+
+.hint {
+  margin: 0.25rem 0 0;
+  min-height: 1.1rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.hint.available {
+  color: var(--color-success);
+}
+
+.hint.taken,
+.hint.error {
+  color: var(--color-error);
 }
 
 .error {

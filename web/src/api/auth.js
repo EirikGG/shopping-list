@@ -44,6 +44,23 @@ export function createUser(user) {
   })
 }
 
+export async function usernameIsAvailable(username) {
+  // The backend takes the username as a header and answers 406 when it is taken.
+  const response = await fetch('/api/is_username_available', {
+    headers: { username }
+  })
+
+  if (response.status === 406) {
+    return false
+  }
+
+  if (!response.ok) {
+    throw new ApiError(response.statusText, response.status)
+  }
+
+  return true
+}
+
 export async function sessionIsValid(sessionId) {
   const response = await fetch('/api/session_is_valid', {
     headers: { Authorization: `Bearer ${sessionId}` }
