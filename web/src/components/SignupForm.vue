@@ -1,18 +1,18 @@
 <script setup>
 import { computed, onUnmounted, ref, watch } from 'vue'
-import { createUser, usernameIsAvailable } from '../api/auth.js'
+import { createUser, emailIsAvailable } from '../api/auth.js'
 
 const emit = defineEmits(['created'])
 
 const CHECK_DELAY_MS = 400
 
 // The backend reads every field unconditionally, so all of them are required.
+// It derives the username from the email, so there is no username field.
 const form = ref({
   firstname: '',
   lastname: '',
   birthdate: '',
   gender: 'MALE',
-  username: '',
   password: '',
   email: '',
   countrycode: '+47',
@@ -24,7 +24,7 @@ const error = ref('')
 const busy = ref(false)
 
 // 'idle' | 'checking' | 'available' | 'taken' | 'error'
-const usernameStatus = ref('idle')
+const emailStatus = ref('idle')
 
 let checkTimer = null
 // Guards against a slow earlier check overwriting a newer one's result.
@@ -42,35 +42,35 @@ const canSubmit = computed(
   () =>
     !busy.value &&
     passwordsMatch.value &&
-    usernameStatus.value !== 'taken' &&
-    usernameStatus.value !== 'checking'
+    emailStatus.value !== 'taken' &&
+    emailStatus.value !== 'checking'
 )
 
-watch(() => form.value.username, username => {
+watch(() => form.value.email, email => {
   clearTimeout(checkTimer)
 
-  const trimmed = username.trim()
+  const trimmed = email.trim()
   if (trimmed === '') {
-    usernameStatus.value = 'idle'
+    emailStatus.value = 'idle'
     latestCheck++
     return
   }
 
-  usernameStatus.value = 'checking'
-  checkTimer = setTimeout(() => checkUsername(trimmed), CHECK_DELAY_MS)
+  emailStatus.value = 'checking'
+  checkTimer = setTimeout(() => checkEmail(trimmed), CHECK_DELAY_MS)
 })
 
-async function checkUsername(username) {
+async function checkEmail(email) {
   const check = ++latestCheck
 
   try {
-    const available = await usernameIsAvailable(username)
+    const available = await emailIsAvailable(email)
     if (check === latestCheck) {
-      usernameStatus.value = available ? 'available' : 'taken'
+      emailStatus.value = available ? 'available' : 'taken'
     }
   } catch {
     if (check === latestCheck) {
-      usernameStatus.value = 'error'
+      emailStatus.value = 'error'
     }
   }
 }
@@ -83,11 +83,11 @@ async function submit() {
 
   try {
     await createUser(form.value)
-    emit('created', form.value.username)
+    emit('created', form.value.email)
   } catch (e) {
     if (e.code === 'DUPLICATE_USERNAME') {
-      error.value = 'That username is already taken.'
-      usernameStatus.value = 'taken'
+      error.value = 'An account with that email already exists.'
+      emailStatus.value = 'taken'
     } else {
       error.value = 'Could not create the account. Try again.'
     }
@@ -128,11 +128,6 @@ async function submit() {
       </div>
     </div>
 
-    <div class="field">
-      <label for="signup-email">Email</label>
-      <input id="signup-email" v-model="form.email" type="email" required />
-    </div>
-
     <div class="row phone">
       <div class="field">
         <label for="signup-countrycode">Country code</label>
@@ -146,24 +141,26 @@ async function submit() {
     </div>
 
     <div class="field">
-      <label for="signup-username">Username</label>
+      <label for="signup-email">Email</label>
       <input
-        id="signup-username"
-        v-model="form.username"
-        autocomplete="username"
-        aria-describedby="signup-username-status"
+        id="signup-email"
+        v-model="form.email"
+        type="email"
+        autocomplete="email"
+        aria-describedby="signup-email-status"
         required
       />
       <p
-        id="signup-username-status"
+        id="signup-email-status"
         class="hint"
-        :class="usernameStatus"
+        :class="emailStatus"
         aria-live="polite"
       >
-        <template v-if="usernameStatus === 'checking'">Checking availability…</template>
-        <template v-else-if="usernameStatus === 'available'">Username is available.</template>
-        <template v-else-if="usernameStatus === 'taken'">Username is already taken.</template>
-        <template v-else-if="usernameStatus === 'error'">Could not check availability.</template>
+        <template v-if="emailStatus === 'checking'">Checking availability…</template>
+        <template v-else-if="emailStatus === 'available'">Email is available.</template>
+        <template v-else-if="emailStatus === 'taken'">Email is already registered.</template>
+        <template v-else-if="emailStatus === 'error'">Could not check availability.</template>
+        <template v-else>You will log in with this email.</template>
       </p>
     </div>
 

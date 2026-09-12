@@ -16,8 +16,8 @@ onMounted(async () => {
   }
 })
 
-function onCreated(username) {
-  notice.value = `Account "${username}" created. You can log in now.`
+function onCreated(email) {
+  notice.value = `Account for ${email} created. You can log in now.`
   tab.value = 'login'
 }
 

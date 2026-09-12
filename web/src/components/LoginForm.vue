@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { login } from '../api/auth.js'
 import { setSessionId } from '../session.js'
 
-const username = ref('')
+const email = ref('')
 const password = ref('')
 const error = ref('')
 const busy = ref(false)
@@ -13,10 +13,10 @@ async function submit() {
   busy.value = true
 
   try {
-    setSessionId(await login(username.value, password.value))
+    setSessionId(await login(email.value, password.value))
   } catch (e) {
     error.value = e.status === 401
-      ? 'Wrong username or password.'
+      ? 'Wrong email or password.'
       : 'Could not log in. Try again.'
   } finally {
     busy.value = false
@@ -27,11 +27,12 @@ async function submit() {
 <template>
   <form @submit.prevent="submit">
     <div class="field">
-      <label for="login-username">Username</label>
+      <label for="login-email">Email</label>
       <input
-        id="login-username"
-        v-model="username"
-        autocomplete="username"
+        id="login-email"
+        v-model="email"
+        type="email"
+        autocomplete="email"
         required
       />
     </div>
