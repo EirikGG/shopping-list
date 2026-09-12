@@ -50,6 +50,13 @@ public class AuthenticationFilter {
             return;
         }
 
+        if (HandlerType.GET.equals(method) && (
+                UserController.PATH_IS_USERNAME_AVAILABLE.equals(path)
+        )) {
+            log.debug("Skipping authentication filter on path [{}] - {}", method, path);
+            return;
+        }
+
         UUID sessionId = AuthenticationService.getSessionIdFromRequest(ctx).orElseThrow(
                 () -> new UnauthorizedResponse("User not authorized")
         );

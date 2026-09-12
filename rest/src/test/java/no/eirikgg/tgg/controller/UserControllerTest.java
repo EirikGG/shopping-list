@@ -51,7 +51,10 @@ class UserControllerTest {
         Javalin app = Main.setupJavalinApp(db);
         TestConfig testConfig = new TestConfig(true, false);
         JavalinTest.test(app, testConfig, (server, client) -> {
+
+            isUsernameAvailable(client, USERNAME, 200);
             Response userResponse = createUserAndPersistExpectStatus(client, 200);
+            isUsernameAvailable(client, USERNAME, 406);
 
             Response loginResponse = loginWithUser(client);
             JsonNode okSessionBodyJson = mapper.readTree(loginResponse.getBody().string());
@@ -60,6 +63,8 @@ class UserControllerTest {
 
             Response duplicateUsernameResponse = createUserAndPersistExpectStatus(client, 400);
 
+
+
             log.info("duplicateUsernameResponse: {}", duplicateUsernameResponse.getBody().string());
             assertEquals(400, duplicateUsernameResponse.code());
             assertTrue(duplicateUsernameResponse.getBody().string().contains(Error.DUPLICATE_USERNAME.name()));
@@ -67,6 +72,25 @@ class UserControllerTest {
 
             testSessionId(client, okSessionId);
         });
+    }
+
+
+    private static void isUsernameAvailable(
+            HttpClient client, String username, int expectedStatusCode
+    ) throws IOException, InterruptedException {
+
+        HttpRequest request = HttpRequest.newBuilder()
+                 .uri(URI.create(client.getOrigin() + UserController.PATH_IS_USERNAME_AVAILABLE))
+                 .header(UserController.PARAM_USERNAME, username)
+                 .GET()
+                 .build();
+
+        HttpResponse<String> response = java.net.http.HttpClient.newHttpClient().send(
+                request,
+                HttpResponse.BodyHandlers.ofString()
+        );
+
+        assertEquals(expectedStatusCode, response.statusCode(), "Username available status");
     }
 
 

@@ -44,3 +44,7 @@ build/
 
 ### DOCKER###
 .env
+
+### NODE ###
+node_modules/
+dist/

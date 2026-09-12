@@ -17,6 +17,8 @@ import no.eirikgg.tgg.errors.UsernameAlreadyExistsException;
 import no.eirikgg.tgg.service.AuthenticationService;
 import no.eirikgg.tgg.service.PasswordService;
 import no.eirikgg.tgg.service.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.util.Map;
@@ -24,10 +26,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class UserController {
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     public static final String PATH_USER = "/user";
     public static final String PATH_LOGIN = "/login_user";
     public static final String PATH_SESSION_IS_VALID = "/session_is_valid";
+    public static final String PATH_IS_USERNAME_AVAILABLE = "/is_username_available";
+
 
     public static final String PARAM_FIRSTNAME = "firstname";
     public static final String PARAM_LASTNAME = "lastname";
@@ -57,6 +62,7 @@ public class UserController {
         config.routes.post(UserController.PATH_USER, userController::createUser);
         config.routes.post(UserController.PATH_LOGIN, userController::login);
         config.routes.get(UserController.PATH_SESSION_IS_VALID, userController::isValid);
+        config.routes.get(UserController.PATH_IS_USERNAME_AVAILABLE, userController::isUsernameAvailable);
     }
 
 
@@ -116,5 +122,19 @@ public class UserController {
         }
 
         ctx.status(HttpStatus.OK);
+    }
+
+
+    public void isUsernameAvailable(Context ctx) {
+        String username = ctx.header(PARAM_USERNAME);
+
+        log.info("Checking if username {} is available", username);
+        System.out.println(username );
+
+        boolean isUsernameAvailable = userService.isUsernameAvailable(username);
+
+        ctx.status(
+            isUsernameAvailable ? HttpStatus.OK : HttpStatus.NOT_ACCEPTABLE
+        );
     }
 }

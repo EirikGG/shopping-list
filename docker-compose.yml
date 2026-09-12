@@ -43,6 +43,23 @@ services:
       db:
         condition: service_healthy
 
+  web:
+    build:
+      context: web/
+      dockerfile: Dockerfile
+    environment:
+      WEB_PORT: ${WEB_PORT}
+      API_TARGET: http://app:${APP_PORT}
+    ports:
+      - "${WEB_PORT}:${WEB_PORT}"
+    networks:
+      - backend
+    depends_on:
+      - app
+    volumes:
+      - ./web/src:/app/src
+      - ./web/index.html:/app/index.html
+
 volumes:
   postgres-data:
 

@@ -25,4 +25,13 @@ public class UserService {
             throw new RuntimeException("Failed to create new user", e);
         }
     }
+
+    public boolean isUsernameAvailable(String username) {
+        try {
+            return userRepository.isUsernameAvailable(username);
+        }
+        catch (SQLException e) {
+            throw new RuntimeException("Failed to check if username is available", e);
+        }
+    }
 }

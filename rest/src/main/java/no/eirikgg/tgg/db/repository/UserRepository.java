@@ -339,4 +339,16 @@ public class UserRepository {
             throw new RuntimeException(e);
         }
     }
+
+    public boolean isUsernameAvailable(String username) throws SQLException {
+        try (Connection conn = db.getConnection()) {
+            int numberOfUsernameEntries = db.selectSingle(conn,
+                "select count(*) as value1 from person_login where username = ?",
+                    username,
+                    rs -> rs.getInt("value1").orElse(0)
+            ).orElse(0);
+
+            return 1 > numberOfUsernameEntries;
+        }
+    }
 }
