@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -44,7 +45,7 @@ public class EmailRepository {
                     rs.getInt("email_id").orElseThrow(),
                     UUID.fromString(rs.getString("session_id").orElseThrow()),
                     rs.getString("address").orElseThrow(),
-                    rs.getString("status").orElseThrow(),
+                    EmailMessage.Status.valueOf(rs.getString("status").orElseThrow()),
                     rs.getString("subject").orElseThrow(),
                     rs.getString("body").orElseThrow(),
                     rs.getLocalDateTime("created").orElseThrow(),
@@ -103,16 +104,17 @@ public class EmailRepository {
                     subject,
                     body,
                     created,
-                    updated,
-                    sent
+                    updated
                 )
-                values (?,?,?,?,?,?,?,?)
+                values (?,?,?,?,?,?,?)
                 """,
                 session_id,
                 address,
-                EmailMessage.Status.CREATED,
+                EmailMessage.Status.CREATED.toString(),
                 subject,
-                body
+                body,
+                LocalDateTime.now(),
+                LocalDateTime.now()
             );
 
             conn.commit();

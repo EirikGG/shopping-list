@@ -15,7 +15,7 @@ public class EmailMessage extends DbIdentity {
 
     private UUID sessionId;
     private String address;
-    private String status;
+    private Status status;
     private String subject;
     private String body;
     private LocalDateTime created;
@@ -26,7 +26,7 @@ public class EmailMessage extends DbIdentity {
         Integer id,
         UUID sessionId,
         String address,
-        String status,
+        Status status,
         String subject,
         String body,
         LocalDateTime created,
@@ -47,7 +47,7 @@ public class EmailMessage extends DbIdentity {
     public EmailMessage(
         UUID sessionId,
         String address,
-        String status,
+        Status status,
         String subject,
         String body,
         LocalDateTime created,
@@ -65,7 +65,7 @@ public class EmailMessage extends DbIdentity {
         return address;
     }
 
-    public String getStatus() {
+    public Status getStatus() {
         return status;
     }
 

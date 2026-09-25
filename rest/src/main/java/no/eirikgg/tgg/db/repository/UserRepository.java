@@ -15,6 +15,7 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public class UserRepository {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -184,10 +185,12 @@ public class UserRepository {
         int personEmailId = db.insert(conn, """
             insert into person_email (
                 person_id,
-                email, 
+                email,
+                verification_uuid,
                 created,
                 deleted
             ) values(
+                ?,
                 ?,
                 ?,
                 ?,
@@ -196,6 +199,7 @@ public class UserRepository {
             """,
             persistedPerson.getId().orElseThrow(),
             email.getEmail(),
+            UUID.randomUUID(),
             LocalDateTime.now(),
             LocalDateTime.of(9999, 12, 31, 23, 59)
         ).orElseThrow(

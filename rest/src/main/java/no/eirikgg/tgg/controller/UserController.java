@@ -83,14 +83,15 @@ public class UserController {
         LocalDate birthdate = LocalDate.parse(json.get(PARAM_BIRTHDATE).asText(), Person.birthdateFormat);
         Person.Gender gender = Person.Gender.valueOf(json.get(PARAM_GENDER).asText());
         String username = json.get(PARAM_EMAIL).asText();
-        String password = PasswordService.hashPassword(json.get(PARAM_PASSWORD).asText());
+        String password = json.get(PARAM_PASSWORD).asText();
+        String hashedPassword = PasswordService.hashPassword(password);
         String email = json.get(PARAM_EMAIL).asText();
         String countryCode = json.get(PARAM_COUNTRYCODE).asText();
         String phoneNumber = json.get(PARAM_PHONENUMBER).asText();
 
         User userRequest = new User(
                 new Person(firstName, lastName, birthdate, gender),
-                new Authorization(username, password),
+                new Authorization(username, hashedPassword),
                 new Email(email),
                 new PhoneNumber(countryCode, phoneNumber)
         );
