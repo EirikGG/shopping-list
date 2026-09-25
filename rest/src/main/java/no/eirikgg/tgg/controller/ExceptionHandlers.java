@@ -22,19 +22,15 @@ public class ExceptionHandlers {
         config.routes.exception(Exception.class, eh::exception);
     }
 
-    private void logException(Exception ex) {
-        log.error(ex.getMessage(), ex);
-    }
 
     private void usernameAlreadyExistsException(UsernameAlreadyExistsException e, Context ctx) {
-        logException(e);
         HttpStatus errorStatus = HttpStatus.BAD_REQUEST;
         PublicError publicError = new PublicError(errorStatus, Error.DUPLICATE_USERNAME);
         ctx.status(errorStatus).json(publicError);
     }
 
     private void exception(Exception e, Context ctx) {
-        logException(e);
+        log.error(e.getMessage(), e);
         throw new InternalServerErrorResponse();
     }
 }

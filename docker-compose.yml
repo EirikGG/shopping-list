@@ -35,6 +35,8 @@ services:
         -DDB.USERNAME=${DB_USERNAME}
         -DDB.PASSWORD=${DB_PASSWORD}
         -DAPP.PORT=${APP_PORT}
+        -DMAIL.HOST=mailpit
+        -DMAIL.PORT=${MAIL_PORT}
     ports:
       - "${APP_PORT}:${APP_PORT}"
     networks:
@@ -59,6 +61,18 @@ services:
     volumes:
       - ./web/src:/app/src
       - ./web/index.html:/app/index.html
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mailpit
+    restart: unless-stopped
+
+    ports:
+      - "8025:${MAILPIT_UI_PORT}"
+      - "1025:${MAIL_PORT}"
+
+    networks:
+      - backend
 
 volumes:
   postgres-data:

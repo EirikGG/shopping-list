@@ -13,8 +13,10 @@ import no.eirikgg.tgg.datamodel.Person;
 import no.eirikgg.tgg.datamodel.PhoneNumber;
 import no.eirikgg.tgg.datamodel.User;
 import no.eirikgg.tgg.db.Db;
+import no.eirikgg.tgg.db.repository.EmailRepository;
 import no.eirikgg.tgg.errors.UsernameAlreadyExistsException;
 import no.eirikgg.tgg.service.AuthenticationService;
+import no.eirikgg.tgg.service.EmailService;
 import no.eirikgg.tgg.service.PasswordService;
 import no.eirikgg.tgg.service.UserService;
 import org.slf4j.Logger;
@@ -47,17 +49,24 @@ public class UserController {
 
     private UserService userService;
     private AuthenticationService authenticationService;
+    private EmailService emailService;
     private ObjectMapper mapper = new ObjectMapper();
 
-    public UserController(UserService userService, AuthenticationService authenticationService) {
+    public UserController(
+            UserService userService,
+            AuthenticationService authenticationService,
+            EmailService emailService
+    ) {
         this.userService = userService;
         this.authenticationService = authenticationService;
+        this.emailService = emailService;
     }
 
-    public static void setup(JavalinConfig config, Db db) {
+    public static void setup(JavalinConfig config, Db db, String emailHost, String emailPort) {
         UserController userController = new UserController(
                 new UserService(db),
-                new AuthenticationService(db)
+                new AuthenticationService(db),
+                new EmailService(db, emailHost, emailPort)
         );
         config.routes.post(UserController.PATH_USER, userController::createUser);
         config.routes.post(UserController.PATH_LOGIN, userController::login);
@@ -88,6 +97,7 @@ public class UserController {
 
 
         User persistedUser = userService.persistUser(userRequest);
+        emailService.createUserVerificationEmail(persistedUser);
         ctx.status(HttpStatus.OK).json(persistedUser);
     }
 
