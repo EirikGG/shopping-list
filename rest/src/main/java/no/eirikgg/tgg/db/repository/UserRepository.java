@@ -52,7 +52,7 @@ public class UserRepository {
 
 
 
-    private Person savePerson(Connection conn, Person person) {
+    private Person savePerson(Connection conn, Person person) throws SQLException {
         LocalDateTime created = LocalDateTime.now();
         int personId = db.insert(conn, """
             insert into person (
@@ -113,7 +113,7 @@ public class UserRepository {
 
     private Authorization saveAutorization(
             Connection conn, Person persistedPerson, Authorization authorization
-    ) throws UsernameAlreadyExistsException {
+    ) throws UsernameAlreadyExistsException, SQLException {
 
         String username = authorization.getUsername();
         int numberOfLogins = db.selectSingle(conn, """
@@ -180,7 +180,7 @@ public class UserRepository {
         return persistedAuthorization.get(0);
     }
 
-    private Email saveEmail(Connection conn, Person persistedPerson, Email email) {
+    private Email saveEmail(Connection conn, Person persistedPerson, Email email) throws SQLException {
         int personEmailId = db.insert(conn, """
             insert into person_email (
                 person_id,
@@ -221,7 +221,7 @@ public class UserRepository {
         return emails.get(0);
     }
 
-    private PhoneNumber savePhonenumber(Connection conn, Person persistedPerson, PhoneNumber phoneNumber) {
+    private PhoneNumber savePhonenumber(Connection conn, Person persistedPerson, PhoneNumber phoneNumber) throws SQLException {
         int personPhoneNumberId = db.insert(conn, """
             insert into person_phone_number (
                 person_id,

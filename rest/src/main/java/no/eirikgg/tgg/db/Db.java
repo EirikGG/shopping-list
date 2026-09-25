@@ -86,7 +86,7 @@ public interface Db {
         }
     }
 
-    default Optional<Integer> insert(Connection conn, @Language("SQL") String sql, Object... params) {
+    default Optional<Integer> insert(Connection conn, @Language("SQL") String sql, Object... params) throws SQLException {
         LocalDateTime startTime = LocalDateTime.now();
         dbUtils.validateSql(sql);
 
@@ -112,9 +112,6 @@ public interface Db {
                 return Optional.empty();
             }
         }
-        catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
         finally {
             Duration duration = Duration.between(startTime, LocalDateTime.now());
             dbUtils.logSql(duration, sql, params);
@@ -131,7 +128,7 @@ public interface Db {
         }
     }
 
-    default Optional<Integer> update(Connection conn, @Language("SQL") String sql, Object... params) {
+    default Optional<Integer> update(Connection conn, @Language("SQL") String sql, Object... params) throws SQLException {
         LocalDateTime startTime = LocalDateTime.now();
         dbUtils.validateSql(sql);
 
@@ -147,9 +144,6 @@ public interface Db {
 
             int affectedRows = stmt.executeUpdate();
             return Optional.of(affectedRows);
-        }
-        catch (SQLException e) {
-            throw new RuntimeException(e);
         }
         finally {
             Duration duration = Duration.between(startTime, LocalDateTime.now());

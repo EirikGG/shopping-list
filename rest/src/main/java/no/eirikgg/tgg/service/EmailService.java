@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 
 public class EmailService {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -88,9 +89,14 @@ public class EmailService {
         }
     }
 
-    public void createUserVerificationEmail(User user) {
+    public void createUserVerificationEmail(UUID sessionId, User user) {
         try {
-            emailRepository.createEmailMessage();
+            emailRepository.createEmailMessage(
+                sessionId,
+                user.getEmail().getEmail(),
+                "user.get subject",
+                "2user.get body"
+            );
         }
         catch (SQLException e) {
             String errorMsg = "Failed to get unsent emails";

@@ -97,7 +97,8 @@ public class UserController {
 
 
         User persistedUser = userService.persistUser(userRequest);
-        emailService.createUserVerificationEmail(persistedUser);
+        UUID sessionId = authenticationService.login(username, password).orElseThrow();
+        emailService.createUserVerificationEmail(sessionId, persistedUser);
         ctx.status(HttpStatus.OK).json(persistedUser);
     }
 

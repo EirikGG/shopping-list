@@ -86,7 +86,45 @@ public class EmailRepository {
         }
     }
 
-    public void createEmailMessage() {
-        
+    public void createEmailMessage(
+            UUID session_id,
+            String address,
+            String subject,
+            String body
+    ) throws SQLException {
+        Connection conn = db.getConnection();
+        try {
+            conn.setAutoCommit(false);
+            db.insert(conn, """
+                insert into email_message(
+                    session_id,
+                    address,
+                    status,
+                    subject,
+                    body,
+                    created,
+                    updated,
+                    sent
+                )
+                values (?,?,?,?,?,?,?,?)
+                """,
+                session_id,
+                address,
+                EmailMessage.Status.CREATED,
+                subject,
+                body
+            );
+
+            conn.commit();
+        }
+        catch (SQLException sqlEx) {
+            conn.rollback();
+            throw sqlEx;
+        }
+        finally {
+            if (!conn.isClosed()) {
+                conn.close();
+            }
+        }
     }
 }
