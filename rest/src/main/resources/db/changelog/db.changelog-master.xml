@@ -10,4 +10,6 @@
     <include file="/db/updates/0003-person_phone.sql"/>
     <include file="/db/updates/0004-person_login.sql"/>
     <include file="/db/updates/0005-session.sql"/>
+    <include file="/db/updates/0006-email_message.sql"/>
+    <include file="/db/updates/0007-person_email_verified.sql"/>
 </databaseChangeLog>

@@ -44,7 +44,16 @@ public class AuthenticationFilter {
 
         if (HandlerType.POST.equals(method) && (
                 UserController.PATH_USER.equals(path) ||
-                UserController.PATH_LOGIN.equals(path)
+                UserController.PATH_LOGIN.equals(path) ||
+                UserController.PATH_VERIFY_EMAIL.equals(path)
+        )) {
+            log.debug("Skipping authentication filter on path [{}] - {}", method, path);
+            return;
+        }
+
+        if (HandlerType.GET.equals(method) && (
+                GeneralController.NOOP_PATH.equals(path) ||
+                GeneralController.PING_PATH.equals(path)
         )) {
             log.debug("Skipping authentication filter on path [{}] - {}", method, path);
             return;

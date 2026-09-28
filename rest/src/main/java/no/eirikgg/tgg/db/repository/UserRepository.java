@@ -6,6 +6,8 @@ import no.eirikgg.tgg.datamodel.Person;
 import no.eirikgg.tgg.datamodel.PhoneNumber;
 import no.eirikgg.tgg.datamodel.User;
 import no.eirikgg.tgg.db.Db;
+import no.eirikgg.tgg.errors.EmailAlreadyVerifiedException;
+import no.eirikgg.tgg.errors.NoEmailConnectedToVerificationUuidException;
 import no.eirikgg.tgg.errors.UsernameAlreadyExistsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +17,7 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public class UserRepository {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -52,7 +55,7 @@ public class UserRepository {
 
 
 
-    private Person savePerson(Connection conn, Person person) {
+    private Person savePerson(Connection conn, Person person) throws SQLException {
         LocalDateTime created = LocalDateTime.now();
         int personId = db.insert(conn, """
             insert into person (
@@ -113,7 +116,7 @@ public class UserRepository {
 
     private Authorization saveAutorization(
             Connection conn, Person persistedPerson, Authorization authorization
-    ) throws UsernameAlreadyExistsException {
+    ) throws UsernameAlreadyExistsException, SQLException {
 
         String username = authorization.getUsername();
         int numberOfLogins = db.selectSingle(conn, """
@@ -180,14 +183,16 @@ public class UserRepository {
         return persistedAuthorization.get(0);
     }
 
-    private Email saveEmail(Connection conn, Person persistedPerson, Email email) {
+    private Email saveEmail(Connection conn, Person persistedPerson, Email email) throws SQLException {
         int personEmailId = db.insert(conn, """
             insert into person_email (
                 person_id,
-                email, 
+                email,
+                verification_uuid,
                 created,
                 deleted
             ) values(
+                ?,
                 ?,
                 ?,
                 ?,
@@ -196,6 +201,7 @@ public class UserRepository {
             """,
             persistedPerson.getId().orElseThrow(),
             email.getEmail(),
+            email.getVerificationUuid(),
             LocalDateTime.now(),
             LocalDateTime.of(9999, 12, 31, 23, 59)
         ).orElseThrow(
@@ -204,14 +210,18 @@ public class UserRepository {
 
         List<Email> emails = db.select(conn, """
             select
-                email
+                email,
+                verification_uuid
             from 
                 person_email
             where 
                 person_email_id = ?
             """,
             personEmailId,
-            rs -> new Email(rs.getString("email").orElseThrow())
+            rs -> new Email(
+                    rs.getString("email").orElseThrow(),
+                    rs.getUuid("verification_uuid").orElseThrow()
+            )
         );
 
         if (1 != emails.size()) {
@@ -221,7 +231,7 @@ public class UserRepository {
         return emails.get(0);
     }
 
-    private PhoneNumber savePhonenumber(Connection conn, Person persistedPerson, PhoneNumber phoneNumber) {
+    private PhoneNumber savePhonenumber(Connection conn, Person persistedPerson, PhoneNumber phoneNumber) throws SQLException {
         int personPhoneNumberId = db.insert(conn, """
             insert into person_phone_number (
                 person_id,
@@ -279,6 +289,7 @@ public class UserRepository {
                     p.birthdate                 person_birthdate,
                     p.gender                    person_gender,
                     email.email                 contact_email,
+                    email.verification_uuid     verification_uuid,
                     phone.country_code          contact_country_code,
                     phone.phone_number          contact_phone_number,
                     login.person_login_id       person_login_id,
@@ -313,7 +324,8 @@ public class UserRepository {
                         rs.getString("login_password").orElseThrow()
                     );
                     Email email = new Email(
-                        rs.getString("contact_email").orElseThrow()
+                        rs.getString("contact_email").orElseThrow(),
+                        rs.getUuid("verification_uuid").orElseThrow()
                     );
                     PhoneNumber phoneNumber = new PhoneNumber(
                         rs.getString("contact_country_code").orElseThrow(),
@@ -349,6 +361,66 @@ public class UserRepository {
             ).orElse(0);
 
             return 1 > numberOfUsernameEntries;
+        }
+    }
+
+
+
+    public String verifyEmailUsingVerificationUuid(
+            UUID verificationUuid
+    ) throws SQLException, NoEmailConnectedToVerificationUuidException, EmailAlreadyVerifiedException {
+        Connection conn = db.getConnection();
+        try {
+            conn.setAutoCommit(false);
+
+            record EmailSelect(String email, LocalDateTime verified) {}
+            EmailSelect emailSelect = db.selectSingle(conn,
+                    "select email, verified from person_email where verification_uuid = ?",
+                    verificationUuid,
+                    rs -> new EmailSelect(
+                            rs.getString("email").orElse(null),
+                            rs.getLocalDateTime("verified").orElse(null)
+                    )
+            ).orElse(null);
+
+
+            String email = emailSelect.email();
+            LocalDateTime verified = emailSelect.verified();
+
+            if (null == email) {
+                throw new NoEmailConnectedToVerificationUuidException(verificationUuid,
+                        "No email connected to verification uuid " + verificationUuid
+                );
+            }
+
+            if (verified != null) {
+                throw new EmailAlreadyVerifiedException(email, "Email already verified");
+            }
+
+            int updatedRows = db.update(conn,"""
+                    update person_email 
+                    set verified = ?
+                    where verification_uuid = ?
+                    """,
+                    LocalDateTime.now(),
+                    verificationUuid
+            ).orElse(-1);
+
+            if  (1 != updatedRows) {
+                throw new RuntimeException("Updated " + updatedRows + " rows - expected one");
+            }
+
+            conn.commit();
+            return email;
+        }
+        catch (Exception e) {
+            conn.rollback();
+            throw e;
+        }
+        finally {
+            if (!conn.isClosed()) {
+                conn.close();
+            }
         }
     }
 }

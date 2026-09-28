@@ -1,5 +1,6 @@
 package no.eirikgg.tgg.db;
 
+import no.eirikgg.tgg.datamodel.EmailMessage;
 import org.intellij.lang.annotations.Language;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,18 +86,11 @@ public interface Db {
         }
     }
 
-    default Optional<Integer> insert(
-            Connection conn, @Language("SQL") String sql, Object... params
-    ) {
+    default Optional<Integer> insert(Connection conn, @Language("SQL") String sql, Object... params) throws SQLException {
         LocalDateTime startTime = LocalDateTime.now();
         dbUtils.validateSql(sql);
 
-        try (
-            PreparedStatement stmt = conn.prepareStatement(
-                    sql,
-                    Statement.RETURN_GENERATED_KEYS
-            )
-        ) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             for (int i = 0; i < params.length; i++) {
                 Object param = params[i];
                 if (param instanceof Hidden hidden) {
@@ -118,9 +112,6 @@ public interface Db {
                 return Optional.empty();
             }
         }
-        catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
         finally {
             Duration duration = Duration.between(startTime, LocalDateTime.now());
             dbUtils.logSql(duration, sql, params);
@@ -134,6 +125,29 @@ public interface Db {
         catch (SQLException e) {
             log.error(e.getMessage(), e);
             return false;
+        }
+    }
+
+    default Optional<Integer> update(Connection conn, @Language("SQL") String sql, Object... params) throws SQLException {
+        LocalDateTime startTime = LocalDateTime.now();
+        dbUtils.validateSql(sql);
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            for (int i = 0; i < params.length; i++) {
+                Object param = params[i];
+                if (param instanceof Hidden hidden) {
+                    param = hidden.getValue();
+                }
+                stmt.setObject(i + 1, param);
+            }
+
+            int affectedRows = stmt.executeUpdate();
+            return Optional.of(affectedRows);
+        }
+        finally {
+            Duration duration = Duration.between(startTime, LocalDateTime.now());
+            dbUtils.logSql(duration, sql, params);
         }
     }
 }

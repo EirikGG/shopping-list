@@ -70,3 +70,22 @@ export async function sessionIsValid(sessionId) {
   })
   return response.ok
 }
+
+// The verification link in the email points at the frontend, which forwards the
+// key to the backend. The endpoint is a POST taking the key as a query
+// parameter, and it sits behind the authentication filter, so the session id is
+// sent along whenever the browser has one.
+export async function verifyEmail(key, sessionId) {
+  const response = await fetch(
+    `/api/verify_email?key=${encodeURIComponent(key)}`,
+    {
+      method: 'POST',
+      headers: sessionId ? { Authorization: `Bearer ${sessionId}` } : {}
+    }
+  )
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null)
+    throw new ApiError(response.statusText, response.status, error?.error)
+  }
+}

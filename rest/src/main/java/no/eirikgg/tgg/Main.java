@@ -2,6 +2,7 @@ package no.eirikgg.tgg;
 
 import io.javalin.Javalin;
 import no.eirikgg.tgg.controller.AuthenticationFilter;
+import no.eirikgg.tgg.controller.EmailWorker;
 import no.eirikgg.tgg.controller.ExceptionHandlers;
 import no.eirikgg.tgg.controller.GeneralController;
 import no.eirikgg.tgg.controller.LogFilter;
@@ -35,12 +36,18 @@ public class Main {
 
 
     public static Javalin setupJavalinApp(Db db) {
+        String emailHost = System.getProperty("MAIL.HOST");
+        String emailPort = System.getProperty("MAIL.PORT");
+
         Javalin app = Javalin.create(config -> {
+
+            EmailWorker.setup(config, db, emailHost, emailPort);
+
             LogFilter.setup(config);
             AuthenticationFilter.setup(config, db);
 
             GeneralController.setup(config, db);
-            UserController.setup(config, db);
+            UserController.setup(config, db, emailHost, emailPort);
 
             ExceptionHandlers.setup(config, db);
         });

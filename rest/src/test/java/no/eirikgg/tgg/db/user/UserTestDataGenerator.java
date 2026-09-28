@@ -8,6 +8,7 @@ import no.eirikgg.tgg.datamodel.User;
 import no.eirikgg.tgg.service.PasswordService;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 public class UserTestDataGenerator {
 
@@ -26,7 +27,8 @@ public class UserTestDataGenerator {
 
     private static Email getEmail() {
         return new Email(
-            "unit-test@test.com"
+            "unit-test@test.com",
+                UUID.randomUUID()
         );
     }
 
