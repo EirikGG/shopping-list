@@ -6,6 +6,7 @@ import jakarta.mail.Transport;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import no.eirikgg.tgg.datamodel.EmailMessage;
+import no.eirikgg.tgg.datamodel.EmailTemplate;
 import no.eirikgg.tgg.datamodel.User;
 import no.eirikgg.tgg.db.Db;
 import no.eirikgg.tgg.db.repository.EmailRepository;
@@ -55,7 +56,7 @@ public class EmailService {
             );
 
             message.setSubject(emailMessage.getSubject());
-            message.setText(emailMessage.getBody());
+            message.setContent(emailMessage.getBody(), "text/html; charset=UTF-8");
 
             Transport.send(message);
         }
@@ -89,13 +90,16 @@ public class EmailService {
         }
     }
 
-    public void createUserVerificationEmail(UUID sessionId, User user) {
+    public void createUserVerificationEmail(UUID sessionId, User user, String verificationUrl) {
         try {
             emailRepository.createEmailMessage(
                 sessionId,
                 user.getEmail().getEmail(),
-                "user.get subject",
-                "2user.get body"
+                EmailTemplate.NewUser.getSubject(
+                        user.getPerson().getFirstName(),
+                        user.getPerson().getLastName()
+                ),
+                EmailTemplate.NewUser.getBody(verificationUrl)
             );
         }
         catch (SQLException e) {

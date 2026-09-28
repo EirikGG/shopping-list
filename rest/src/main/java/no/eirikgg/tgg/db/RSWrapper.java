@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
 public class RSWrapper {
 
@@ -13,6 +14,7 @@ public class RSWrapper {
     public RSWrapper(ResultSet resultSet) {
         this.resultSet = resultSet;
     }
+
 
 
 
@@ -52,6 +54,16 @@ public class RSWrapper {
         try {
             LocalDateTime datetime = resultSet.getObject(columnName, LocalDateTime.class);
             return Optional.ofNullable(datetime);
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public Optional<UUID> getUuid(String columnName) {
+        try {
+            UUID uuid = resultSet.getObject(columnName, UUID.class);
+            return Optional.ofNullable(uuid);
         }
         catch (SQLException e) {
             throw new RuntimeException(e);

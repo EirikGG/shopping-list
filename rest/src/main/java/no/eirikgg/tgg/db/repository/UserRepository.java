@@ -6,6 +6,7 @@ import no.eirikgg.tgg.datamodel.Person;
 import no.eirikgg.tgg.datamodel.PhoneNumber;
 import no.eirikgg.tgg.datamodel.User;
 import no.eirikgg.tgg.db.Db;
+import no.eirikgg.tgg.errors.NoEmailConnectedToVerificationUuidException;
 import no.eirikgg.tgg.errors.UsernameAlreadyExistsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -199,7 +200,7 @@ public class UserRepository {
             """,
             persistedPerson.getId().orElseThrow(),
             email.getEmail(),
-            UUID.randomUUID(),
+            email.getVerificationUuid(),
             LocalDateTime.now(),
             LocalDateTime.of(9999, 12, 31, 23, 59)
         ).orElseThrow(
@@ -208,14 +209,18 @@ public class UserRepository {
 
         List<Email> emails = db.select(conn, """
             select
-                email
+                email,
+                verification_uuid
             from 
                 person_email
             where 
                 person_email_id = ?
             """,
             personEmailId,
-            rs -> new Email(rs.getString("email").orElseThrow())
+            rs -> new Email(
+                    rs.getString("email").orElseThrow(),
+                    rs.getUuid("verification_uuid").orElseThrow()
+            )
         );
 
         if (1 != emails.size()) {
@@ -283,6 +288,7 @@ public class UserRepository {
                     p.birthdate                 person_birthdate,
                     p.gender                    person_gender,
                     email.email                 contact_email,
+                    email.verification_uuid     verification_uuid,
                     phone.country_code          contact_country_code,
                     phone.phone_number          contact_phone_number,
                     login.person_login_id       person_login_id,
@@ -317,7 +323,8 @@ public class UserRepository {
                         rs.getString("login_password").orElseThrow()
                     );
                     Email email = new Email(
-                        rs.getString("contact_email").orElseThrow()
+                        rs.getString("contact_email").orElseThrow(),
+                        rs.getUuid("verification_uuid").orElseThrow()
                     );
                     PhoneNumber phoneNumber = new PhoneNumber(
                         rs.getString("contact_country_code").orElseThrow(),
@@ -353,6 +360,51 @@ public class UserRepository {
             ).orElse(0);
 
             return 1 > numberOfUsernameEntries;
+        }
+    }
+
+
+
+    public String verifyEmailUsingVerificationUuid(
+            UUID verificationUuid
+    ) throws SQLException, NoEmailConnectedToVerificationUuidException {
+        Connection conn = db.getConnection();
+        try {
+            conn.setAutoCommit(false);
+
+            String email = db.selectSingle(conn,
+                    "select * from person_email where verification_uuid = ?",
+                    verificationUuid,
+                    rs -> rs.getString("email").orElse(null)
+            ).orElse(null);
+
+            if (null == email) {
+                throw new NoEmailConnectedToVerificationUuidException(verificationUuid,
+                        "No email connected to verification uuid " + verificationUuid
+                );
+            }
+
+            int updatedRows = db.update(conn,
+                    "update person_email set verified = ? where verification_uuri = ?",
+                    LocalDateTime.now(),
+                    verificationUuid
+            ).orElse(-1);
+
+            if  (1 != updatedRows) {
+                throw new RuntimeException("Updated " + updatedRows + " rows - expected one");
+            }
+
+            conn.commit();
+            return email;
+        }
+        catch (Exception e) {
+            conn.rollback();
+            throw e;
+        }
+        finally {
+            if (!conn.isClosed()) {
+                conn.close();
+            }
         }
     }
 }

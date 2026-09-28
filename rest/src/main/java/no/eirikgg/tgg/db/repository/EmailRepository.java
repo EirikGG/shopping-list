@@ -37,13 +37,13 @@ public class EmailRepository {
                 from 
                     email_message
                 where 
-                    sendt               is null
+                    sent                is null
                     and status          like ?        
                 """,
-                EmailMessage.Status.CREATED,
+                EmailMessage.Status.CREATED.toString(),
                 rs -> new EmailMessage(
                     rs.getInt("email_id").orElseThrow(),
-                    UUID.fromString(rs.getString("session_id").orElseThrow()),
+                    rs.getUuid("session_id").orElseThrow(),
                     rs.getString("address").orElseThrow(),
                     EmailMessage.Status.valueOf(rs.getString("status").orElseThrow()),
                     rs.getString("subject").orElseThrow(),
@@ -66,7 +66,7 @@ public class EmailRepository {
                 set status                  = ?
                 where email_id              = ?
                 """,
-                newStatus,
+                newStatus.toString(),
                 emailMessage.getId().orElseThrow()
             ).orElse(0);
 

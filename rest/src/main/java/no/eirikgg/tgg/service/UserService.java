@@ -3,9 +3,11 @@ package no.eirikgg.tgg.service;
 import no.eirikgg.tgg.db.Db;
 import no.eirikgg.tgg.datamodel.User;
 import no.eirikgg.tgg.db.repository.UserRepository;
+import no.eirikgg.tgg.errors.NoEmailConnectedToVerificationUuidException;
 import no.eirikgg.tgg.errors.UsernameAlreadyExistsException;
 
 import java.sql.SQLException;
+import java.util.UUID;
 
 public class UserService {
 
@@ -29,6 +31,17 @@ public class UserService {
     public boolean isUsernameAvailable(String username) {
         try {
             return userRepository.isUsernameAvailable(username);
+        }
+        catch (SQLException e) {
+            throw new RuntimeException("Failed to check if username is available", e);
+        }
+    }
+
+    public String verifyEmailAddressUsingUuid
+            (UUID verificationUuid
+    ) throws NoEmailConnectedToVerificationUuidException {
+        try {
+            return userRepository.verifyEmailUsingVerificationUuid(verificationUuid);
         }
         catch (SQLException e) {
             throw new RuntimeException("Failed to check if username is available", e);

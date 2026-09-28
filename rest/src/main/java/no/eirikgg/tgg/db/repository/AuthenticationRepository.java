@@ -63,6 +63,7 @@ public class AuthenticationRepository {
                     p.birthdate                 person_birthdate,
                     p.gender                    person_gender,
                     email.email                 contact_email,
+                    email.verification_uuid     verification_uuid,
                     phone.country_code          contact_country_code,
                     phone.phone_number          contact_phone_number,
                     login.username              login_username,
@@ -98,7 +99,8 @@ public class AuthenticationRepository {
                         rs.getString("login_password").orElseThrow()
                     );
                     Email email = new Email(
-                        rs.getString("contact_email").orElseThrow()
+                        rs.getString("contact_email").orElseThrow(),
+                        rs.getUuid("verification_uuid").orElseThrow()
                     );
                     PhoneNumber phoneNumber = new PhoneNumber(
                         rs.getString("contact_country_code").orElseThrow(),

@@ -1,14 +1,21 @@
 package no.eirikgg.tgg.datamodel;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.util.UUID;
 
 public class Email {
 
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String email;
 
-    public Email(String email) {
+    @JsonIgnore
+    private UUID verificationUuid;
+
+    public Email(String email, UUID verificationUuid) {
         this.email = email;
+        this.verificationUuid = verificationUuid;
     }
 
 
@@ -16,4 +23,5 @@ public class Email {
         return email;
     }
 
+    public UUID getVerificationUuid() {return verificationUuid;}
 }
