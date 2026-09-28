@@ -2,22 +2,34 @@
 import { onMounted, ref } from 'vue'
 import LoginForm from './components/LoginForm.vue'
 import SignupForm from './components/SignupForm.vue'
+import VerifyEmail from './components/VerifyEmail.vue'
 import { sessionIsValid } from './api/auth.js'
 import { clearSession, sessionId } from './session.js'
 
 const tab = ref('login')
 const notice = ref('')
 
+// The verification mail links back to the frontend, so that path renders the
+// verification view instead of the login card. There is no router, so the path
+// is read once on load.
+const VERIFY_EMAIL_PATH = '/verify_email'
+const isVerifyEmailRoute = window.location.pathname === VERIFY_EMAIL_PATH
+
 // A stored session id can be expired or from a wiped database, so it is
 // checked against the backend before the app treats it as logged in.
 onMounted(async () => {
+  if (isVerifyEmailRoute) {
+    return
+  }
+
   if (sessionId.value && !(await sessionIsValid(sessionId.value))) {
     clearSession()
   }
 })
 
 function onCreated(email) {
-  notice.value = `Account for ${email} created. You can log in now.`
+  notice.value =
+    `Account for ${email} created. Check that inbox for a verification link.`
   tab.value = 'login'
 }
 
@@ -32,7 +44,9 @@ function showTab(name) {
     <div class="card">
       <h1>TGG</h1>
 
-      <template v-if="sessionId">
+      <VerifyEmail v-if="isVerifyEmailRoute" />
+
+      <template v-else-if="sessionId">
         <p class="signed-in">You are logged in.</p>
         <button class="secondary" @click="clearSession">Log out</button>
       </template>

@@ -399,10 +399,9 @@ public class UserRepository {
 
             int updatedRows = db.update(conn,"""
                     update person_email 
-                    set verified = ?, updated = ? 
+                    set verified = ?
                     where verification_uuid = ?
                     """,
-                    LocalDateTime.now(),
                     LocalDateTime.now(),
                     verificationUuid
             ).orElse(-1);
