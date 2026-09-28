@@ -78,7 +78,7 @@ public class UserController {
         config.routes.post(UserController.PATH_LOGIN, userController::login);
         config.routes.get(UserController.PATH_SESSION_IS_VALID, userController::isValid);
         config.routes.get(UserController.PATH_IS_USERNAME_AVAILABLE, userController::isUsernameAvailable);
-        config.routes.get(UserController.PATH_VERIFY_EMAIL, userController::verifyEmail);
+        config.routes.post(UserController.PATH_VERIFY_EMAIL, userController::verifyEmail);
     }
 
 

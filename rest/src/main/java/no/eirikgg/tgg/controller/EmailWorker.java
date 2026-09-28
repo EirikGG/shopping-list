@@ -17,6 +17,8 @@ public class EmailWorker {
     private static final Logger log = LoggerFactory.getLogger(EmailWorker.class);
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
+
+
     private EmailService emailService;
 
     private EmailWorker(EmailService emailService) {
@@ -41,12 +43,17 @@ public class EmailWorker {
 
 
     private void run() {
-        List<EmailMessage> emailMessages = emailService.getUnsendtEmailMessages();
-        for (EmailMessage emailMessage : emailMessages) {
-            log.info("Sending mail with mail id {}",  emailMessage.getId().orElseThrow());
-            emailService.updateEmailMessageStatus(emailMessage, EmailMessage.Status.PROCESSING);
-            emailService.sendEmail(emailMessage);
-            emailService.updateEmailMessageStatus(emailMessage, EmailMessage.Status.SENDT);
+        try {
+            List<EmailMessage> emailMessages = emailService.getUnsendtEmailMessages();
+            for (EmailMessage emailMessage : emailMessages) {
+                log.info("Sending mail with mail id {}",  emailMessage.getId().orElseThrow());
+                emailService.updateEmailMessageStatus(emailMessage, EmailMessage.Status.PROCESSING);
+                emailService.sendEmail(emailMessage);
+                emailService.updateEmailMessageStatus(emailMessage, EmailMessage.Status.SENDT);
+            }
+        }
+        catch (Exception ex) {
+            log.error(ex.getMessage(), ex);
         }
     }
 

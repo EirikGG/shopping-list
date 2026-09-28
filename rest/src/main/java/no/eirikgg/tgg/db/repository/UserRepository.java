@@ -373,7 +373,7 @@ public class UserRepository {
             conn.setAutoCommit(false);
 
             String email = db.selectSingle(conn,
-                    "select * from person_email where verification_uuid = ?",
+                    "select email from person_email where verification_uuid = ?",
                     verificationUuid,
                     rs -> rs.getString("email").orElse(null)
             ).orElse(null);
@@ -385,7 +385,7 @@ public class UserRepository {
             }
 
             int updatedRows = db.update(conn,
-                    "update person_email set verified = ? where verification_uuri = ?",
+                    "update person_email set verified = ? where verification_uuid = ?",
                     LocalDateTime.now(),
                     verificationUuid
             ).orElse(-1);
