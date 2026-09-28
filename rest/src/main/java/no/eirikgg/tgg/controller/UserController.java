@@ -16,6 +16,7 @@ import no.eirikgg.tgg.datamodel.PhoneNumber;
 import no.eirikgg.tgg.datamodel.User;
 import no.eirikgg.tgg.db.Db;
 import no.eirikgg.tgg.db.repository.EmailRepository;
+import no.eirikgg.tgg.errors.EmailAlreadyVerifiedException;
 import no.eirikgg.tgg.errors.NoEmailConnectedToVerificationUuidException;
 import no.eirikgg.tgg.errors.UsernameAlreadyExistsException;
 import no.eirikgg.tgg.service.AuthenticationService;
@@ -162,7 +163,7 @@ public class UserController {
     }
 
 
-    public void verifyEmail(Context ctx) throws NoEmailConnectedToVerificationUuidException {
+    public void verifyEmail(Context ctx) throws NoEmailConnectedToVerificationUuidException, EmailAlreadyVerifiedException {
         String verificationUuid = ctx.queryParam(PARAM_VERIFY_EMAIL);
 
         try {

@@ -3,6 +3,7 @@ package no.eirikgg.tgg.service;
 import no.eirikgg.tgg.db.Db;
 import no.eirikgg.tgg.datamodel.User;
 import no.eirikgg.tgg.db.repository.UserRepository;
+import no.eirikgg.tgg.errors.EmailAlreadyVerifiedException;
 import no.eirikgg.tgg.errors.NoEmailConnectedToVerificationUuidException;
 import no.eirikgg.tgg.errors.UsernameAlreadyExistsException;
 
@@ -39,7 +40,7 @@ public class UserService {
 
     public String verifyEmailAddressUsingUuid
             (UUID verificationUuid
-    ) throws NoEmailConnectedToVerificationUuidException {
+    ) throws NoEmailConnectedToVerificationUuidException, EmailAlreadyVerifiedException {
         try {
             return userRepository.verifyEmailUsingVerificationUuid(verificationUuid);
         }

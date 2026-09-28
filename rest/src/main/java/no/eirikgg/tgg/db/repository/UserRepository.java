@@ -6,6 +6,7 @@ import no.eirikgg.tgg.datamodel.Person;
 import no.eirikgg.tgg.datamodel.PhoneNumber;
 import no.eirikgg.tgg.datamodel.User;
 import no.eirikgg.tgg.db.Db;
+import no.eirikgg.tgg.errors.EmailAlreadyVerifiedException;
 import no.eirikgg.tgg.errors.NoEmailConnectedToVerificationUuidException;
 import no.eirikgg.tgg.errors.UsernameAlreadyExistsException;
 import org.slf4j.Logger;
@@ -367,16 +368,24 @@ public class UserRepository {
 
     public String verifyEmailUsingVerificationUuid(
             UUID verificationUuid
-    ) throws SQLException, NoEmailConnectedToVerificationUuidException {
+    ) throws SQLException, NoEmailConnectedToVerificationUuidException, EmailAlreadyVerifiedException {
         Connection conn = db.getConnection();
         try {
             conn.setAutoCommit(false);
 
-            String email = db.selectSingle(conn,
-                    "select email from person_email where verification_uuid = ?",
+            record EmailSelect(String email, LocalDateTime verified) {}
+            EmailSelect emailSelect = db.selectSingle(conn,
+                    "select email, verified from person_email where verification_uuid = ?",
                     verificationUuid,
-                    rs -> rs.getString("email").orElse(null)
+                    rs -> new EmailSelect(
+                            rs.getString("email").orElse(null),
+                            rs.getLocalDateTime("verified").orElse(null)
+                    )
             ).orElse(null);
+
+
+            String email = emailSelect.email();
+            LocalDateTime verified = emailSelect.verified();
 
             if (null == email) {
                 throw new NoEmailConnectedToVerificationUuidException(verificationUuid,
@@ -384,8 +393,16 @@ public class UserRepository {
                 );
             }
 
-            int updatedRows = db.update(conn,
-                    "update person_email set verified = ? where verification_uuid = ?",
+            if (verified != null) {
+                throw new EmailAlreadyVerifiedException(email, "Email already verified");
+            }
+
+            int updatedRows = db.update(conn,"""
+                    update person_email 
+                    set verified = ?, updated = ? 
+                    where verification_uuid = ?
+                    """,
+                    LocalDateTime.now(),
                     LocalDateTime.now(),
                     verificationUuid
             ).orElse(-1);
