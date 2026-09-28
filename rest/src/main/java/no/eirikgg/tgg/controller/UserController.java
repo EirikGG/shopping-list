@@ -163,11 +163,16 @@ public class UserController {
 
 
     public void verifyEmail(Context ctx) throws NoEmailConnectedToVerificationUuidException {
-        UUID verificationUuid = ctx.queryParamAsClass(PARAM_VERIFY_EMAIL, UUID.class)
-                                   .required()
-                                   .get();
+        String verificationUuid = ctx.queryParam(PARAM_VERIFY_EMAIL);
 
-        log.info("Verifying email address with verification key \"{}\"", verificationUuid);
-        userService.verifyEmailAddressUsingUuid(verificationUuid);
+        try {
+            UUID uuid = UUID.fromString(verificationUuid);
+
+            log.info("Verifying email address with verification key \"{}\"", uuid);
+            userService.verifyEmailAddressUsingUuid(uuid);
+        }
+        catch (IllegalArgumentException e) {
+            throw new BadRequestResponse("Not a valid verification key: " + verificationUuid);
+        }
     }
 }
