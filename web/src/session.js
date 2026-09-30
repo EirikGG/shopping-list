@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 
-const STORAGE_KEY = 'tgg.session-id'
+const STORAGE_KEY = 'shoppinglist.session-id'
 
 export const sessionId = ref(localStorage.getItem(STORAGE_KEY))
 

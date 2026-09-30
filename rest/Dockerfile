@@ -9,4 +9,4 @@ COPY src ./src
 
 RUN mvn -B -DskipTests compile
 
-CMD ["mvn", "exec:java", "-Dexec.mainClass=no.eirikgg.tgg.Main"]
+CMD ["mvn", "exec:java", "-Dexec.mainClass=no.eirikgg.shoppinglist.Main"]

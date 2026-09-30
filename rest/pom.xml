@@ -4,8 +4,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>no.eirikgg.tgg</groupId>
-    <artifactId>tgg-website</artifactId>
+    <groupId>no.eirikgg.shoppinglist</groupId>
+    <artifactId>shopping-list</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>

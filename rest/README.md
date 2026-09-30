@@ -6,4 +6,4 @@ docker run --name test-postgres -e POSTGRES_DB=testdb -e POSTGRES_USER=testuser 
 
 
 ### App run command
-mvn exec:java -Dexec.mainClass="no.eirikgg.tgg.Main" -DDB.HOSTNAME=localhost -DDB.PORT=5432 -DDB.NAME=testdb -DDB.USERNAME=testuser -DDB.PASSWORD=testpassword -DAPP.PORT=8080
+mvn exec:java -Dexec.mainClass="no.eirikgg.shoppinglist.Main" -DDB.HOSTNAME=localhost -DDB.PORT=5432 -DDB.NAME=testdb -DDB.USERNAME=testuser -DDB.PASSWORD=testpassword -DAPP.PORT=8080
