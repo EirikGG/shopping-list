@@ -1,0 +1,54 @@
+{
+  "language": {
+    "name": "Norsk",
+    "label": "Språk"
+  },
+  "app": {
+    "signedIn": "Du er logget inn.",
+    "logOut": "Logg ut",
+    "logInTab": "Logg inn",
+    "signupTab": "Opprett konto",
+    "accountCreated": "Konto for {email} er opprettet. Sjekk innboksen for en bekreftelseslenke."
+  },
+  "login": {
+    "email": "E-post",
+    "password": "Passord",
+    "submit": "Logg inn",
+    "submitting": "Logger inn…",
+    "wrongCredentials": "Feil e-post eller passord.",
+    "failed": "Kunne ikke logge inn. Prøv igjen."
+  },
+  "signup": {
+    "firstname": "Fornavn",
+    "lastname": "Etternavn",
+    "birthdate": "Fødselsdato",
+    "gender": "Kjønn",
+    "genderMale": "Mann",
+    "genderFemale": "Kvinne",
+    "genderOther": "Annet",
+    "countrycode": "Landskode",
+    "phonenumber": "Telefonnummer",
+    "email": "E-post",
+    "emailChecking": "Sjekker tilgjengelighet…",
+    "emailAvailable": "E-posten er tilgjengelig.",
+    "emailTaken": "E-posten er allerede registrert.",
+    "emailCheckFailed": "Kunne ikke sjekke tilgjengelighet.",
+    "emailHint": "Du logger inn med denne e-posten.",
+    "password": "Passord",
+    "passwordRepeat": "Gjenta passord",
+    "passwordMismatch": "Passordene er ikke like.",
+    "submit": "Opprett konto",
+    "submitting": "Oppretter konto…",
+    "duplicateEmail": "Det finnes allerede en konto med denne e-posten.",
+    "failed": "Kunne ikke opprette kontoen. Prøv igjen."
+  },
+  "verifyEmail": {
+    "verifying": "Bekrefter e-postadressen din…",
+    "verified": "E-postadressen din er bekreftet.",
+    "alreadyVerified": "Denne e-postadressen er allerede bekreftet. Du kan logge inn med den.",
+    "invalid": "Denne bekreftelseslenken er ikke gyldig. Adressen kan ha blitt kopiert ufullstendig.",
+    "failed": "Kunne ikke bekrefte e-postadressen akkurat nå. Prøv lenken igjen senere.",
+    "continue": "Fortsett",
+    "backToLogin": "Tilbake til innlogging"
+  }
+}

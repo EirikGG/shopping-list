@@ -1,8 +1,11 @@
 <script setup>
 import { computed, onUnmounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { createUser, emailIsAvailable } from '../api/auth.js'
 
 const emit = defineEmits(['created'])
+
+const { t } = useI18n()
 
 const CHECK_DELAY_MS = 400
 
@@ -20,6 +23,7 @@ const form = ref({
 })
 
 const passwordRepeat = ref('')
+// A message key, so the error follows a language change.
 const error = ref('')
 const busy = ref(false)
 
@@ -86,10 +90,10 @@ async function submit() {
     emit('created', form.value.email)
   } catch (e) {
     if (e.code === 'DUPLICATE_USERNAME') {
-      error.value = 'An account with that email already exists.'
+      error.value = 'signup.duplicateEmail'
       emailStatus.value = 'taken'
     } else {
-      error.value = 'Could not create the account. Try again.'
+      error.value = 'signup.failed'
     }
   } finally {
     busy.value = false
@@ -101,47 +105,47 @@ async function submit() {
   <form @submit.prevent="submit">
     <div class="row">
       <div class="field">
-        <label for="signup-firstname">First name</label>
+        <label for="signup-firstname">{{ t('signup.firstname') }}</label>
         <input id="signup-firstname" v-model="form.firstname" required />
       </div>
 
       <div class="field">
-        <label for="signup-lastname">Last name</label>
+        <label for="signup-lastname">{{ t('signup.lastname') }}</label>
         <input id="signup-lastname" v-model="form.lastname" required />
       </div>
     </div>
 
     <div class="row">
       <div class="field">
-        <label for="signup-birthdate">Birthdate</label>
+        <label for="signup-birthdate">{{ t('signup.birthdate') }}</label>
         <!-- type="date" submits yyyy-MM-dd, which is the format the backend parses. -->
         <input id="signup-birthdate" v-model="form.birthdate" type="date" required />
       </div>
 
       <div class="field">
-        <label for="signup-gender">Gender</label>
+        <label for="signup-gender">{{ t('signup.gender') }}</label>
         <select id="signup-gender" v-model="form.gender">
-          <option value="MALE">Male</option>
-          <option value="FEMALE">Female</option>
-          <option value="OTHER">Other</option>
+          <option value="MALE">{{ t('signup.genderMale') }}</option>
+          <option value="FEMALE">{{ t('signup.genderFemale') }}</option>
+          <option value="OTHER">{{ t('signup.genderOther') }}</option>
         </select>
       </div>
     </div>
 
     <div class="row phone">
       <div class="field">
-        <label for="signup-countrycode">Country code</label>
+        <label for="signup-countrycode">{{ t('signup.countrycode') }}</label>
         <input id="signup-countrycode" v-model="form.countrycode" required />
       </div>
 
       <div class="field">
-        <label for="signup-phonenumber">Phone number</label>
+        <label for="signup-phonenumber">{{ t('signup.phonenumber') }}</label>
         <input id="signup-phonenumber" v-model="form.phonenumber" required />
       </div>
     </div>
 
     <div class="field">
-      <label for="signup-email">Email</label>
+      <label for="signup-email">{{ t('signup.email') }}</label>
       <input
         id="signup-email"
         v-model="form.email"
@@ -156,16 +160,16 @@ async function submit() {
         :class="emailStatus"
         aria-live="polite"
       >
-        <template v-if="emailStatus === 'checking'">Checking availability…</template>
-        <template v-else-if="emailStatus === 'available'">Email is available.</template>
-        <template v-else-if="emailStatus === 'taken'">Email is already registered.</template>
-        <template v-else-if="emailStatus === 'error'">Could not check availability.</template>
-        <template v-else>You will log in with this email.</template>
+        <template v-if="emailStatus === 'checking'">{{ t('signup.emailChecking') }}</template>
+        <template v-else-if="emailStatus === 'available'">{{ t('signup.emailAvailable') }}</template>
+        <template v-else-if="emailStatus === 'taken'">{{ t('signup.emailTaken') }}</template>
+        <template v-else-if="emailStatus === 'error'">{{ t('signup.emailCheckFailed') }}</template>
+        <template v-else>{{ t('signup.emailHint') }}</template>
       </p>
     </div>
 
     <div class="field">
-      <label for="signup-password">Password</label>
+      <label for="signup-password">{{ t('signup.password') }}</label>
       <input
         id="signup-password"
         v-model="form.password"
@@ -176,7 +180,7 @@ async function submit() {
     </div>
 
     <div class="field">
-      <label for="signup-password-repeat">Repeat password</label>
+      <label for="signup-password-repeat">{{ t('signup.passwordRepeat') }}</label>
       <input
         id="signup-password-repeat"
         v-model="passwordRepeat"
@@ -191,14 +195,14 @@ async function submit() {
         class="hint taken"
         aria-live="polite"
       >
-        Passwords do not match.
+        {{ t('signup.passwordMismatch') }}
       </p>
     </div>
 
-    <p v-if="error" class="error">{{ error }}</p>
+    <p v-if="error" class="error">{{ t(error) }}</p>
 
     <button type="submit" :disabled="!canSubmit">
-      {{ busy ? 'Creating account…' : 'Create account' }}
+      {{ busy ? t('signup.submitting') : t('signup.submit') }}
     </button>
   </form>
 </template>

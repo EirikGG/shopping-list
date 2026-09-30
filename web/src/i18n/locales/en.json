@@ -1,0 +1,54 @@
+{
+  "language": {
+    "name": "English",
+    "label": "Language"
+  },
+  "app": {
+    "signedIn": "You are logged in.",
+    "logOut": "Log out",
+    "logInTab": "Log in",
+    "signupTab": "Create account",
+    "accountCreated": "Account for {email} created. Check that inbox for a verification link."
+  },
+  "login": {
+    "email": "Email",
+    "password": "Password",
+    "submit": "Log in",
+    "submitting": "Logging in…",
+    "wrongCredentials": "Wrong email or password.",
+    "failed": "Could not log in. Try again."
+  },
+  "signup": {
+    "firstname": "First name",
+    "lastname": "Last name",
+    "birthdate": "Birthdate",
+    "gender": "Gender",
+    "genderMale": "Male",
+    "genderFemale": "Female",
+    "genderOther": "Other",
+    "countrycode": "Country code",
+    "phonenumber": "Phone number",
+    "email": "Email",
+    "emailChecking": "Checking availability…",
+    "emailAvailable": "Email is available.",
+    "emailTaken": "Email is already registered.",
+    "emailCheckFailed": "Could not check availability.",
+    "emailHint": "You will log in with this email.",
+    "password": "Password",
+    "passwordRepeat": "Repeat password",
+    "passwordMismatch": "Passwords do not match.",
+    "submit": "Create account",
+    "submitting": "Creating account…",
+    "duplicateEmail": "An account with that email already exists.",
+    "failed": "Could not create the account. Try again."
+  },
+  "verifyEmail": {
+    "verifying": "Verifying your email address…",
+    "verified": "Your email address is verified.",
+    "alreadyVerified": "This email address is already verified. You can log in with it.",
+    "invalid": "This verification link is not valid. The address may have been copied incompletely.",
+    "failed": "Could not verify the email address right now. Try the link again later.",
+    "continue": "Continue",
+    "backToLogin": "Back to log in"
+  }
+}
