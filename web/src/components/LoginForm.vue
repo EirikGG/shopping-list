@@ -1,10 +1,14 @@
 <script setup>
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { login } from '../api/auth.js'
 import { setSessionId } from '../session.js'
 
+const { t } = useI18n()
+
 const email = ref('')
 const password = ref('')
+// A message key, so the error follows a language change.
 const error = ref('')
 const busy = ref(false)
 
@@ -15,9 +19,7 @@ async function submit() {
   try {
     setSessionId(await login(email.value, password.value))
   } catch (e) {
-    error.value = e.status === 401
-      ? 'Wrong email or password.'
-      : 'Could not log in. Try again.'
+    error.value = e.status === 401 ? 'login.wrongCredentials' : 'login.failed'
   } finally {
     busy.value = false
   }
@@ -27,7 +29,7 @@ async function submit() {
 <template>
   <form @submit.prevent="submit">
     <div class="field">
-      <label for="login-email">Email</label>
+      <label for="login-email">{{ t('login.email') }}</label>
       <input
         id="login-email"
         v-model="email"
@@ -38,7 +40,7 @@ async function submit() {
     </div>
 
     <div class="field">
-      <label for="login-password">Password</label>
+      <label for="login-password">{{ t('login.password') }}</label>
       <input
         id="login-password"
         v-model="password"
@@ -48,10 +50,10 @@ async function submit() {
       />
     </div>
 
-    <p v-if="error" class="error">{{ error }}</p>
+    <p v-if="error" class="error">{{ t(error) }}</p>
 
     <button type="submit" :disabled="busy">
-      {{ busy ? 'Logging in…' : 'Log in' }}
+      {{ busy ? t('login.submitting') : t('login.submit') }}
     </button>
   </form>
 </template>

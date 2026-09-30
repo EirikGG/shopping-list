@@ -1,7 +1,10 @@
 <script setup>
 import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { verifyEmail } from '../api/auth.js'
 import { sessionId } from '../session.js'
+
+const { t } = useI18n()
 
 // 'verifying' | 'verified' | 'already-verified' | 'invalid' | 'error'
 const status = ref('verifying')
@@ -40,34 +43,27 @@ function goHome() {
 <template>
   <div class="verify">
     <template v-if="status === 'verifying'">
-      <p class="muted" aria-live="polite">Verifying your email address…</p>
+      <p class="muted" aria-live="polite">{{ t('verifyEmail.verifying') }}</p>
     </template>
 
     <template v-else-if="status === 'verified'">
-      <p class="success" aria-live="polite">Your email address is verified.</p>
-      <button @click="goHome">Continue</button>
+      <p class="success" aria-live="polite">{{ t('verifyEmail.verified') }}</p>
+      <button @click="goHome">{{ t('verifyEmail.continue') }}</button>
     </template>
 
     <template v-else-if="status === 'already-verified'">
-      <p class="muted" aria-live="polite">
-        This email address is already verified. You can log in with it.
-      </p>
-      <button @click="goHome">Continue</button>
+      <p class="muted" aria-live="polite">{{ t('verifyEmail.alreadyVerified') }}</p>
+      <button @click="goHome">{{ t('verifyEmail.continue') }}</button>
     </template>
 
     <template v-else-if="status === 'invalid'">
-      <p class="error" aria-live="polite">
-        This verification link is not valid. The address may have been copied
-        incompletely.
-      </p>
-      <button class="secondary" @click="goHome">Back to log in</button>
+      <p class="error" aria-live="polite">{{ t('verifyEmail.invalid') }}</p>
+      <button class="secondary" @click="goHome">{{ t('verifyEmail.backToLogin') }}</button>
     </template>
 
     <template v-else>
-      <p class="error" aria-live="polite">
-        Could not verify the email address right now. Try the link again later.
-      </p>
-      <button class="secondary" @click="goHome">Back to log in</button>
+      <p class="error" aria-live="polite">{{ t('verifyEmail.failed') }}</p>
+      <button class="secondary" @click="goHome">{{ t('verifyEmail.backToLogin') }}</button>
     </template>
   </div>
 </template>

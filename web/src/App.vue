@@ -1,13 +1,19 @@
 <script setup>
 import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import LanguageSwitcher from './components/LanguageSwitcher.vue'
 import LoginForm from './components/LoginForm.vue'
 import SignupForm from './components/SignupForm.vue'
 import VerifyEmail from './components/VerifyEmail.vue'
 import { sessionIsValid } from './api/auth.js'
 import { clearSession, sessionId } from './session.js'
 
+const { t } = useI18n()
+
 const tab = ref('login')
-const notice = ref('')
+// Holds the created account's email rather than the finished sentence, so the
+// notice follows a language change.
+const createdEmail = ref('')
 
 // The verification mail links back to the frontend, so that path renders the
 // verification view instead of the login card. There is no router, so the path
@@ -28,13 +34,12 @@ onMounted(async () => {
 })
 
 function onCreated(email) {
-  notice.value =
-    `Account for ${email} created. Check that inbox for a verification link.`
+  createdEmail.value = email
   tab.value = 'login'
 }
 
 function showTab(name) {
-  notice.value = ''
+  createdEmail.value = ''
   tab.value = name
 }
 </script>
@@ -42,13 +47,17 @@ function showTab(name) {
 <template>
   <main>
     <div class="card">
+      <div class="card-header">
+        <LanguageSwitcher />
+      </div>
+
       <h1>TGG</h1>
 
       <VerifyEmail v-if="isVerifyEmailRoute" />
 
       <template v-else-if="sessionId">
-        <p class="signed-in">You are logged in.</p>
-        <button class="secondary" @click="clearSession">Log out</button>
+        <p class="signed-in">{{ t('app.signedIn') }}</p>
+        <button class="secondary" @click="clearSession">{{ t('app.logOut') }}</button>
       </template>
 
       <template v-else>
@@ -57,17 +66,19 @@ function showTab(name) {
             :class="{ secondary: tab !== 'login' }"
             @click="showTab('login')"
           >
-            Log in
+            {{ t('app.logInTab') }}
           </button>
           <button
             :class="{ secondary: tab !== 'signup' }"
             @click="showTab('signup')"
           >
-            Create account
+            {{ t('app.signupTab') }}
           </button>
         </div>
 
-        <p v-if="notice" class="notice">{{ notice }}</p>
+        <p v-if="createdEmail" class="notice">
+          {{ t('app.accountCreated', { email: createdEmail }) }}
+        </p>
 
         <LoginForm v-if="tab === 'login'" />
         <SignupForm v-else @created="onCreated" />
@@ -91,6 +102,12 @@ main {
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   box-shadow: 0 1px 3px rgba(23, 50, 77, 0.08);
+}
+
+.card-header {
+  display: flex;
+  justify-content: flex-end;
+  margin: -1rem -1rem 0 0;
 }
 
 h1 {
