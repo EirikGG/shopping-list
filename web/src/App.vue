@@ -51,7 +51,7 @@ function showTab(name) {
         <LanguageSwitcher />
       </div>
 
-      <h1>TGG</h1>
+      <h1>Shopping list</h1>
 
       <VerifyEmail v-if="isVerifyEmailRoute" />
 
