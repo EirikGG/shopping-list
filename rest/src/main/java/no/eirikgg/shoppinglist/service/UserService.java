@@ -38,10 +38,10 @@ public class UserService {
         }
     }
 
-    public String verifyEmailAddressUsingUuid(String email, int verificationCode)
+    public String verifyEmailAddress(String email, int verificationCode)
             throws EmailNotRegisteredException, EmailAlreadyVerifiedException, WrongEmailVerificationCodeException {
         try {
-            return userRepository.verifyEmailUsingVerificationUuid(email, verificationCode);
+            return userRepository.verifyEmailAddress(email, verificationCode);
         }
         catch (SQLException e) {
             throw new RuntimeException("Failed to check if username is available", e);

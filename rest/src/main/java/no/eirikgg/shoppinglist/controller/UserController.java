@@ -151,6 +151,6 @@ public class UserController {
         }
 
         log.info("Verifying email address {} with code {}", email, verificationCode);
-        userService.verifyEmailAddressUsingUuid(email, verificationCode);
+        userService.verifyEmailAddress(email, verificationCode);
     }
 }

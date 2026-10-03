@@ -12,6 +12,7 @@ import no.eirikgg.shoppinglist.errors.EmailNotRegisteredException;
 import no.eirikgg.shoppinglist.errors.PublicError;
 import no.eirikgg.shoppinglist.errors.UserEmailNotVerifiedException;
 import no.eirikgg.shoppinglist.errors.UsernameAlreadyExistsException;
+import no.eirikgg.shoppinglist.errors.WrongEmailVerificationCodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +28,7 @@ public class ExceptionHandlers {
         config.routes.exception(EmailAlreadyVerifiedException.class, eh::emailAlreadyVerifiedException);
         config.routes.exception(UserEmailNotVerifiedException.class, eh::userEmailNotVerifiedException);
         config.routes.exception(InvalidSessionException.class, eh::invalidSessionException);
+        config.routes.exception(WrongEmailVerificationCodeException.class, eh::wrongEmailVerificationCodeException);
         config.routes.exception(Exception.class, eh::exception);
     }
 
@@ -51,6 +53,11 @@ public class ExceptionHandlers {
 
     private void emailAlreadyVerifiedException(EmailAlreadyVerifiedException e, Context ctx) {
         creatPublicError(ctx, e, HttpStatus.BAD_REQUEST, Error.EMAIL_ALREADY_VERIFIED_EXCEPTION);
+    }
+
+
+    private void wrongEmailVerificationCodeException(WrongEmailVerificationCodeException e, Context ctx) {
+        creatPublicError(ctx, e, HttpStatus.UNAUTHORIZED, Error.WRONG_EMAIL_VERIFICATION_CODE_EXCEPTION);
     }
 
 

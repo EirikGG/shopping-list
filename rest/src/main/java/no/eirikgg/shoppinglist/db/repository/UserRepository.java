@@ -259,7 +259,7 @@ public class UserRepository {
 
 
 
-    public String verifyEmailUsingVerificationUuid(
+    public String verifyEmailAddress(
             String email, int verificationCode
     ) throws SQLException, EmailNotRegisteredException, EmailAlreadyVerifiedException, WrongEmailVerificationCodeException {
         Connection conn = db.getConnection();
@@ -280,7 +280,7 @@ public class UserRepository {
                     )
             ).orElse(null);
 
-            if (null == emailSelect.email()) {
+            if (null == emailSelect || null == emailSelect.email()) {
                 throw new EmailNotRegisteredException(email, "No user registrerd with email " + email);
             }
 
