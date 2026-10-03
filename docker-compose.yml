@@ -23,6 +23,11 @@ services:
       timeout: 5s
       retries: 10
 
+    profiles:
+      - test
+      - prod
+
+
   app:
     build:
       context: rest/
@@ -45,6 +50,11 @@ services:
       db:
         condition: service_healthy
 
+    profiles:
+      - test
+      - prod
+
+
   web:
     build:
       context: web/
@@ -62,6 +72,10 @@ services:
       - ./web/src:/app/src
       - ./web/index.html:/app/index.html
 
+    profiles:
+      - test
+      - prod
+
   mailpit:
     image: axllent/mailpit:latest
     container_name: mailpit
@@ -73,6 +87,9 @@ services:
 
     networks:
       - backend
+
+    profiles:
+      - test
 
 volumes:
   postgres-data:
