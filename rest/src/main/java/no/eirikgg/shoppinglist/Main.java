@@ -26,7 +26,8 @@ public class Main {
                 System.getProperty("DB.PORT"),
                 System.getProperty("DB.NAME"),
                 System.getProperty("DB.USERNAME"),
-                System.getProperty("DB.PASSWORD")
+                System.getProperty("DB.PASSWORD"),
+                System.getProperty("DB.POOL_SIZE")
         );
         String appPortProperty = System.getProperty("APP.PORT");
         int appPort = Integer.parseInt(appPortProperty);
@@ -58,6 +59,8 @@ public class Main {
             UserController.setup(config, db, emailSender);
 
             ExceptionHandlers.setup(config, db);
+
+            config.events.serverStopped(db::close);
         });
 
         return app;
