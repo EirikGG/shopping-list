@@ -1,6 +1,14 @@
+/*
+ * Colours are only ever set here. Components use the variables, so anything
+ * new follows the theme as long as it does not hard-code a colour.
+ * src/theme/index.js sets data-theme on <html>.
+ */
 :root {
+  color-scheme: light;
+
   --color-primary: #2b7cd3;
   --color-primary-hover: #1f63ad;
+  --color-on-primary: #ffffff;
   --color-surface: #ffffff;
   --color-background: #eaf3fc;
   --color-border: #c3dcf4;
@@ -8,9 +16,27 @@
   --color-text-muted: #5b7894;
   --color-error: #c0392b;
   --color-success: #1e7a4b;
+  --color-shadow: rgba(23, 50, 77, 0.08);
 
   --radius: 8px;
   --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* color-scheme makes native parts like the date picker and scrollbars dark. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-primary: #5aa2ec;
+  --color-primary-hover: #7db6f0;
+  --color-on-primary: #0f1d2b;
+  --color-surface: #172a3d;
+  --color-background: #0f1d2b;
+  --color-border: #2c4561;
+  --color-text: #e3edf7;
+  --color-text-muted: #94abc2;
+  --color-error: #f0786a;
+  --color-success: #5cc98f;
+  --color-shadow: rgba(0, 0, 0, 0.4);
 }
 
 * {
@@ -53,7 +79,7 @@ button {
   font: inherit;
   font-weight: 600;
   padding: 0.6rem 1rem;
-  color: var(--color-surface);
+  color: var(--color-on-primary);
   background: var(--color-primary);
   border: 1px solid transparent;
   border-radius: var(--radius);

@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import LanguageSwitcher from './components/LanguageSwitcher.vue'
 import LoginForm from './components/LoginForm.vue'
 import SignupForm from './components/SignupForm.vue'
+import ThemeSwitcher from './components/ThemeSwitcher.vue'
 import VerifyEmail from './components/VerifyEmail.vue'
 import { sessionStatus } from './api/auth.js'
 import { clearSession, sessionEmail, sessionId } from './session.js'
@@ -78,6 +79,7 @@ function logOut() {
   <main>
     <div class="card">
       <div class="card-header">
+        <ThemeSwitcher />
         <LanguageSwitcher />
       </div>
 
@@ -142,12 +144,14 @@ main {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  box-shadow: 0 1px 3px rgba(23, 50, 77, 0.08);
+  box-shadow: 0 1px 3px var(--color-shadow);
 }
 
 .card-header {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
   margin: -1rem -1rem 0 0;
 }
 
