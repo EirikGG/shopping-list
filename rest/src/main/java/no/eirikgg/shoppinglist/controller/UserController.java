@@ -8,6 +8,7 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.UnauthorizedResponse;
+import io.javalin.plugin.bundled.RateLimitPlugin;
 import no.eirikgg.shoppinglist.datamodel.Authorization;
 import no.eirikgg.shoppinglist.datamodel.Person;
 import no.eirikgg.shoppinglist.datamodel.User;
@@ -26,6 +27,7 @@ import no.eirikgg.shoppinglist.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.Optional;
@@ -48,6 +50,7 @@ public class UserController {
     public static final String PARAM_EMAIL = "email";
     public static final String PARAM_VERIFY_EMAIL = "key";
 
+    private RateLimiter rateLimiter = new RateLimiter(5, Duration.ofMinutes(1));
 
     private UserService userService;
     private AuthenticationService authenticationService;
@@ -77,7 +80,11 @@ public class UserController {
     }
 
 
-    public void createUser(Context ctx) throws JsonProcessingException, UsernameAlreadyExistsException, InvalidSessionException, EmailNotRegisteredException {
+    public void createUser(Context ctx) throws JsonProcessingException, UsernameAlreadyExistsException,
+            InvalidSessionException, EmailNotRegisteredException {
+
+        rateLimiter.check(ctx);
+
         JsonNode json = mapper.readTree(ctx.body());
 
         String firstName = json.get(PARAM_FIRSTNAME).asText();
@@ -99,7 +106,8 @@ public class UserController {
         ctx.status(HttpStatus.OK).json(persistedUser);
     }
 
-    public void login(Context ctx) throws JsonProcessingException, InvalidSessionException, UserEmailNotVerifiedException {
+    public void login(Context ctx) throws JsonProcessingException, InvalidSessionException,
+            UserEmailNotVerifiedException {
         JsonNode json = mapper.readTree(ctx.body());
         String username = json.get(PARAM_EMAIL).asText();
         String password = json.get(PARAM_PASSWORD).asText();
@@ -127,7 +135,8 @@ public class UserController {
 
 
     public void verifyEmail(Context ctx)
-            throws EmailNotRegisteredException, EmailAlreadyVerifiedException, WrongEmailVerificationCodeException, JsonProcessingException {
+            throws EmailNotRegisteredException, EmailAlreadyVerifiedException, WrongEmailVerificationCodeException,
+            JsonProcessingException {
         JsonNode json = mapper.readTree(ctx.body());
         String email = json.get(PARAM_EMAIL).asText();
         Integer verificationCode = json.get(PARAM_VERIFY_EMAIL).asInt();

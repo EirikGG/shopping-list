@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
 
@@ -41,6 +42,45 @@ class UserControllerTest {
     private final static String EMAIL = "eirikgg94@gmail.com";
     private final static String PASSWORD = "test1234";
 
+
+
+
+    @Test
+    void createMultipleUsers_expectRateLimiting() {
+        EmbeddedPostgresDb db = EmbeddedPostgresDb.createMigratedInstance();
+        EmailSenderFake fakeEmailSender = new EmailSenderFake();
+        Javalin app = Main.setupJavalinApp(db, fakeEmailSender);
+        TestConfig testConfig = new TestConfig(true, false);
+        JavalinTest.test(app, testConfig, (server, client) -> {
+
+            boolean threwException = false;
+            int numberOfUsersToCreate = 20;
+            for (int i = 0; i < numberOfUsersToCreate; i++) {
+                String email = "unit-test-%d@test.com".formatted(i);
+                Response userResponse = client.post(UserController.PATH_USER, Map.ofEntries(
+                        Map.entry(UserController.PARAM_FIRSTNAME, FIRSTNAME),
+                        Map.entry(UserController.PARAM_LASTNAME, LASTNAME),
+                        Map.entry(UserController.PARAM_BIRTHDATE, BIRTHDATE),
+                        Map.entry(UserController.PARAM_GENDER, GENDER),
+                        Map.entry(UserController.PARAM_EMAIL, email),
+                        Map.entry(UserController.PARAM_PASSWORD, PASSWORD)
+                ));
+
+                int status = userResponse.code();
+                if (200 == status) {
+                    // Created a user ok
+                }
+                else if (429 == status) {
+                    threwException = true;
+                    break;
+                }
+            }
+
+            if (!threwException) {
+                fail("Created " + numberOfUsersToCreate + " users without hitting rate limiter");
+            }
+        });
+    }
 
 
 
@@ -164,4 +204,6 @@ class UserControllerTest {
 
         return userResponse;
     }
+
+
 }

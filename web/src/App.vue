@@ -15,10 +15,14 @@ const tab = ref('login')
 // notice follows a language change.
 const createdEmail = ref('')
 
-// null while logged out, otherwise 'checking' | 'verified' | 'unverified'.
+// null while logged out, otherwise 'checking' | 'verified' | 'unverified' |
+// 'unavailable'. 'unavailable' means the check itself failed, so the session
+// is kept and the check can be retried.
 // Logging in works before the email is verified, so a session is only fully
 // usable once the backend reports it as verified.
 const status = ref(null)
+// A message key for why the check failed, so it follows a language change.
+const checkError = ref('')
 
 // A stored session id can be expired or from a wiped database, so every
 // session — stored or new — is checked against the backend.
@@ -35,8 +39,9 @@ async function refreshStatus(id) {
   let result
   try {
     result = await sessionStatus(id)
-  } catch {
-    result = 'invalid'
+  } catch (e) {
+    result = 'unavailable'
+    checkError.value = e.status === 429 ? 'errors.tooManyRequests' : 'app.checkFailed'
   }
 
   // A later login or logout wins over a check that was still in flight.
@@ -79,6 +84,12 @@ function logOut() {
       <h1>Shopping list</h1>
 
       <p v-if="status === 'checking'" class="signed-in">{{ t('app.checkingSession') }}</p>
+
+      <template v-else-if="status === 'unavailable'">
+        <p class="check-error" aria-live="polite">{{ t(checkError) }}</p>
+        <button @click="refreshStatus(sessionId)">{{ t('app.retry') }}</button>
+        <button class="secondary log-out" @click="logOut">{{ t('app.logOut') }}</button>
+      </template>
 
       <template v-else-if="status === 'unverified'">
         <VerifyEmail :email="sessionEmail" @verified="status = 'verified'" />
@@ -166,6 +177,15 @@ h1 {
 .signed-in {
   margin: 0 0 1rem;
   color: var(--color-text-muted);
+}
+
+.check-error {
+  margin: 0 0 1rem;
+  color: var(--color-error);
+}
+
+.check-error + button {
+  width: 100%;
 }
 
 .log-out {

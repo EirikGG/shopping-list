@@ -9,7 +9,9 @@
     "logInTab": "Logg inn",
     "signupTab": "Opprett konto",
     "accountCreated": "Konto for {email} er opprettet. Logg inn for å bekrefte e-postadressen din.",
-    "checkingSession": "Sjekker innloggingen…"
+    "checkingSession": "Sjekker innloggingen…",
+    "checkFailed": "Kunne ikke sjekke innloggingen. Prøv igjen.",
+    "retry": "Prøv igjen"
   },
   "login": {
     "email": "E-post",
@@ -46,5 +48,8 @@
     "wrongCode": "Koden er ikke riktig. Sjekk e-posten og prøv igjen.",
     "notRegistered": "Ingen konto er registrert med denne e-postadressen.",
     "failed": "Kunne ikke bekrefte e-postadressen akkurat nå. Prøv igjen senere."
+  },
+  "errors": {
+    "tooManyRequests": "For mange forsøk. Vent et minutt og prøv igjen."
   }
 }

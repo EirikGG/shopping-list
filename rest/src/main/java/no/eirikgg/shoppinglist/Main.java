@@ -6,12 +6,15 @@ import no.eirikgg.shoppinglist.controller.EmailWorker;
 import no.eirikgg.shoppinglist.controller.ExceptionHandlers;
 import no.eirikgg.shoppinglist.controller.GeneralController;
 import no.eirikgg.shoppinglist.controller.LogFilter;
+import no.eirikgg.shoppinglist.controller.RateLimiter;
 import no.eirikgg.shoppinglist.controller.UserController;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.db.PostgresDb;
 import no.eirikgg.shoppinglist.service.EmailSenderSmtp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.time.Duration;
 
 public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
@@ -41,8 +44,10 @@ public class Main {
 
 
     public static Javalin setupJavalinApp(Db db, EmailSenderSmtp emailSender) {
-
         Javalin app = Javalin.create(config -> {
+
+            RateLimiter globalRateLimiter = new RateLimiter(50, Duration.ofMinutes(1));
+            config.routes.before(globalRateLimiter::check);
 
             EmailWorker.setup(config, db, emailSender);
 
