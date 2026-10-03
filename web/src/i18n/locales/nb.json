@@ -8,7 +8,8 @@
     "logOut": "Logg ut",
     "logInTab": "Logg inn",
     "signupTab": "Opprett konto",
-    "accountCreated": "Konto for {email} er opprettet. Sjekk innboksen for en bekreftelseslenke."
+    "accountCreated": "Konto for {email} er opprettet. Logg inn for å bekrefte e-postadressen din.",
+    "checkingSession": "Sjekker innloggingen…"
   },
   "login": {
     "email": "E-post",
@@ -26,13 +27,8 @@
     "genderMale": "Mann",
     "genderFemale": "Kvinne",
     "genderOther": "Annet",
-    "countrycode": "Landskode",
-    "phonenumber": "Telefonnummer",
     "email": "E-post",
-    "emailChecking": "Sjekker tilgjengelighet…",
-    "emailAvailable": "E-posten er tilgjengelig.",
     "emailTaken": "E-posten er allerede registrert.",
-    "emailCheckFailed": "Kunne ikke sjekke tilgjengelighet.",
     "emailHint": "Du logger inn med denne e-posten.",
     "password": "Passord",
     "passwordRepeat": "Gjenta passord",
@@ -43,12 +39,12 @@
     "failed": "Kunne ikke opprette kontoen. Prøv igjen."
   },
   "verifyEmail": {
-    "verifying": "Bekrefter e-postadressen din…",
-    "verified": "E-postadressen din er bekreftet.",
-    "alreadyVerified": "Denne e-postadressen er allerede bekreftet. Du kan logge inn med den.",
-    "invalid": "Denne bekreftelseslenken er ikke gyldig. Adressen kan ha blitt kopiert ufullstendig.",
-    "failed": "Kunne ikke bekrefte e-postadressen akkurat nå. Prøv lenken igjen senere.",
-    "continue": "Fortsett",
-    "backToLogin": "Tilbake til innlogging"
+    "intro": "Vi har sendt en femsifret kode til {email}. Skriv den inn under for å bekrefte e-postadressen din.",
+    "code": "Bekreftelseskode",
+    "submit": "Bekreft e-post",
+    "submitting": "Bekrefter…",
+    "wrongCode": "Koden er ikke riktig. Sjekk e-posten og prøv igjen.",
+    "notRegistered": "Ingen konto er registrert med denne e-postadressen.",
+    "failed": "Kunne ikke bekrefte e-postadressen akkurat nå. Prøv igjen senere."
   }
 }

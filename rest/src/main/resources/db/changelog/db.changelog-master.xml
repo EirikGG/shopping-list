@@ -12,4 +12,8 @@
     <include file="/db/updates/0005-session.sql"/>
     <include file="/db/updates/0006-email_message.sql"/>
     <include file="/db/updates/0007-person_email_verified.sql"/>
+    <include file="/db/updates/0008-drop-email-table.sql"/>
+    <include file="/db/updates/0009-drop-phone-table.sql"/>
+    <include file="/db/updates/0010-rename-username-to-email.sql"/>
+    <include file="/db/updates/0011-add-verification-to-login.sql"/>
 </databaseChangeLog>

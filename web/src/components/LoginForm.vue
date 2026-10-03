@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { login } from '../api/auth.js'
-import { setSessionId } from '../session.js'
+import { setSession } from '../session.js'
 
 const { t } = useI18n()
 
@@ -17,7 +17,7 @@ async function submit() {
   busy.value = true
 
   try {
-    setSessionId(await login(email.value, password.value))
+    setSession(await login(email.value, password.value), email.value)
   } catch (e) {
     error.value = e.status === 401 ? 'login.wrongCredentials' : 'login.failed'
   } finally {

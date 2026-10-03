@@ -1,14 +1,11 @@
 package no.eirikgg.shoppinglist.db.user;
 
 import no.eirikgg.shoppinglist.datamodel.Authorization;
-import no.eirikgg.shoppinglist.datamodel.Email;
 import no.eirikgg.shoppinglist.datamodel.Person;
-import no.eirikgg.shoppinglist.datamodel.PhoneNumber;
 import no.eirikgg.shoppinglist.datamodel.User;
 import no.eirikgg.shoppinglist.service.PasswordService;
 
 import java.time.LocalDate;
-import java.util.UUID;
 
 public class UserTestDataGenerator {
 
@@ -16,28 +13,10 @@ public class UserTestDataGenerator {
     public static User getUser() {
         User user = new User(
             getPersonInformation(),
-            getAuthorization(),
-            getEmail(),
-            getPhoneNumber()
+            getAuthorization()
         );
 
         return user;
-    }
-
-
-    private static Email getEmail() {
-        return new Email(
-            "unit-test@test.com",
-                UUID.randomUUID()
-        );
-    }
-
-
-    private static PhoneNumber getPhoneNumber() {
-        return new PhoneNumber(
-                "NO",
-            "99489816"
-        );
     }
 
     private static Authorization getAuthorization() {

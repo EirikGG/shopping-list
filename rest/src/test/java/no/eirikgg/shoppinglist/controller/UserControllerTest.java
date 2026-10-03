@@ -10,7 +10,9 @@ import io.javalin.testtools.JavalinTest;
 import io.javalin.testtools.Response;
 import io.javalin.testtools.TestConfig;
 import no.eirikgg.shoppinglist.Main;
+import no.eirikgg.shoppinglist.datamodel.EmailTemplate;
 import no.eirikgg.shoppinglist.db.EmbeddedPostgresDb;
+import no.eirikgg.shoppinglist.db.user.EmailSenderFake;
 import no.eirikgg.shoppinglist.errors.Error;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -36,11 +38,8 @@ class UserControllerTest {
     private final static String LASTNAME = "Gustafsson";
     private final static String BIRTHDATE = "1994-05-14";
     private final static String GENDER = "MALE";
-    private final static String USERNAME = "eirikgg94@gmail.com";
-    private final static String PASSWORD = "test1234";
     private final static String EMAIL = "eirikgg94@gmail.com";
-    private final static String COUNTRYCODE = "NO";
-    private final static String PHONENUMBER = "99489816";
+    private final static String PASSWORD = "test1234";
 
 
 
@@ -48,13 +47,14 @@ class UserControllerTest {
     @Test
     void createUserAndLogin_expectLoggedInOk() {
         EmbeddedPostgresDb db = EmbeddedPostgresDb.createMigratedInstance();
-        Javalin app = Main.setupJavalinApp(db);
+        EmailSenderFake fakeEmailSender = new EmailSenderFake();
+        Javalin app = Main.setupJavalinApp(db, fakeEmailSender);
         TestConfig testConfig = new TestConfig(true, false);
         JavalinTest.test(app, testConfig, (server, client) -> {
 
-            isUsernameAvailable(client, USERNAME, 200);
-            Response userResponse = createUserAndPersistExpectStatus(client, 200);
-            isUsernameAvailable(client, USERNAME, 406);
+            createUserAndPersistExpectStatus(client, 200);
+            verifyEmail(client, EMAIL, fakeEmailSender);
+            createUserAndPersistExpectStatus(client, 400);
 
             Response loginResponse = loginWithUser(client);
             JsonNode okSessionBodyJson = mapper.readTree(loginResponse.getBody().string());
@@ -74,23 +74,27 @@ class UserControllerTest {
         });
     }
 
+    private void verifyEmail(HttpClient client, String email, EmailSenderFake fakeEmailSender) throws InterruptedException {
 
-    private static void isUsernameAvailable(
-            HttpClient client, String username, int expectedStatusCode
-    ) throws IOException, InterruptedException {
+        String emailBody = null;
+        for (int i = 0; i < 20; i++) {
+            if (null != fakeEmailSender.getEmailMessage()) {
+                emailBody = fakeEmailSender.getEmailMessage().getBody();
+                break;
+            }
 
-        HttpRequest request = HttpRequest.newBuilder()
-                 .uri(URI.create(client.getOrigin() + UserController.PATH_IS_USERNAME_AVAILABLE))
-                 .header(UserController.PARAM_USERNAME, username)
-                 .GET()
-                 .build();
+            Thread.sleep(1000);
+        }
 
-        HttpResponse<String> response = java.net.http.HttpClient.newHttpClient().send(
-                request,
-                HttpResponse.BodyHandlers.ofString()
-        );
+        if (null == emailBody) {
+            throw new IllegalStateException("Emailsender never sendt the email");
+        }
 
-        assertEquals(expectedStatusCode, response.statusCode(), "Username available status");
+        String verificationCode = EmailTemplate.NewUser.getVerificationCodeFromBody(emailBody);
+        client.post(UserController.PATH_VERIFY_EMAIL, Map.ofEntries(
+                Map.entry(UserController.PARAM_EMAIL, email),
+                Map.entry(UserController.PARAM_VERIFY_EMAIL, verificationCode)
+        ));
     }
 
 
@@ -115,7 +119,7 @@ class UserControllerTest {
 
     private Response loginWithUser(HttpClient client) {
         Response loginResponse = client.post(UserController.PATH_LOGIN, Map.ofEntries(
-                Map.entry(UserController.PARAM_USERNAME, USERNAME),
+                Map.entry(UserController.PARAM_EMAIL, EMAIL),
                 Map.entry(UserController.PARAM_PASSWORD, PASSWORD)
         ));
 
@@ -123,7 +127,7 @@ class UserControllerTest {
         assertEquals(200, loginResponse.code());
 
         Response failedLoginResponse = client.post(UserController.PATH_LOGIN, Map.ofEntries(
-                Map.entry(UserController.PARAM_USERNAME, USERNAME),
+                Map.entry(UserController.PARAM_EMAIL, EMAIL),
                 Map.entry(UserController.PARAM_PASSWORD, "test123")
         ));
 
@@ -143,11 +147,8 @@ class UserControllerTest {
                 Map.entry(UserController.PARAM_LASTNAME, LASTNAME),
                 Map.entry(UserController.PARAM_BIRTHDATE, BIRTHDATE),
                 Map.entry(UserController.PARAM_GENDER, GENDER),
-                Map.entry(UserController.PARAM_USERNAME, USERNAME),
-                Map.entry(UserController.PARAM_PASSWORD, PASSWORD),
                 Map.entry(UserController.PARAM_EMAIL, EMAIL),
-                Map.entry(UserController.PARAM_COUNTRYCODE, COUNTRYCODE),
-                Map.entry(UserController.PARAM_PHONENUMBER, PHONENUMBER)
+                Map.entry(UserController.PARAM_PASSWORD, PASSWORD)
         ));
 
         assertEquals(status, userResponse.code());

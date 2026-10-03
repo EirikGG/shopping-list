@@ -1,12 +1,12 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import LanguageSwitcher from './components/LanguageSwitcher.vue'
 import LoginForm from './components/LoginForm.vue'
 import SignupForm from './components/SignupForm.vue'
 import VerifyEmail from './components/VerifyEmail.vue'
-import { sessionIsValid } from './api/auth.js'
-import { clearSession, sessionId } from './session.js'
+import { sessionStatus } from './api/auth.js'
+import { clearSession, sessionEmail, sessionId } from './session.js'
 
 const { t } = useI18n()
 
@@ -15,23 +15,43 @@ const tab = ref('login')
 // notice follows a language change.
 const createdEmail = ref('')
 
-// The verification mail links back to the frontend, so that path renders the
-// verification view instead of the login card. There is no router, so the path
-// is read once on load.
-const VERIFY_EMAIL_PATH = '/verify_email'
-const isVerifyEmailRoute = window.location.pathname === VERIFY_EMAIL_PATH
+// null while logged out, otherwise 'checking' | 'verified' | 'unverified'.
+// Logging in works before the email is verified, so a session is only fully
+// usable once the backend reports it as verified.
+const status = ref(null)
 
-// A stored session id can be expired or from a wiped database, so it is
-// checked against the backend before the app treats it as logged in.
-onMounted(async () => {
-  if (isVerifyEmailRoute) {
+// A stored session id can be expired or from a wiped database, so every
+// session — stored or new — is checked against the backend.
+watch(sessionId, refreshStatus, { immediate: true })
+
+async function refreshStatus(id) {
+  if (!id) {
+    status.value = null
     return
   }
 
-  if (sessionId.value && !(await sessionIsValid(sessionId.value))) {
-    clearSession()
+  status.value = 'checking'
+
+  let result
+  try {
+    result = await sessionStatus(id)
+  } catch {
+    result = 'invalid'
   }
-})
+
+  // A later login or logout wins over a check that was still in flight.
+  if (sessionId.value !== id) {
+    return
+  }
+
+  // Sessions stored before the email was kept alongside them cannot be
+  // verified, so they are logged out as well.
+  if (result === 'invalid' || (result === 'unverified' && !sessionEmail.value)) {
+    clearSession()
+  } else {
+    status.value = result
+  }
+}
 
 function onCreated(email) {
   createdEmail.value = email
@@ -41,6 +61,11 @@ function onCreated(email) {
 function showTab(name) {
   createdEmail.value = ''
   tab.value = name
+}
+
+function logOut() {
+  createdEmail.value = ''
+  clearSession()
 }
 </script>
 
@@ -53,11 +78,16 @@ function showTab(name) {
 
       <h1>Shopping list</h1>
 
-      <VerifyEmail v-if="isVerifyEmailRoute" />
+      <p v-if="status === 'checking'" class="signed-in">{{ t('app.checkingSession') }}</p>
 
-      <template v-else-if="sessionId">
+      <template v-else-if="status === 'unverified'">
+        <VerifyEmail :email="sessionEmail" @verified="status = 'verified'" />
+        <button class="secondary log-out" @click="logOut">{{ t('app.logOut') }}</button>
+      </template>
+
+      <template v-else-if="status === 'verified'">
         <p class="signed-in">{{ t('app.signedIn') }}</p>
-        <button class="secondary" @click="clearSession">{{ t('app.logOut') }}</button>
+        <button class="secondary" @click="logOut">{{ t('app.logOut') }}</button>
       </template>
 
       <template v-else>
@@ -136,5 +166,10 @@ h1 {
 .signed-in {
   margin: 0 0 1rem;
   color: var(--color-text-muted);
+}
+
+.log-out {
+  width: 100%;
+  margin-top: 0.75rem;
 }
 </style>

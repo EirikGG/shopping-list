@@ -8,6 +8,13 @@ export class ApiError extends Error {
   }
 }
 
+// The backend returns a PublicError body for known cases and an empty body for
+// the rest, so the parse has to be optional.
+async function toApiError(response) {
+  const error = await response.json().catch(() => null)
+  return new ApiError(response.statusText, response.status, error?.error)
+}
+
 async function postJson(path, body) {
   const response = await fetch(`/api${path}`, {
     method: 'POST',
@@ -16,76 +23,51 @@ async function postJson(path, body) {
   })
 
   if (!response.ok) {
-    // The backend returns a PublicError body for known cases and an empty
-    // body for the rest, so the parse has to be optional.
-    const error = await response.json().catch(() => null)
-    throw new ApiError(response.statusText, response.status, error?.error)
+    throw await toApiError(response)
   }
 
-  return response.json()
+  return response
 }
 
-// The backend stores the email as the username, so the email is what identifies
-// a user on login.
+// Logging in works before the email is verified; the session only becomes
+// valid once it is.
 export async function login(email, password) {
-  const body = await postJson('/login_user', { username: email, password })
+  const response = await postJson('/login_user', { email, password })
+  const body = await response.json()
   return body[SESSION_ID_KEY]
 }
 
-export function createUser(user) {
-  // No username is sent: the backend derives it from the email field.
-  return postJson('/user', {
+export async function createUser(user) {
+  // No username is sent: the backend uses the email as the username.
+  const response = await postJson('/user', {
     firstname: user.firstname,
     lastname: user.lastname,
     birthdate: user.birthdate,
     gender: user.gender,
     password: user.password,
-    email: user.email,
-    countrycode: user.countrycode,
-    phonenumber: user.phonenumber
+    email: user.email
   })
+  return response.json()
 }
 
-export async function emailIsAvailable(email) {
-  // The endpoint checks the username column — which holds the email — and takes
-  // the value as a header, answering 406 when it is taken.
-  const response = await fetch('/api/is_username_available', {
-    headers: { username: email }
-  })
-
-  if (response.status === 406) {
-    return false
-  }
-
-  if (!response.ok) {
-    throw new ApiError(response.statusText, response.status)
-  }
-
-  return true
-}
-
-export async function sessionIsValid(sessionId) {
+// 'verified' | 'unverified' | 'invalid'. A session for a user whose email is
+// not verified yet is rejected with its own error code, which is what tells
+// the two apart.
+export async function sessionStatus(sessionId) {
   const response = await fetch('/api/session_is_valid', {
     headers: { Authorization: `Bearer ${sessionId}` }
   })
-  return response.ok
+
+  if (response.ok) {
+    return 'verified'
+  }
+
+  const error = await toApiError(response)
+  return error.code === 'USER_EMAIL_NOT_VERIFIED' ? 'unverified' : 'invalid'
 }
 
-// The verification link in the email points at the frontend, which forwards the
-// key to the backend. The endpoint is a POST taking the key as a query
-// parameter, and it sits behind the authentication filter, so the session id is
-// sent along whenever the browser has one.
-export async function verifyEmail(key, sessionId) {
-  const response = await fetch(
-    `/api/verify_email?key=${encodeURIComponent(key)}`,
-    {
-      method: 'POST',
-      headers: sessionId ? { Authorization: `Bearer ${sessionId}` } : {}
-    }
-  )
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => null)
-    throw new ApiError(response.statusText, response.status, error?.error)
-  }
+// The code is the number from the verification email. The endpoint needs no
+// session; the email identifies the user.
+export async function verifyEmail(email, code) {
+  await postJson('/verify_email', { email, key: Number(code) })
 }

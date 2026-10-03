@@ -2,10 +2,10 @@ package no.eirikgg.shoppinglist.db.repository;
 
 import no.eirikgg.shoppinglist.datamodel.Authorization;
 import no.eirikgg.shoppinglist.db.Db;
-import no.eirikgg.shoppinglist.datamodel.Email;
 import no.eirikgg.shoppinglist.datamodel.Person;
-import no.eirikgg.shoppinglist.datamodel.PhoneNumber;
 import no.eirikgg.shoppinglist.datamodel.User;
+import no.eirikgg.shoppinglist.errors.InvalidSessionException;
+import no.eirikgg.shoppinglist.errors.UserEmailNotVerifiedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,20 +61,10 @@ public class AuthenticationRepository {
                     p.lastname                  person_lastname,
                     p.birthdate                 person_birthdate,
                     p.gender                    person_gender,
-                    email.email                 contact_email,
-                    email.verification_uuid     verification_uuid,
-                    phone.country_code          contact_country_code,
-                    phone.phone_number          contact_phone_number,
-                    login.username              login_username,
+                    login.email                 login_email,
                     login.password              login_password
                 from
                     person                      as p
-                join
-                    person_email                as email
-                    on email.person_id          = p.person_id
-                join 
-                    person_phone_number         as phone
-                    on phone.person_id          = p.person_id
                 join
                     person_login                as login
                     on login.person_id          = p.person_id
@@ -94,19 +84,11 @@ public class AuthenticationRepository {
                         Person.Gender.valueOf(rs.getString("person_gender").orElseThrow())
                     );
                     Authorization authorization = new Authorization(
-                        rs.getString("login_username").orElseThrow(),
+                        rs.getString("login_email").orElseThrow(),
                         rs.getString("login_password").orElseThrow()
                     );
-                    Email email = new Email(
-                        rs.getString("contact_email").orElseThrow(),
-                        rs.getUuid("verification_uuid").orElseThrow()
-                    );
-                    PhoneNumber phoneNumber = new PhoneNumber(
-                        rs.getString("contact_country_code").orElseThrow(),
-                        rs.getString("contact_phone_number").orElseThrow()
-                    );
 
-                    return new User(person, authorization, email, phoneNumber);
+                    return new User(person, authorization);
                 }
             );
 
@@ -126,22 +108,45 @@ public class AuthenticationRepository {
         }
     }
 
-    public boolean isValidSessionId(UUID sessionId) {
+    public void isValidSessionId(UUID sessionId) throws InvalidSessionException, UserEmailNotVerifiedException {
+        record Resultset(UUID sessionId, LocalDateTime verifiedAt, String email) {}
         try (Connection conn = db.getConnection()) {
-            List<String> sessions = db.select(conn, """
+             List<Resultset> sessions = db.select(conn, """
                 select
-                    s.session_id        session_id
+                    session.session_id          as session_id,
+                    login.email                 as email,
+                    login.verified_at           as verified_at
                 from
-                    session             as s
+                    session                     as session
+                join 
+                    person_login                as login
+                    on login.person_login_id    = session.person_login_id                                 
                 where
-                    s.session_id        = ?
-                    and ?               between s.valid_from and s.valid_until 
+                    session.session_id          = ?
+                    and ?                       between session.valid_from and session.valid_until 
                 """,
                 new Object[] {sessionId, LocalDateTime.now()},
-                rs -> rs.getString("session_id").orElseThrow()
+                rs -> new Resultset(
+                    rs.getUuid("session_id").orElseThrow(),
+                    rs.getLocalDateTime("verified_at").orElse(null),
+                    rs.getString("email").orElseThrow()
+                )
             );
 
-            return !sessions.isEmpty();
+             if (sessions.isEmpty()) {
+                 throw new InvalidSessionException(sessionId, "No active session found");
+             }
+
+             if (1 < sessions.size()) {
+                 throw new RuntimeException("To many sessions found");
+             }
+
+             Resultset resultset = sessions.get(0);
+             LocalDateTime verifiedAt = resultset.verifiedAt();
+             String email = resultset.email();
+             if (null == verifiedAt || verifiedAt.isAfter(LocalDateTime.now())) {
+                throw new UserEmailNotVerifiedException(email, "User email is not verified");
+             }
         }
         catch (SQLException e) {
             throw new RuntimeException(e);
