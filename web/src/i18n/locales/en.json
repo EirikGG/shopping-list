@@ -51,5 +51,11 @@
   },
   "errors": {
     "tooManyRequests": "Too many attempts. Wait a minute and try again."
+  },
+  "theme": {
+    "current": "Theme: {theme}",
+    "auto": "System",
+    "light": "Light",
+    "dark": "Dark"
   }
 }
