@@ -39,6 +39,7 @@ services:
         -DDB.NAME=${DB_NAME}
         -DDB.USERNAME=${DB_USERNAME}
         -DDB.PASSWORD=${DB_PASSWORD}
+        -DDB.POOL_SIZE=${DB_POOL_SIZE}
         -DAPP.PORT=${APP_PORT}
         -DMAIL.HOST=mailpit
         -DMAIL.PORT=${MAIL_PORT}

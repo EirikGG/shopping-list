@@ -1,57 +1,65 @@
 package no.eirikgg.shoppinglist.db;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+
+import java.io.IOException;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Objects;
 
 public final class PostgresDb implements Db {
 
     private static PostgresDb INSTANCE;
-
-    private final String jdbcUrl;
-    private final String username;
-    private final String password;
+    private final HikariDataSource dataSource;
 
     private PostgresDb(
             String hostname,
             String port,
             String databaseName,
             String username,
-            String password
+            String password,
+            String connectionPoolSize
     ) {
         int portNum = Integer.parseInt(port);
+        int poolSize = Integer.parseInt(connectionPoolSize);
         Objects.requireNonNull(hostname);
         Objects.requireNonNull(databaseName);
-        this.jdbcUrl = "jdbc:postgresql://%s:%d/%s".formatted(hostname, portNum, databaseName);
-        this.username = Objects.requireNonNull(username);
-        this.password = Objects.requireNonNull(password);
+        String jdbcUrl = "jdbc:postgresql://%s:%d/%s".formatted(hostname, portNum, databaseName);
+        Objects.requireNonNull(username);
+        Objects.requireNonNull(password);
+
+        HikariConfig config = new HikariConfig();
+        config.setPoolName("shoppinglist-pool");
+        config.setJdbcUrl(jdbcUrl);
+        config.setUsername(username);
+        config.setPassword(password);
+        config.setMaximumPoolSize(poolSize);
+        config.setConnectionTimeout(5_000);
+        dataSource = new HikariDataSource(config);
     }
 
     @Override
     public Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(
-            jdbcUrl,
-            username,
-            password
-        );
+        return dataSource.getConnection();
     }
 
     public static PostgresDb getMigratedInstance(
-            String hostname,
-            String port,
-            String databaseName,
-            String username,
-            String password
+        String hostname,
+        String port,
+        String databaseName,
+        String username,
+        String password,
+        String connectionPoolSize
     ) {
-
         if  (null == INSTANCE) {
             INSTANCE = new PostgresDb(
                 hostname,
                 port,
                 databaseName,
                 username,
-                password
+                password,
+                connectionPoolSize
             );
 
             LiquibaseMigrator migrator = new LiquibaseMigrator();
@@ -59,5 +67,17 @@ public final class PostgresDb implements Db {
         }
 
         return INSTANCE;
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (null == dataSource) {
+            return;
+        }
+        if (dataSource.isClosed()) {
+            return;
+        }
+
+        dataSource.close();
     }
 }

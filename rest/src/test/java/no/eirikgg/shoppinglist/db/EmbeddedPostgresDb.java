@@ -1,5 +1,6 @@
 package no.eirikgg.shoppinglist.db;
 
+import com.zaxxer.hikari.HikariDataSource;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 
 import javax.sql.DataSource;

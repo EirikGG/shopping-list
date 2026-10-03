@@ -4,6 +4,7 @@ import org.intellij.lang.annotations.Language;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -15,7 +16,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
-public interface Db {
+public interface Db extends Closeable {
 
     Logger log = LoggerFactory.getLogger(Db.class);
     DbUtils dbUtils = new DbUtils();
