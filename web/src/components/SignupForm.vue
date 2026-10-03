@@ -1,13 +1,12 @@
 <script setup>
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { createUser, emailIsAvailable } from '../api/auth.js'
+import { createUser, login } from '../api/auth.js'
+import { setSession } from '../session.js'
 
 const emit = defineEmits(['created'])
 
 const { t } = useI18n()
-
-const CHECK_DELAY_MS = 400
 
 // The backend reads every field unconditionally, so all of them are required.
 // It derives the username from the email, so there is no username field.
@@ -17,9 +16,7 @@ const form = ref({
   birthdate: '',
   gender: 'MALE',
   password: '',
-  email: '',
-  countrycode: '+47',
-  phonenumber: ''
+  email: ''
 })
 
 const passwordRepeat = ref('')
@@ -27,12 +24,9 @@ const passwordRepeat = ref('')
 const error = ref('')
 const busy = ref(false)
 
-// 'idle' | 'checking' | 'available' | 'taken' | 'error'
-const emailStatus = ref('idle')
-
-let checkTimer = null
-// Guards against a slow earlier check overwriting a newer one's result.
-let latestCheck = 0
+// There is no availability check, so a taken email is only known once the
+// backend rejects the signup. It stays marked until the email is changed.
+const emailTaken = ref(false)
 
 const passwordsMatch = computed(
   () => form.value.password === passwordRepeat.value
@@ -43,43 +37,12 @@ const showPasswordMismatch = computed(
 )
 
 const canSubmit = computed(
-  () =>
-    !busy.value &&
-    passwordsMatch.value &&
-    emailStatus.value !== 'taken' &&
-    emailStatus.value !== 'checking'
+  () => !busy.value && passwordsMatch.value && !emailTaken.value
 )
 
-watch(() => form.value.email, email => {
-  clearTimeout(checkTimer)
-
-  const trimmed = email.trim()
-  if (trimmed === '') {
-    emailStatus.value = 'idle'
-    latestCheck++
-    return
-  }
-
-  emailStatus.value = 'checking'
-  checkTimer = setTimeout(() => checkEmail(trimmed), CHECK_DELAY_MS)
+watch(() => form.value.email, () => {
+  emailTaken.value = false
 })
-
-async function checkEmail(email) {
-  const check = ++latestCheck
-
-  try {
-    const available = await emailIsAvailable(email)
-    if (check === latestCheck) {
-      emailStatus.value = available ? 'available' : 'taken'
-    }
-  } catch {
-    if (check === latestCheck) {
-      emailStatus.value = 'error'
-    }
-  }
-}
-
-onUnmounted(() => clearTimeout(checkTimer))
 
 async function submit() {
   error.value = ''
@@ -87,14 +50,23 @@ async function submit() {
 
   try {
     await createUser(form.value)
-    emit('created', form.value.email)
   } catch (e) {
     if (e.code === 'DUPLICATE_USERNAME') {
       error.value = 'signup.duplicateEmail'
-      emailStatus.value = 'taken'
+      emailTaken.value = true
     } else {
       error.value = 'signup.failed'
     }
+    busy.value = false
+    return
+  }
+
+  // Logging straight in takes the user to the verification code. If that
+  // fails the account still exists, so the user is sent to log in instead.
+  try {
+    setSession(await login(form.value.email, form.value.password), form.value.email)
+  } catch {
+    emit('created', form.value.email)
   } finally {
     busy.value = false
   }
@@ -132,18 +104,6 @@ async function submit() {
       </div>
     </div>
 
-    <div class="row phone">
-      <div class="field">
-        <label for="signup-countrycode">{{ t('signup.countrycode') }}</label>
-        <input id="signup-countrycode" v-model="form.countrycode" required />
-      </div>
-
-      <div class="field">
-        <label for="signup-phonenumber">{{ t('signup.phonenumber') }}</label>
-        <input id="signup-phonenumber" v-model="form.phonenumber" required />
-      </div>
-    </div>
-
     <div class="field">
       <label for="signup-email">{{ t('signup.email') }}</label>
       <input
@@ -157,14 +117,10 @@ async function submit() {
       <p
         id="signup-email-status"
         class="hint"
-        :class="emailStatus"
+        :class="{ taken: emailTaken }"
         aria-live="polite"
       >
-        <template v-if="emailStatus === 'checking'">{{ t('signup.emailChecking') }}</template>
-        <template v-else-if="emailStatus === 'available'">{{ t('signup.emailAvailable') }}</template>
-        <template v-else-if="emailStatus === 'taken'">{{ t('signup.emailTaken') }}</template>
-        <template v-else-if="emailStatus === 'error'">{{ t('signup.emailCheckFailed') }}</template>
-        <template v-else>{{ t('signup.emailHint') }}</template>
+        {{ emailTaken ? t('signup.emailTaken') : t('signup.emailHint') }}
       </p>
     </div>
 
@@ -221,10 +177,6 @@ async function submit() {
   flex: 1;
 }
 
-.row.phone .field:first-child {
-  flex: 0 0 7rem;
-}
-
 button[type='submit'] {
   width: 100%;
 }
@@ -236,12 +188,7 @@ button[type='submit'] {
   color: var(--color-text-muted);
 }
 
-.hint.available {
-  color: var(--color-success);
-}
-
-.hint.taken,
-.hint.error {
+.hint.taken {
   color: var(--color-error);
 }
 

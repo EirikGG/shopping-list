@@ -245,18 +245,6 @@ public class UserRepository {
         }
     }
 
-    public boolean isUsernameAvailable(String email) throws SQLException {
-        try (Connection conn = db.getConnection()) {
-            int numberOfUsernameEntries = db.selectSingle(conn,
-                "select count(*) as value1 from person_login where email = ?",
-                    email,
-                    rs -> rs.getInt("value1").orElse(0)
-            ).orElse(0);
-
-            return 1 > numberOfUsernameEntries;
-        }
-    }
-
 
 
     public String verifyEmailAddress(

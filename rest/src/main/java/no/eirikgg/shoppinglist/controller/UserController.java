@@ -37,7 +37,6 @@ public class UserController {
     public static final String PATH_USER = "/user";
     public static final String PATH_LOGIN = "/login_user";
     public static final String PATH_SESSION_IS_VALID = "/session_is_valid";
-    public static final String PATH_IS_USERNAME_AVAILABLE = "/is_username_available";
     public static final String PATH_VERIFY_EMAIL = "/verify_email";
 
 
@@ -74,7 +73,6 @@ public class UserController {
         config.routes.post(UserController.PATH_USER, userController::createUser);
         config.routes.post(UserController.PATH_LOGIN, userController::login);
         config.routes.get(UserController.PATH_SESSION_IS_VALID, userController::isValid);
-        config.routes.get(UserController.PATH_IS_USERNAME_AVAILABLE, userController::isUsernameAvailable);
         config.routes.post(UserController.PATH_VERIFY_EMAIL, userController::verifyEmail);
     }
 
@@ -125,19 +123,6 @@ public class UserController {
         authenticationService.isValidSessionId(sessionId);
 
         ctx.status(HttpStatus.OK);
-    }
-
-
-    public void isUsernameAvailable(Context ctx) {
-        String username = ctx.header(PARAM_EMAIL);
-
-        log.info("Checking if username {} is available", username);
-
-        boolean isUsernameAvailable = userService.isUsernameAvailable(username);
-
-        ctx.status(
-            isUsernameAvailable ? HttpStatus.OK : HttpStatus.NOT_ACCEPTABLE
-        );
     }
 
 

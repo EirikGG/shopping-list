@@ -52,10 +52,9 @@ class UserControllerTest {
         TestConfig testConfig = new TestConfig(true, false);
         JavalinTest.test(app, testConfig, (server, client) -> {
 
-            isUsernameAvailable(client, EMAIL, 200);
             createUserAndPersistExpectStatus(client, 200);
             verifyEmail(client, EMAIL, fakeEmailSender);
-            isUsernameAvailable(client, EMAIL, 406);
+            createUserAndPersistExpectStatus(client, 400);
 
             Response loginResponse = loginWithUser(client);
             JsonNode okSessionBodyJson = mapper.readTree(loginResponse.getBody().string());
@@ -75,7 +74,7 @@ class UserControllerTest {
         });
     }
 
-    private void verifyEmail(HttpClient client, String email, EmailSenderFake fakeEmailSender) throws IOException, InterruptedException {
+    private void verifyEmail(HttpClient client, String email, EmailSenderFake fakeEmailSender) throws InterruptedException {
 
         String emailBody = null;
         for (int i = 0; i < 20; i++) {
@@ -96,25 +95,6 @@ class UserControllerTest {
                 Map.entry(UserController.PARAM_EMAIL, email),
                 Map.entry(UserController.PARAM_VERIFY_EMAIL, verificationCode)
         ));
-    }
-
-
-    private static void isUsernameAvailable(
-            HttpClient client, String username, int expectedStatusCode
-    ) throws IOException, InterruptedException {
-
-        HttpRequest request = HttpRequest.newBuilder()
-                 .uri(URI.create(client.getOrigin() + UserController.PATH_IS_USERNAME_AVAILABLE))
-                 .header(UserController.PARAM_EMAIL, username)
-                 .GET()
-                 .build();
-
-        HttpResponse<String> response = java.net.http.HttpClient.newHttpClient().send(
-                request,
-                HttpResponse.BodyHandlers.ofString()
-        );
-
-        assertEquals(expectedStatusCode, response.statusCode(), "Username available status");
     }
 
 

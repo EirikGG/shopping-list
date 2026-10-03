@@ -8,7 +8,8 @@
     "logOut": "Log out",
     "logInTab": "Log in",
     "signupTab": "Create account",
-    "accountCreated": "Account for {email} created. Check that inbox for a verification link."
+    "accountCreated": "Account for {email} created. Log in to verify your email address.",
+    "checkingSession": "Checking your session…"
   },
   "login": {
     "email": "Email",
@@ -26,13 +27,8 @@
     "genderMale": "Male",
     "genderFemale": "Female",
     "genderOther": "Other",
-    "countrycode": "Country code",
-    "phonenumber": "Phone number",
     "email": "Email",
-    "emailChecking": "Checking availability…",
-    "emailAvailable": "Email is available.",
     "emailTaken": "Email is already registered.",
-    "emailCheckFailed": "Could not check availability.",
     "emailHint": "You will log in with this email.",
     "password": "Password",
     "passwordRepeat": "Repeat password",
@@ -43,12 +39,12 @@
     "failed": "Could not create the account. Try again."
   },
   "verifyEmail": {
-    "verifying": "Verifying your email address…",
-    "verified": "Your email address is verified.",
-    "alreadyVerified": "This email address is already verified. You can log in with it.",
-    "invalid": "This verification link is not valid. The address may have been copied incompletely.",
-    "failed": "Could not verify the email address right now. Try the link again later.",
-    "continue": "Continue",
-    "backToLogin": "Back to log in"
+    "intro": "We sent a 5-digit code to {email}. Enter it below to verify your email address.",
+    "code": "Verification code",
+    "submit": "Verify email",
+    "submitting": "Verifying…",
+    "wrongCode": "That code is not correct. Check the email and try again.",
+    "notRegistered": "No account is registered with this email address.",
+    "failed": "Could not verify the email address right now. Try again later."
   }
 }

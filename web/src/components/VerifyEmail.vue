@@ -1,92 +1,102 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { verifyEmail } from '../api/auth.js'
-import { sessionId } from '../session.js'
+
+const props = defineProps({
+  email: { type: String, required: true }
+})
+
+const emit = defineEmits(['verified'])
 
 const { t } = useI18n()
 
-// 'verifying' | 'verified' | 'already-verified' | 'invalid' | 'error'
-const status = ref('verifying')
+// The backend generates codes between 10000 and 99999.
+const CODE_LENGTH = 5
 
-onMounted(async () => {
-  const key = new URLSearchParams(window.location.search).get('key')
+const code = ref('')
+// A message key, so the error follows a language change.
+const error = ref('')
+const busy = ref(false)
 
-  if (!key) {
-    status.value = 'invalid'
-    return
-  }
+const canSubmit = computed(
+  () => !busy.value && new RegExp(`^\\d{${CODE_LENGTH}}$`).test(code.value)
+)
+
+async function submit() {
+  error.value = ''
+  busy.value = true
 
   try {
-    await verifyEmail(key, sessionId.value)
-    status.value = 'verified'
+    await verifyEmail(props.email, code.value)
+    emit('verified')
   } catch (e) {
-    // Both known cases answer 400, so the code decides before the status does.
+    // Several cases share a status, so the code decides before the status
+    // does. A plain 400 is a code the backend could not read.
     if (e.code === 'EMAIL_ALREADY_VERIFIED_EXCEPTION') {
-      status.value = 'already-verified'
-    } else if (
-      e.code === 'NO_EMAIL_CONNECTED_TO_VERIFICATION_UUID' ||
-      e.status === 400
-    ) {
-      status.value = 'invalid'
+      emit('verified')
+    } else if (e.code === 'NO_EMAIL_CONNECTED_TO_VERIFICATION_UUID') {
+      error.value = 'verifyEmail.notRegistered'
+    } else if (e.code === 'WRONG_EMAIL_VERIFICATION_CODE_EXCEPTION' || e.status === 400) {
+      error.value = 'verifyEmail.wrongCode'
     } else {
-      status.value = 'error'
+      error.value = 'verifyEmail.failed'
     }
+  } finally {
+    busy.value = false
   }
-})
-
-function goHome() {
-  window.location.href = '/'
 }
 </script>
 
 <template>
-  <div class="verify">
-    <template v-if="status === 'verifying'">
-      <p class="muted" aria-live="polite">{{ t('verifyEmail.verifying') }}</p>
-    </template>
+  <form @submit.prevent="submit">
+    <p class="intro">{{ t('verifyEmail.intro', { email }) }}</p>
 
-    <template v-else-if="status === 'verified'">
-      <p class="success" aria-live="polite">{{ t('verifyEmail.verified') }}</p>
-      <button @click="goHome">{{ t('verifyEmail.continue') }}</button>
-    </template>
+    <div class="field">
+      <label for="verify-code">{{ t('verifyEmail.code') }}</label>
+      <input
+        id="verify-code"
+        v-model.trim="code"
+        inputmode="numeric"
+        autocomplete="one-time-code"
+        :maxlength="CODE_LENGTH"
+        :pattern="`\\d{${CODE_LENGTH}}`"
+        required
+      />
+    </div>
 
-    <template v-else-if="status === 'already-verified'">
-      <p class="muted" aria-live="polite">{{ t('verifyEmail.alreadyVerified') }}</p>
-      <button @click="goHome">{{ t('verifyEmail.continue') }}</button>
-    </template>
+    <p v-if="error" class="error" aria-live="polite">{{ t(error) }}</p>
 
-    <template v-else-if="status === 'invalid'">
-      <p class="error" aria-live="polite">{{ t('verifyEmail.invalid') }}</p>
-      <button class="secondary" @click="goHome">{{ t('verifyEmail.backToLogin') }}</button>
-    </template>
-
-    <template v-else>
-      <p class="error" aria-live="polite">{{ t('verifyEmail.failed') }}</p>
-      <button class="secondary" @click="goHome">{{ t('verifyEmail.backToLogin') }}</button>
-    </template>
-  </div>
+    <button type="submit" :disabled="!canSubmit">
+      {{ busy ? t('verifyEmail.submitting') : t('verifyEmail.submit') }}
+    </button>
+  </form>
 </template>
 
 <style scoped>
-.verify p {
+.intro {
   margin: 0 0 1.5rem;
   font-size: 0.9375rem;
-}
-
-.muted {
   color: var(--color-text-muted);
 }
 
-.success {
-  color: var(--color-success);
+.field {
+  margin-bottom: 1rem;
+}
+
+#verify-code {
+  font-size: 1.25rem;
+  letter-spacing: 0.25em;
+  text-align: center;
+}
+
+button[type='submit'] {
+  width: 100%;
 }
 
 .error {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
   color: var(--color-error);
-}
-
-button {
-  width: 100%;
 }
 </style>

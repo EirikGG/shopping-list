@@ -29,15 +29,6 @@ public class UserService {
         }
     }
 
-    public boolean isUsernameAvailable(String username) {
-        try {
-            return userRepository.isUsernameAvailable(username);
-        }
-        catch (SQLException e) {
-            throw new RuntimeException("Failed to check if username is available", e);
-        }
-    }
-
     public String verifyEmailAddress(String email, int verificationCode)
             throws EmailNotRegisteredException, EmailAlreadyVerifiedException, WrongEmailVerificationCodeException {
         try {
