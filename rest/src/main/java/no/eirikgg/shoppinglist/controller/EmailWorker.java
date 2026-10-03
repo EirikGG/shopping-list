@@ -4,6 +4,7 @@ import io.javalin.config.JavalinConfig;
 import no.eirikgg.shoppinglist.datamodel.EmailMessage;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.service.EmailService;
+import no.eirikgg.shoppinglist.service.EmailSenderSmtp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,8 +26,8 @@ public class EmailWorker {
         this.emailService = emailService;
     }
 
-    public static void setup(JavalinConfig config, Db db, String smtpHost, String smtpPort) {
-        EmailService emailService = new EmailService(db, smtpHost, smtpPort);
+    public static void setup(JavalinConfig config, Db db, EmailSenderSmtp emailSender) {
+        EmailService emailService = new EmailService(db, emailSender);
         EmailWorker emailWorker = new EmailWorker(emailService);
 
         config.events.serverStarted(() -> {
@@ -45,6 +46,7 @@ public class EmailWorker {
     private void run() {
         try {
             List<EmailMessage> emailMessages = emailService.getUnsendtEmailMessages();
+            log.debug("Found {} unsent email messages", emailMessages.size());
             for (EmailMessage emailMessage : emailMessages) {
                 log.info("Sending mail with mail id {}",  emailMessage.getId().orElseThrow());
                 emailService.updateEmailMessageStatus(emailMessage, EmailMessage.Status.PROCESSING);

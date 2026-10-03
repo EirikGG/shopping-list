@@ -11,18 +11,9 @@ public class User {
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Authorization authorization;
 
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    private Email email;
-
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    private PhoneNumber phonenumber;
-
-
-    public User(Person person, Authorization authorization, Email email, PhoneNumber phonenumber) {
+    public User(Person person, Authorization authorization) {
         this.person = person;
         this.authorization = authorization;
-        this.email = email;
-        this.phonenumber = phonenumber;
     }
 
 
@@ -32,13 +23,5 @@ public class User {
 
     public Authorization getAuthorization() {
         return authorization;
-    }
-
-    public Email getEmail() {
-        return email;
-    }
-
-    public PhoneNumber getPhonenumber() {
-        return phonenumber;
     }
 }

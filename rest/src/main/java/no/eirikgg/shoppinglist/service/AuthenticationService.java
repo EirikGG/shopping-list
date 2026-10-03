@@ -6,6 +6,8 @@ import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.db.repository.AuthenticationRepository;
 import no.eirikgg.shoppinglist.db.repository.UserRepository;
 import no.eirikgg.shoppinglist.datamodel.User;
+import no.eirikgg.shoppinglist.errors.InvalidSessionException;
+import no.eirikgg.shoppinglist.errors.UserEmailNotVerifiedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +28,7 @@ public class AuthenticationService {
     }
 
 
-    public Optional<UUID> login(String username, String password) {
+    public Optional<UUID> login(String username, String password) throws InvalidSessionException {
         User user = userRepository.getUser(username).orElse(null);
 
         if (null == user) {
@@ -42,11 +44,6 @@ public class AuthenticationService {
 
         try {
             UUID sessionId = authenticationRepository.createSession(user);
-            boolean isValidSession = authenticationRepository.isValidSessionId(sessionId);
-            if (!isValidSession) {
-                return Optional.empty();
-            }
-
             return Optional.of(sessionId);
         }
         catch (SQLException e) {
@@ -55,17 +52,14 @@ public class AuthenticationService {
     }
 
 
-    public Optional<User> getLoggedInUser(UUID sessionId) {
-        boolean isValidSession = authenticationRepository.isValidSessionId(sessionId);
-        if (!isValidSession) {
-            return Optional.empty();
-        }
+    public Optional<User> getLoggedInUser(UUID sessionId) throws InvalidSessionException, UserEmailNotVerifiedException {
+        authenticationRepository.isValidSessionId(sessionId);
 
         return authenticationRepository.getUserFromSession(sessionId);
     }
 
-    public boolean isValidSessionId(UUID sessionId) {
-        return authenticationRepository.isValidSessionId(sessionId);
+    public void isValidSessionId(UUID sessionId) throws InvalidSessionException, UserEmailNotVerifiedException {
+        authenticationRepository.isValidSessionId(sessionId);
     }
 
 

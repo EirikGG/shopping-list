@@ -7,25 +7,25 @@ import no.eirikgg.shoppinglist.db.DbIdentity;
 public class Authorization extends DbIdentity {
 
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    private String username;
+    private String email;
 
     @JsonProperty(value = "password", access = JsonProperty.Access.READ_ONLY)
     private String passwordHash;
 
-    public Authorization(Integer id, String username, String passwordHash) {
+    public Authorization(Integer id, String email, String passwordHash) {
         super(id);
-        this.username = username;
+        this.email = email;
         this.passwordHash = passwordHash;
     }
 
-    public Authorization(String username, String passwordHash) {
-        this(null, username, passwordHash);
-        this.username = username;
+    public Authorization(String email, String passwordHash) {
+        this(null, email, passwordHash);
+        this.email = email;
         this.passwordHash = passwordHash;
     }
 
-    public String getUsername() {
-        return username;
+    public String getEmail() {
+        return email;
     }
 
     public String getPasswordHash() {

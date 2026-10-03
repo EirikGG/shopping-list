@@ -6,6 +6,8 @@ import io.javalin.http.HandlerType;
 import io.javalin.http.UnauthorizedResponse;
 import no.eirikgg.shoppinglist.datamodel.User;
 import no.eirikgg.shoppinglist.db.Db;
+import no.eirikgg.shoppinglist.errors.InvalidSessionException;
+import no.eirikgg.shoppinglist.errors.UserEmailNotVerifiedException;
 import no.eirikgg.shoppinglist.service.AuthenticationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +36,7 @@ public class AuthenticationFilter {
         config.routes.beforeMatched(authenticationFilter::filter);
     }
 
-    public void filter(Context ctx) {
+    public void filter(Context ctx) throws InvalidSessionException, UserEmailNotVerifiedException {
         String path = ctx.path();
         HandlerType method = ctx.method();
 
@@ -72,7 +74,7 @@ public class AuthenticationFilter {
         Optional<User> user = authenticationService.getLoggedInUser(sessionId);
 
         if (user.isPresent()) {
-            log.debug("Logged in user: {}", user.get().getAuthorization().getUsername());
+            log.debug("Logged in user: {}", user.get().getAuthorization().getEmail());
             ctx.attribute(PARAM_USER, user.orElseThrow());
             ctx.attribute(PARAM_SESSION_ID, sessionId);
         }

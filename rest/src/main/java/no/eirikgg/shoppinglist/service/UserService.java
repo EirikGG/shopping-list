@@ -4,11 +4,11 @@ import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.datamodel.User;
 import no.eirikgg.shoppinglist.db.repository.UserRepository;
 import no.eirikgg.shoppinglist.errors.EmailAlreadyVerifiedException;
-import no.eirikgg.shoppinglist.errors.NoEmailConnectedToVerificationUuidException;
+import no.eirikgg.shoppinglist.errors.EmailNotRegisteredException;
 import no.eirikgg.shoppinglist.errors.UsernameAlreadyExistsException;
+import no.eirikgg.shoppinglist.errors.WrongEmailVerificationCodeException;
 
 import java.sql.SQLException;
-import java.util.UUID;
 
 public class UserService {
 
@@ -20,7 +20,7 @@ public class UserService {
     }
 
 
-    public User persistUser(User newUser) throws UsernameAlreadyExistsException {
+    public User createUser(User newUser) throws UsernameAlreadyExistsException {
         try {
             return userRepository.createUser(newUser);
         }
@@ -38,11 +38,10 @@ public class UserService {
         }
     }
 
-    public String verifyEmailAddressUsingUuid
-            (UUID verificationUuid
-    ) throws NoEmailConnectedToVerificationUuidException, EmailAlreadyVerifiedException {
+    public String verifyEmailAddressUsingUuid(String email, int verificationCode)
+            throws EmailNotRegisteredException, EmailAlreadyVerifiedException, WrongEmailVerificationCodeException {
         try {
-            return userRepository.verifyEmailUsingVerificationUuid(verificationUuid);
+            return userRepository.verifyEmailUsingVerificationUuid(email, verificationCode);
         }
         catch (SQLException e) {
             throw new RuntimeException("Failed to check if username is available", e);

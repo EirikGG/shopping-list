@@ -9,6 +9,7 @@ import no.eirikgg.shoppinglist.controller.LogFilter;
 import no.eirikgg.shoppinglist.controller.UserController;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.db.PostgresDb;
+import no.eirikgg.shoppinglist.service.EmailSenderSmtp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,27 +28,29 @@ public class Main {
         String appPortProperty = System.getProperty("APP.PORT");
         int appPort = Integer.parseInt(appPortProperty);
 
+        String emailHost = System.getProperty("MAIL.HOST");
+        String emailPort = System.getProperty("MAIL.PORT");
+        EmailSenderSmtp emailSender = new EmailSenderSmtp(emailHost, emailPort);
+
         log.info("Completed setup and migration");
-        Javalin app = setupJavalinApp(db);
+        Javalin app = setupJavalinApp(db, emailSender);
 
         log.info("Configured javalin routes");
         app.start(appPort);
     }
 
 
-    public static Javalin setupJavalinApp(Db db) {
-        String emailHost = System.getProperty("MAIL.HOST");
-        String emailPort = System.getProperty("MAIL.PORT");
+    public static Javalin setupJavalinApp(Db db, EmailSenderSmtp emailSender) {
 
         Javalin app = Javalin.create(config -> {
 
-            EmailWorker.setup(config, db, emailHost, emailPort);
+            EmailWorker.setup(config, db, emailSender);
 
             LogFilter.setup(config);
             AuthenticationFilter.setup(config, db);
 
             GeneralController.setup(config, db);
-            UserController.setup(config, db, emailHost, emailPort);
+            UserController.setup(config, db, emailSender);
 
             ExceptionHandlers.setup(config, db);
         });

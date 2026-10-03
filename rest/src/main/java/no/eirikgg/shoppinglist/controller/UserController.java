@@ -9,22 +9,23 @@ import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.UnauthorizedResponse;
 import no.eirikgg.shoppinglist.datamodel.Authorization;
-import no.eirikgg.shoppinglist.datamodel.Email;
 import no.eirikgg.shoppinglist.datamodel.Person;
-import no.eirikgg.shoppinglist.datamodel.PhoneNumber;
 import no.eirikgg.shoppinglist.datamodel.User;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.errors.EmailAlreadyVerifiedException;
-import no.eirikgg.shoppinglist.errors.NoEmailConnectedToVerificationUuidException;
+import no.eirikgg.shoppinglist.errors.InvalidSessionException;
+import no.eirikgg.shoppinglist.errors.EmailNotRegisteredException;
+import no.eirikgg.shoppinglist.errors.UserEmailNotVerifiedException;
 import no.eirikgg.shoppinglist.errors.UsernameAlreadyExistsException;
+import no.eirikgg.shoppinglist.errors.WrongEmailVerificationCodeException;
 import no.eirikgg.shoppinglist.service.AuthenticationService;
 import no.eirikgg.shoppinglist.service.EmailService;
+import no.eirikgg.shoppinglist.service.EmailSenderSmtp;
 import no.eirikgg.shoppinglist.service.PasswordService;
 import no.eirikgg.shoppinglist.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URI;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.Optional;
@@ -44,11 +45,8 @@ public class UserController {
     public static final String PARAM_LASTNAME = "lastname";
     public static final String PARAM_BIRTHDATE = "birthdate";
     public static final String PARAM_GENDER = "gender";
-    public static final String PARAM_USERNAME = "username";
     public static final String PARAM_PASSWORD = "password";
     public static final String PARAM_EMAIL = "email";
-    public static final String PARAM_COUNTRYCODE = "countrycode";
-    public static final String PARAM_PHONENUMBER = "phonenumber";
     public static final String PARAM_VERIFY_EMAIL = "key";
 
 
@@ -67,11 +65,11 @@ public class UserController {
         this.emailService = emailService;
     }
 
-    public static void setup(JavalinConfig config, Db db, String emailHost, String emailPort) {
+    public static void setup(JavalinConfig config, Db db, EmailSenderSmtp emailSender) {
         UserController userController = new UserController(
                 new UserService(db),
                 new AuthenticationService(db),
-                new EmailService(db, emailHost, emailPort)
+                new EmailService(db, emailSender)
         );
         config.routes.post(UserController.PATH_USER, userController::createUser);
         config.routes.post(UserController.PATH_LOGIN, userController::login);
@@ -81,7 +79,7 @@ public class UserController {
     }
 
 
-    public void createUser(Context ctx) throws JsonProcessingException, UsernameAlreadyExistsException {
+    public void createUser(Context ctx) throws JsonProcessingException, UsernameAlreadyExistsException, InvalidSessionException, EmailNotRegisteredException {
         JsonNode json = mapper.readTree(ctx.body());
 
         String firstName = json.get(PARAM_FIRSTNAME).asText();
@@ -91,35 +89,21 @@ public class UserController {
         String username = json.get(PARAM_EMAIL).asText();
         String password = json.get(PARAM_PASSWORD).asText();
         String hashedPassword = PasswordService.hashPassword(password);
-        String email = json.get(PARAM_EMAIL).asText();
-        String countryCode = json.get(PARAM_COUNTRYCODE).asText();
-        String phoneNumber = json.get(PARAM_PHONENUMBER).asText();
-
-        UUID emailVerificationUuid = UUID.randomUUID();
-        String frontendUrl = Optional.ofNullable(ctx.header("Origin"))
-            .orElseThrow(() -> new BadRequestResponse("Missing Origin header"));
-        String verificationUrl = URI.create(frontendUrl)
-            .resolve(PATH_VERIFY_EMAIL + "?" + PARAM_VERIFY_EMAIL + "=" + emailVerificationUuid)
-            .toString();
 
         User userRequest = new User(
                 new Person(firstName, lastName, birthdate, gender),
-                new Authorization(username, hashedPassword),
-                new Email(email, emailVerificationUuid),
-                new PhoneNumber(countryCode, phoneNumber)
+                new Authorization(username, hashedPassword)
         );
 
-        log.info("Verification URI: {}", verificationUrl);
-
-        User persistedUser = userService.persistUser(userRequest);
+        User persistedUser = userService.createUser(userRequest);
         UUID sessionId = authenticationService.login(username, password).orElseThrow();
-        emailService.createUserVerificationEmail(sessionId, persistedUser, verificationUrl);
+        emailService.createUserVerificationEmail(sessionId, persistedUser);
         ctx.status(HttpStatus.OK).json(persistedUser);
     }
 
-    public void login(Context ctx) throws JsonProcessingException {
+    public void login(Context ctx) throws JsonProcessingException, InvalidSessionException, UserEmailNotVerifiedException {
         JsonNode json = mapper.readTree(ctx.body());
-        String username = json.get(PARAM_USERNAME).asText();
+        String username = json.get(PARAM_EMAIL).asText();
         String password = json.get(PARAM_PASSWORD).asText();
 
         Optional<UUID> sessionId = authenticationService.login(username, password);
@@ -133,23 +117,19 @@ public class UserController {
         ctx.json(Map.of(AuthenticationFilter.PARAM_SESSION_ID, sessionId.get()));
     }
 
-    public void isValid(Context ctx) {
+    public void isValid(Context ctx) throws InvalidSessionException, UserEmailNotVerifiedException {
         UUID sessionId = AuthenticationService.getSessionIdFromRequest(ctx).orElseThrow(
                 () -> new UnauthorizedResponse("UNAUTHORIZED")
         );
 
-        boolean isValid = authenticationService.isValidSessionId(sessionId);
-        if (!isValid) {
-            ctx.status(HttpStatus.UNAUTHORIZED);
-            throw new UnauthorizedResponse("UNAUTHORIZED");
-        }
+        authenticationService.isValidSessionId(sessionId);
 
         ctx.status(HttpStatus.OK);
     }
 
 
     public void isUsernameAvailable(Context ctx) {
-        String username = ctx.header(PARAM_USERNAME);
+        String username = ctx.header(PARAM_EMAIL);
 
         log.info("Checking if username {} is available", username);
 
@@ -161,17 +141,16 @@ public class UserController {
     }
 
 
-    public void verifyEmail(Context ctx) throws NoEmailConnectedToVerificationUuidException, EmailAlreadyVerifiedException {
-        String verificationUuid = ctx.queryParam(PARAM_VERIFY_EMAIL);
-
-        try {
-            UUID uuid = UUID.fromString(verificationUuid);
-
-            log.info("Verifying email address with verification key \"{}\"", uuid);
-            userService.verifyEmailAddressUsingUuid(uuid);
+    public void verifyEmail(Context ctx)
+            throws EmailNotRegisteredException, EmailAlreadyVerifiedException, WrongEmailVerificationCodeException, JsonProcessingException {
+        JsonNode json = mapper.readTree(ctx.body());
+        String email = json.get(PARAM_EMAIL).asText();
+        Integer verificationCode = json.get(PARAM_VERIFY_EMAIL).asInt();
+        if (null == verificationCode || 0 == verificationCode) {
+            throw new BadRequestResponse("Missing verification code param");
         }
-        catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("Not a valid verification key: " + verificationUuid);
-        }
+
+        log.info("Verifying email address {} with code {}", email, verificationCode);
+        userService.verifyEmailAddressUsingUuid(email, verificationCode);
     }
 }
