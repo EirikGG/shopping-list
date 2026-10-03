@@ -9,7 +9,9 @@
     "logInTab": "Log in",
     "signupTab": "Create account",
     "accountCreated": "Account for {email} created. Log in to verify your email address.",
-    "checkingSession": "Checking your session…"
+    "checkingSession": "Checking your session…",
+    "checkFailed": "Could not check your session. Try again.",
+    "retry": "Try again"
   },
   "login": {
     "email": "Email",
@@ -46,5 +48,8 @@
     "wrongCode": "That code is not correct. Check the email and try again.",
     "notRegistered": "No account is registered with this email address.",
     "failed": "Could not verify the email address right now. Try again later."
+  },
+  "errors": {
+    "tooManyRequests": "Too many attempts. Wait a minute and try again."
   }
 }

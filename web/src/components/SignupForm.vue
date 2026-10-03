@@ -51,7 +51,9 @@ async function submit() {
   try {
     await createUser(form.value)
   } catch (e) {
-    if (e.code === 'DUPLICATE_USERNAME') {
+    if (e.status === 429) {
+      error.value = 'errors.tooManyRequests'
+    } else if (e.code === 'DUPLICATE_USERNAME') {
       error.value = 'signup.duplicateEmail'
       emailTaken.value = true
     } else {

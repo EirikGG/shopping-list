@@ -52,7 +52,8 @@ export async function createUser(user) {
 
 // 'verified' | 'unverified' | 'invalid'. A session for a user whose email is
 // not verified yet is rejected with its own error code, which is what tells
-// the two apart.
+// the two apart. Anything but a 401 says nothing about the session — a 429
+// from the rate limiter, for one — so it is thrown instead.
 export async function sessionStatus(sessionId) {
   const response = await fetch('/api/session_is_valid', {
     headers: { Authorization: `Bearer ${sessionId}` }
@@ -63,6 +64,10 @@ export async function sessionStatus(sessionId) {
   }
 
   const error = await toApiError(response)
+  if (error.status !== 401) {
+    throw error
+  }
+
   return error.code === 'USER_EMAIL_NOT_VERIFIED' ? 'unverified' : 'invalid'
 }
 

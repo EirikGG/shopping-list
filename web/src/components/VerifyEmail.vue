@@ -33,7 +33,9 @@ async function submit() {
   } catch (e) {
     // Several cases share a status, so the code decides before the status
     // does. A plain 400 is a code the backend could not read.
-    if (e.code === 'EMAIL_ALREADY_VERIFIED_EXCEPTION') {
+    if (e.status === 429) {
+      error.value = 'errors.tooManyRequests'
+    } else if (e.code === 'EMAIL_ALREADY_VERIFIED_EXCEPTION') {
       emit('verified')
     } else if (e.code === 'NO_EMAIL_CONNECTED_TO_VERIFICATION_UUID') {
       error.value = 'verifyEmail.notRegistered'

@@ -19,7 +19,11 @@ async function submit() {
   try {
     setSession(await login(email.value, password.value), email.value)
   } catch (e) {
-    error.value = e.status === 401 ? 'login.wrongCredentials' : 'login.failed'
+    if (e.status === 429) {
+      error.value = 'errors.tooManyRequests'
+    } else {
+      error.value = e.status === 401 ? 'login.wrongCredentials' : 'login.failed'
+    }
   } finally {
     busy.value = false
   }
