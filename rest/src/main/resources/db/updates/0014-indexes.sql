@@ -17,6 +17,3 @@ create index idx_item_session_id on item (session_id);
 
 --changeset egg:6
 create index idx_item_list_session_id on item_list (session_id);
-
---changeset egg:7
-create index idx_item_list_item_id on item_list (item_id);

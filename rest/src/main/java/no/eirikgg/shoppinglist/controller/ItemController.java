@@ -1,20 +1,33 @@
 package no.eirikgg.shoppinglist.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.config.JavalinConfig;
 import io.javalin.config.RoutesConfig;
 import io.javalin.http.Context;
 import no.eirikgg.shoppinglist.db.Db;
+import no.eirikgg.shoppinglist.errors.UserNotLoggedInException;
+import no.eirikgg.shoppinglist.service.AuthenticationService;
+import no.eirikgg.shoppinglist.service.ItemService;
+
+import java.util.UUID;
 
 public class ItemController {
 
     public static final String PATH_ITEM_LIST = "/list";
     public static final String PATH_ITEM = "/item";
 
+    public static final String PARAM_ITEM_LIST_NAME = "item-list-name";
 
-    private Db db;
+    private ObjectMapper mapper = new ObjectMapper();
+
+    private ItemService itemService;
+    private AuthenticationService authenticationService;
 
     public ItemController(Db db) {
-        this.db = db;
+        itemService = new ItemService(db);
+        authenticationService = new AuthenticationService(db);
     }
 
     public static void setup(JavalinConfig config, Db db) {
@@ -44,7 +57,14 @@ public class ItemController {
 
 
     private void getItemList(Context ctx) {}
-    private void saveItemList(Context ctx) {}
+    private void saveItemList(Context ctx) throws JsonProcessingException {
+        UUID sessionId = AuthenticationService.getSessionIdFromRequest(ctx).orElseThrow(
+                () -> new UserNotLoggedInException("Must be logged in to create list")
+        );
+        JsonNode body = mapper.readTree(ctx.body());
+        String name = body.get(PARAM_ITEM_LIST_NAME).asText();
+        itemService.createItemList(sessionId, name);
+    }
     private void deleteItemList(Context ctx) {}
     private void patchItemList(Context ctx) {}
 }

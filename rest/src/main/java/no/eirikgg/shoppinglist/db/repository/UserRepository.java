@@ -4,6 +4,7 @@ import no.eirikgg.shoppinglist.datamodel.Authorization;
 import no.eirikgg.shoppinglist.datamodel.Person;
 import no.eirikgg.shoppinglist.datamodel.User;
 import no.eirikgg.shoppinglist.db.Db;
+import no.eirikgg.shoppinglist.db.DbUtils;
 import no.eirikgg.shoppinglist.db.Hidden;
 import no.eirikgg.shoppinglist.errors.EmailAlreadyVerifiedException;
 import no.eirikgg.shoppinglist.errors.EmailNotRegisteredException;
@@ -25,6 +26,7 @@ public class UserRepository {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private Db db;
+    private DbUtils dbUtils = new DbUtils();
 
     private final Random random;
 
@@ -66,7 +68,7 @@ public class UserRepository {
 
     private Person savePerson(Connection conn, Person person) throws SQLException {
         LocalDateTime created = LocalDateTime.now();
-        int personId = db.insert(conn, """
+        int personId = dbUtils.insert(conn, """
             insert into person (
                 firstname, 
                 lastname, 
@@ -93,7 +95,7 @@ public class UserRepository {
             () -> new RuntimeException("Failed to save person")
         );
 
-        List<Person> persistedPersons = db.select(conn, """
+        List<Person> persistedPersons = dbUtils.select(conn, """
             select
                 person_id,
                 firstname, 
@@ -128,7 +130,7 @@ public class UserRepository {
     ) throws UsernameAlreadyExistsException, SQLException {
 
         String email = authorization.getEmail();
-        int numberOfLogins = db.selectSingle(conn, """
+        int numberOfLogins = dbUtils.selectSingle(conn, """
             select count(*) as number_of_logins 
             from person_login 
             where email = ?
@@ -144,7 +146,7 @@ public class UserRepository {
         }
 
         LocalDateTime created = LocalDateTime.now();
-        int personLoginId = db.insert(conn, """
+        int personLoginId = dbUtils.insert(conn, """
             insert into person_login (
                 person_id,
                 email, 
@@ -167,7 +169,7 @@ public class UserRepository {
         );
 
 
-        List<Authorization> persistedAuthorization = db.select(conn, """
+        List<Authorization> persistedAuthorization = dbUtils.select(conn, """
             select
                 email, 
                 password
@@ -192,7 +194,7 @@ public class UserRepository {
 
     public Optional<User> getUser(String email) {
         try (Connection conn = db.getConnection()) {
-            List<User> users = db.select(conn, """
+            List<User> users = dbUtils.select(conn, """
                 select
                     p.person_id                 person_id,
                     p.firstname                 person_firstname,
@@ -255,7 +257,7 @@ public class UserRepository {
             conn.setAutoCommit(false);
 
             record EmailSelect(String email, LocalDateTime verifiedAt, Integer verificationCode) {}
-            EmailSelect emailSelect = db.selectSingle(conn, """
+            EmailSelect emailSelect = dbUtils.selectSingle(conn, """
                     select email, verified_at, verification_code 
                     from person_login 
                     where email = ?
@@ -281,7 +283,7 @@ public class UserRepository {
                 throw new WrongEmailVerificationCodeException(email, verificationCode, "Wrong email verification code");
             }
 
-            int updatedRows = db.update(conn,"""
+            int updatedRows = dbUtils.update(conn,"""
                     update person_login 
                     set verified_at = ?
                     where email = ? 
@@ -314,7 +316,7 @@ public class UserRepository {
         try (Connection conn = db.getConnection()) {
             String email = user.getAuthorization().getEmail();
 
-            return db.selectSingle(conn,
+            return dbUtils.selectSingle(conn,
                 "select verification_code from person_login where email = ?",
                     email,
                     rs -> rs.getInt("verification_code").orElseThrow()

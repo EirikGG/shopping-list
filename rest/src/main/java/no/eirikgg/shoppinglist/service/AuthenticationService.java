@@ -53,13 +53,13 @@ public class AuthenticationService {
 
 
     public Optional<User> getLoggedInUser(UUID sessionId) throws InvalidSessionException, UserEmailNotVerifiedException {
-        authenticationRepository.isValidSessionId(sessionId);
+        authenticationRepository.validateSession(sessionId);
 
         return authenticationRepository.getUserFromSession(sessionId);
     }
 
-    public void isValidSessionId(UUID sessionId) throws InvalidSessionException, UserEmailNotVerifiedException {
-        authenticationRepository.isValidSessionId(sessionId);
+    public void validateSession(UUID sessionId) throws InvalidSessionException, UserEmailNotVerifiedException {
+        authenticationRepository.validateSession(sessionId);
     }
 
 

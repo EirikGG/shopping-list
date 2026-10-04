@@ -2,6 +2,7 @@ package no.eirikgg.shoppinglist.db.repository;
 
 import no.eirikgg.shoppinglist.datamodel.EmailMessage;
 import no.eirikgg.shoppinglist.db.Db;
+import no.eirikgg.shoppinglist.db.DbUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +16,7 @@ public class EmailRepository {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private Db db;
+    private DbUtils dbUtils = new DbUtils();
 
     public EmailRepository(Db db){
         this.db = db;
@@ -23,7 +25,7 @@ public class EmailRepository {
 
     public List<EmailMessage> getUnsendtEmailMessages() throws SQLException {
         try (Connection conn = db.getConnection()) {
-            return db.select(conn, """
+            return dbUtils.select(conn, """
                 select 
                     email_id,
                     session_id,
@@ -61,7 +63,7 @@ public class EmailRepository {
         try {
             conn.setAutoCommit(false);
 
-            int numberOfAffectedRows = db.update(conn, """
+            int numberOfAffectedRows = dbUtils.update(conn, """
                 update email_message
                 set status                  = ?
                 where email_id              = ?
@@ -96,7 +98,7 @@ public class EmailRepository {
         Connection conn = db.getConnection();
         try {
             conn.setAutoCommit(false);
-            db.insert(conn, """
+            dbUtils.insert(conn, """
                 insert into email_message(
                     session_id,
                     address,

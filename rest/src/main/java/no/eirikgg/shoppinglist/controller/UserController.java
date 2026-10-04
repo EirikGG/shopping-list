@@ -8,7 +8,6 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.UnauthorizedResponse;
-import io.javalin.plugin.bundled.RateLimitPlugin;
 import no.eirikgg.shoppinglist.datamodel.Authorization;
 import no.eirikgg.shoppinglist.datamodel.Person;
 import no.eirikgg.shoppinglist.datamodel.User;
@@ -128,7 +127,7 @@ public class UserController {
                 () -> new UnauthorizedResponse("UNAUTHORIZED")
         );
 
-        authenticationService.isValidSessionId(sessionId);
+        authenticationService.validateSession(sessionId);
 
         ctx.status(HttpStatus.OK);
     }

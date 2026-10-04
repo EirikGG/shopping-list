@@ -4,6 +4,7 @@ import no.eirikgg.shoppinglist.datamodel.Authorization;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.datamodel.Person;
 import no.eirikgg.shoppinglist.datamodel.User;
+import no.eirikgg.shoppinglist.db.DbUtils;
 import no.eirikgg.shoppinglist.errors.InvalidSessionException;
 import no.eirikgg.shoppinglist.errors.UserEmailNotVerifiedException;
 import org.slf4j.Logger;
@@ -20,6 +21,7 @@ public class AuthenticationRepository {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private Db db;
+    private DbUtils dbUtils = new DbUtils();
 
     public AuthenticationRepository(Db db){
         this.db = db;
@@ -29,7 +31,7 @@ public class AuthenticationRepository {
     public UUID createSession(User user) throws SQLException {
         try (Connection conn = db.getConnection()) {
             UUID sessionId = UUID.randomUUID();
-            db.insert(conn, """
+            dbUtils.insert(conn, """
                 insert into session(
                     session_id,
                     person_login_id,
@@ -54,7 +56,7 @@ public class AuthenticationRepository {
 
     public Optional<User> getUserFromSession(UUID sessionId) {
         try (Connection conn = db.getConnection()) {
-            List<User> users = db.select(conn, """
+            List<User> users = dbUtils.select(conn, """
                 select
                     p.person_id                 person_id,
                     p.firstname                 person_firstname,
@@ -108,10 +110,10 @@ public class AuthenticationRepository {
         }
     }
 
-    public void isValidSessionId(UUID sessionId) throws InvalidSessionException, UserEmailNotVerifiedException {
+    public void validateSession(UUID sessionId) throws InvalidSessionException, UserEmailNotVerifiedException {
         record Resultset(UUID sessionId, LocalDateTime verifiedAt, String email) {}
         try (Connection conn = db.getConnection()) {
-             List<Resultset> sessions = db.select(conn, """
+             List<Resultset> sessions = dbUtils.select(conn, """
                 select
                     session.session_id          as session_id,
                     login.email                 as email,
