@@ -11,8 +11,8 @@ import java.util.Map;
 
 public class GeneralController {
 
-    public static final String PING_PATH = "/ping";
-    public static final String NOOP_PATH = "/noop";
+    public static final String PATH_PING = "/ping";
+    public static final String PATH_NOOP = "/noop";
 
 
     private Db db;
@@ -24,8 +24,8 @@ public class GeneralController {
     public static void setup(JavalinConfig config, Db db) {
         GeneralController gc = new GeneralController(db);
 
-        config.routes.get(PING_PATH, gc::pingDb);
-        config.routes.get(NOOP_PATH, gc::noop);
+        config.routes.get(PATH_PING, gc::pingDb);
+        config.routes.get(PATH_NOOP, gc::noop);
     }
 
     public void pingDb(Context ctx) {

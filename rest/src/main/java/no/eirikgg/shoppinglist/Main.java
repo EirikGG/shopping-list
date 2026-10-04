@@ -5,6 +5,7 @@ import no.eirikgg.shoppinglist.controller.AuthenticationFilter;
 import no.eirikgg.shoppinglist.controller.EmailWorker;
 import no.eirikgg.shoppinglist.controller.ExceptionHandlers;
 import no.eirikgg.shoppinglist.controller.GeneralController;
+import no.eirikgg.shoppinglist.controller.ItemController;
 import no.eirikgg.shoppinglist.controller.LogFilter;
 import no.eirikgg.shoppinglist.controller.RateLimiter;
 import no.eirikgg.shoppinglist.controller.UserController;
@@ -55,8 +56,10 @@ public class Main {
             LogFilter.setup(config);
             AuthenticationFilter.setup(config, db);
 
+
             GeneralController.setup(config, db);
             UserController.setup(config, db, emailSender);
+            ItemController.setup(config, db);
 
             ExceptionHandlers.setup(config, db);
 

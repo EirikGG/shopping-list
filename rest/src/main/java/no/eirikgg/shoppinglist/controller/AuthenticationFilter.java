@@ -54,8 +54,8 @@ public class AuthenticationFilter {
         }
 
         if (HandlerType.GET.equals(method) && (
-                GeneralController.NOOP_PATH.equals(path) ||
-                GeneralController.PING_PATH.equals(path)
+                GeneralController.PATH_NOOP.equals(path) ||
+                GeneralController.PATH_PING.equals(path)
         )) {
             log.debug("Skipping authentication filter on path [{}] - {}", method, path);
             return;
