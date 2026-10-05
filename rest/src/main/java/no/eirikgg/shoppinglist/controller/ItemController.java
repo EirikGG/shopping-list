@@ -7,7 +7,6 @@ import io.javalin.config.JavalinConfig;
 import io.javalin.config.RoutesConfig;
 import io.javalin.http.Context;
 import no.eirikgg.shoppinglist.db.Db;
-import no.eirikgg.shoppinglist.errors.UserNotLoggedInException;
 import no.eirikgg.shoppinglist.service.AuthenticationService;
 import no.eirikgg.shoppinglist.service.ItemService;
 
@@ -58,9 +57,7 @@ public class ItemController {
 
     private void getItemList(Context ctx) {}
     private void saveItemList(Context ctx) throws JsonProcessingException {
-        UUID sessionId = AuthenticationService.getSessionIdFromRequest(ctx).orElseThrow(
-                () -> new UserNotLoggedInException("Must be logged in to create list")
-        );
+        UUID sessionId = ctx.attribute(AuthenticationFilter.PARAM_SESSION_ID);
         JsonNode body = mapper.readTree(ctx.body());
         String name = body.get(PARAM_ITEM_LIST_NAME).asText();
         itemService.createItemList(sessionId, name);

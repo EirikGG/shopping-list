@@ -5,10 +5,11 @@ status: In Progress
 assignee:
   - egg
 created_date: '2026-10-05 15:42'
+updated_date: '2026-10-05 18:16'
 labels: []
 dependencies: []
 type: feature
-ordinal: 4000
+ordinal: 1000
 ---
 
 

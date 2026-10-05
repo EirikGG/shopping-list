@@ -3,6 +3,7 @@ package no.eirikgg.shoppinglist.controller;
 import io.javalin.config.JavalinConfig;
 import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
+import io.javalin.http.Header;
 import io.javalin.http.UnauthorizedResponse;
 import no.eirikgg.shoppinglist.datamodel.User;
 import no.eirikgg.shoppinglist.db.Db;
@@ -61,9 +62,12 @@ public class AuthenticationFilter {
             return;
         }
 
-        UUID sessionId = AuthenticationService.getSessionIdFromRequest(ctx).orElseThrow(
-                () -> new UnauthorizedResponse("User not authorized")
-        );
+        UUID sessionId = Optional.of(ctx)
+                .map(context -> context.header(Header.AUTHORIZATION))
+                .map(header -> header.replace("Bearer ", ""))
+                .map(UUID::fromString)
+                .orElseThrow(() -> new UnauthorizedResponse("User not authorized"));
+
         Optional<User> user = authenticationService.getLoggedInUser(sessionId);
 
         if (user.isPresent()) {

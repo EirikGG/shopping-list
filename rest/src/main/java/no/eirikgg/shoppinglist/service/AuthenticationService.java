@@ -1,7 +1,5 @@
 package no.eirikgg.shoppinglist.service;
 
-import io.javalin.http.Context;
-import io.javalin.http.Header;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.db.repository.AuthenticationRepository;
 import no.eirikgg.shoppinglist.db.repository.UserRepository;
@@ -81,14 +79,5 @@ public class AuthenticationService {
         catch (SQLException e) {
             throw new RuntimeException(e);
         }
-    }
-
-
-
-    public static Optional<UUID> getSessionIdFromRequest(Context ctx) {
-        return Optional.ofNullable(ctx)
-                .map(context -> context.header(Header.AUTHORIZATION))
-                .map(header -> header.replace("Bearer ", ""))
-                .map(UUID::fromString);
     }
 }

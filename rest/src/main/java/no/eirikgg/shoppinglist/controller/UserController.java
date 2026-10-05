@@ -125,10 +125,7 @@ public class UserController {
     }
 
     public void isValid(Context ctx) throws InvalidSessionException, UserEmailNotVerifiedException {
-        UUID sessionId = AuthenticationService.getSessionIdFromRequest(ctx).orElseThrow(
-                () -> new UnauthorizedResponse("UNAUTHORIZED")
-        );
-
+        UUID sessionId = ctx.attribute(AuthenticationFilter.PARAM_SESSION_ID);
         authenticationService.validateSession(sessionId);
 
         ctx.status(HttpStatus.OK);
