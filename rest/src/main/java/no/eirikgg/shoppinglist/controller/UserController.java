@@ -100,7 +100,9 @@ public class UserController {
         );
 
         User persistedUser = userService.createUser(userRequest);
-        UUID sessionId = authenticationService.login(username, password).orElseThrow();
+        UUID sessionId = authenticationService.login(username, password).orElseThrow(
+                () -> new RuntimeException("User just created - should be able to login")
+        );
         emailService.createUserVerificationEmail(sessionId, persistedUser);
         ctx.status(HttpStatus.OK).json(persistedUser);
     }

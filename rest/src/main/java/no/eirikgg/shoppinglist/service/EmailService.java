@@ -10,6 +10,7 @@ import no.eirikgg.shoppinglist.errors.EmailNotRegisteredException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
@@ -17,14 +18,15 @@ import java.util.UUID;
 public class EmailService {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private UserRepository userRepository;
-
-    private EmailRepository emailRepository;
+    private Db db;
     private EmailSenderSmtp emailSender;
 
+    private UserRepository userRepository = new UserRepository();
+    private EmailRepository emailRepository = new EmailRepository();
+
+
     public EmailService(Db db, EmailSenderSmtp emailSender) {
-        this.userRepository = new UserRepository(db);
-        this.emailRepository = new EmailRepository(db);
+        this.db = db;
         this.emailSender = emailSender;
     }
 
@@ -43,8 +45,8 @@ public class EmailService {
 
 
     public List<EmailMessage> getUnsendtEmailMessages() {
-        try {
-            return emailRepository.getUnsendtEmailMessages();
+        try (Connection conn = db.getConnection()) {
+            return emailRepository.getUnsendtEmailMessages(conn);
         }
         catch (SQLException e) {
             String errorMsg = "Failed to get unsent emails";
@@ -54,8 +56,8 @@ public class EmailService {
     }
 
     public void updateEmailMessageStatus(EmailMessage emailMessage, EmailMessage.Status status) {
-        try {
-            emailRepository.updateEmailMessage(emailMessage, status);
+        try (Connection conn = db.getConnection()) {
+            emailRepository.updateEmailMessage(conn, emailMessage, status);
         }
         catch (SQLException e) {
             String errorMsg = "Failed to get unsent emails";
@@ -65,20 +67,23 @@ public class EmailService {
     }
 
     public void createUserVerificationEmail(UUID sessionId, User user) throws EmailNotRegisteredException {
-        try {
+        try (Connection conn = db.getConnection()) {
+            int verificationCode = userRepository.getEmailVerificationCode(conn, user);
 
-            int verificationNum = userRepository.getEmailVerificationCode(user);
+            String subject = EmailTemplate.NewUser.getSubject(
+                    user.getPerson().getFirstName(),
+                    user.getPerson().getLastName()
+            );
+            String body = EmailTemplate.NewUser.getBody(
+                    verificationCode
+            );
 
             emailRepository.createEmailMessage(
+                conn,
                 sessionId,
                 user.getAuthorization().getEmail(),
-                EmailTemplate.NewUser.getSubject(
-                        user.getPerson().getFirstName(),
-                        user.getPerson().getLastName()
-                ),
-                EmailTemplate.NewUser.getBody(
-                        verificationNum
-                )
+                subject,
+                body
             );
         }
         catch (SQLException e) {
