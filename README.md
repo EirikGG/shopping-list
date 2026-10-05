@@ -1,7 +1,9 @@
 # Shopping list
 
-Run test version: 
-`docker-compose.yml -p shopping-list --profile test up -d --build`
+Run profiles: 
 
-Run prod version: 
-`docker-compose.yml -p shopping-list --profile prod up -d --build`
+dev: `docker-compose.yml -p shopping-list --profile dev up -d --build`
+
+test: `docker-compose.yml -p shopping-list --profile test up -d --build`
+
+prod: `docker-compose.yml -p shopping-list --profile prod up -d --build`

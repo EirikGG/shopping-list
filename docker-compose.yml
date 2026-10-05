@@ -22,10 +22,10 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-
     profiles:
-      - test
       - prod
+      - test
+      - dev
 
 
   app:
@@ -50,10 +50,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
-
     profiles:
-      - test
       - prod
+      - test
+      - dev
 
 
   web:
@@ -72,25 +72,23 @@ services:
     volumes:
       - ./web/src:/app/src
       - ./web/index.html:/app/index.html
-
     profiles:
-      - test
       - prod
+      - test
+      - dev
 
   mailpit:
     image: axllent/mailpit:latest
     container_name: mailpit
     restart: unless-stopped
-
     ports:
       - "8025:${MAILPIT_UI_PORT}"
       - "1025:${MAIL_PORT}"
-
     networks:
       - backend
-
     profiles:
       - test
+      - dev
 
 
   backlog:
@@ -104,6 +102,8 @@ services:
       - .:/repo
     ports:
       - "127.0.0.1:6420:16420"
+    profiles:
+      - dev
 
 volumes:
   postgres-data:
