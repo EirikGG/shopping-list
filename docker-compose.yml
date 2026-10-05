@@ -92,6 +92,19 @@ services:
     profiles:
       - test
 
+
+  backlog:
+    build:
+      context: backlog/
+      dockerfile: Dockerfile.backlog
+    init: true
+    restart: unless-stopped
+    working_dir: /repo
+    volumes:
+      - .:/repo
+    ports:
+      - "127.0.0.1:6420:16420"
+
 volumes:
   postgres-data:
 
