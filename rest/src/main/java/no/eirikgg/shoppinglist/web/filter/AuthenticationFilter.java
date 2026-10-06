@@ -1,10 +1,12 @@
-package no.eirikgg.shoppinglist.controller;
+package no.eirikgg.shoppinglist.web.filter;
 
 import io.javalin.config.JavalinConfig;
 import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
 import io.javalin.http.Header;
 import io.javalin.http.UnauthorizedResponse;
+import no.eirikgg.shoppinglist.web.controller.GeneralController;
+import no.eirikgg.shoppinglist.web.controller.UserController;
 import no.eirikgg.shoppinglist.datamodel.User;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.errors.InvalidSessionException;

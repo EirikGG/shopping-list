@@ -1,4 +1,4 @@
-package no.eirikgg.shoppinglist.controller;
+package no.eirikgg.shoppinglist.web.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -18,6 +18,8 @@ import no.eirikgg.shoppinglist.errors.EmailNotRegisteredException;
 import no.eirikgg.shoppinglist.errors.UserEmailNotVerifiedException;
 import no.eirikgg.shoppinglist.errors.UsernameAlreadyExistsException;
 import no.eirikgg.shoppinglist.errors.WrongEmailVerificationCodeException;
+import no.eirikgg.shoppinglist.web.filter.AuthenticationFilter;
+import no.eirikgg.shoppinglist.web.filter.RateLimiter;
 import no.eirikgg.shoppinglist.service.AuthenticationService;
 import no.eirikgg.shoppinglist.service.EmailService;
 import no.eirikgg.shoppinglist.service.EmailSenderSmtp;

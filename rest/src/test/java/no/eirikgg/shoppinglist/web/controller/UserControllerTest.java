@@ -1,4 +1,4 @@
-package no.eirikgg.shoppinglist.controller;
+package no.eirikgg.shoppinglist.web.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -14,6 +14,7 @@ import no.eirikgg.shoppinglist.datamodel.EmailTemplate;
 import no.eirikgg.shoppinglist.db.EmbeddedPostgresDb;
 import no.eirikgg.shoppinglist.db.user.EmailSenderFake;
 import no.eirikgg.shoppinglist.errors.Error;
+import no.eirikgg.shoppinglist.web.filter.AuthenticationFilter;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +23,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
 

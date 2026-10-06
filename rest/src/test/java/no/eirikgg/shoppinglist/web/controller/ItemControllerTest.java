@@ -1,4 +1,4 @@
-package no.eirikgg.shoppinglist.controller;
+package no.eirikgg.shoppinglist.web.controller;
 
 import io.javalin.Javalin;
 import io.javalin.testtools.JavalinTest;

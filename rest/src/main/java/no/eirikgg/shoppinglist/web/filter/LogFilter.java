@@ -1,4 +1,4 @@
-package no.eirikgg.shoppinglist.controller;
+package no.eirikgg.shoppinglist.web.filter;
 
 import io.javalin.config.JavalinConfig;
 import io.javalin.http.Context;

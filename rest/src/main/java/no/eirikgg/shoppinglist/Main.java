@@ -1,16 +1,16 @@
 package no.eirikgg.shoppinglist;
 
 import io.javalin.Javalin;
-import no.eirikgg.shoppinglist.controller.AuthenticationFilter;
-import no.eirikgg.shoppinglist.controller.EmailWorker;
-import no.eirikgg.shoppinglist.controller.ExceptionHandlers;
-import no.eirikgg.shoppinglist.controller.GeneralController;
-import no.eirikgg.shoppinglist.controller.ItemController;
-import no.eirikgg.shoppinglist.controller.LogFilter;
-import no.eirikgg.shoppinglist.controller.RateLimiter;
-import no.eirikgg.shoppinglist.controller.UserController;
+import no.eirikgg.shoppinglist.web.EmailWorker;
+import no.eirikgg.shoppinglist.web.ExceptionHandlers;
+import no.eirikgg.shoppinglist.web.controller.GeneralController;
+import no.eirikgg.shoppinglist.web.controller.ItemController;
+import no.eirikgg.shoppinglist.web.filter.RateLimiter;
+import no.eirikgg.shoppinglist.web.controller.UserController;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.db.PostgresDb;
+import no.eirikgg.shoppinglist.web.filter.AuthenticationFilter;
+import no.eirikgg.shoppinglist.web.filter.LogFilter;
 import no.eirikgg.shoppinglist.service.EmailSenderSmtp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

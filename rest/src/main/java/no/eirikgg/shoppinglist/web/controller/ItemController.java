@@ -1,4 +1,4 @@
-package no.eirikgg.shoppinglist.controller;
+package no.eirikgg.shoppinglist.web.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -9,6 +9,7 @@ import io.javalin.http.Context;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.service.AuthenticationService;
 import no.eirikgg.shoppinglist.service.ItemService;
+import no.eirikgg.shoppinglist.web.filter.AuthenticationFilter;
 
 import java.util.UUID;
 
