@@ -43,24 +43,7 @@ public class AuthenticationFilter {
         String path = ctx.path();
         HandlerType method = ctx.method();
 
-        if (HandlerType.OPTIONS.equals(method)) {
-            return;
-        }
-
-        if (HandlerType.POST.equals(method) && (
-                UserController.PATH_USER.equals(path) ||
-                UserController.PATH_LOGIN.equals(path) ||
-                UserController.PATH_VERIFY_EMAIL.equals(path)
-        )) {
-            log.debug("Skipping authentication filter on path [{}] - {}", method, path);
-            return;
-        }
-
-        if (HandlerType.GET.equals(method) && (
-                GeneralController.PATH_NOOP.equals(path) ||
-                GeneralController.PATH_PING.equals(path)
-        )) {
-            log.debug("Skipping authentication filter on path [{}] - {}", method, path);
+        if (skipLogin(method, path)) {
             return;
         }
 
@@ -81,6 +64,31 @@ public class AuthenticationFilter {
             log.debug("{} requires login - not authorized", path);
             throw new UnauthorizedResponse("User not authorized");
         }
+    }
+
+    private boolean skipLogin(HandlerType method, String path) {
+        if (HandlerType.OPTIONS.equals(method)) {
+            return true;
+        }
+
+        if (HandlerType.POST.equals(method) && (
+                UserController.PATH_USER.equals(path) ||
+                UserController.PATH_LOGIN.equals(path) ||
+                UserController.PATH_VERIFY_EMAIL.equals(path)
+        )) {
+            log.debug("Skipping authentication filter on path [{}] - {}", method, path);
+            return true;
+        }
+
+        if (HandlerType.GET.equals(method) && (
+                GeneralController.PATH_NOOP.equals(path) ||
+                GeneralController.PATH_PING.equals(path)
+        )) {
+            log.debug("Skipping authentication filter on path [{}] - {}", method, path);
+            return true;
+        }
+
+        return false;
     }
 
 }

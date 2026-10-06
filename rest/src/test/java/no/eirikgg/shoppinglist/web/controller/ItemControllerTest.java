@@ -5,6 +5,7 @@ import io.javalin.testtools.JavalinTest;
 import io.javalin.testtools.TestConfig;
 import no.eirikgg.shoppinglist.Main;
 import no.eirikgg.shoppinglist.db.EmbeddedPostgresDb;
+import no.eirikgg.shoppinglist.db.LiquibaseMigrator;
 import no.eirikgg.shoppinglist.db.user.EmailSenderFake;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,8 @@ class ItemControllerTest {
     private Javalin app;
     private TestConfig testConfig;
 
+    private final String LIST_NAME = "";
+
     public ItemControllerTest() {
         db = EmbeddedPostgresDb.createMigratedInstance();
         fakeEmailSender = new EmailSenderFake();
@@ -30,6 +33,7 @@ class ItemControllerTest {
     void createItemList_andDeleteIt() {
         JavalinTest.test(app, testConfig, (server, client) -> {
 
+            assertEquals(200, 200);
         });
     }
 

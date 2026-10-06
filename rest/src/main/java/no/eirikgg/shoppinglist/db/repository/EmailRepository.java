@@ -3,6 +3,7 @@ package no.eirikgg.shoppinglist.db.repository;
 import no.eirikgg.shoppinglist.datamodel.EmailMessage;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.db.DbUtils;
+import no.eirikgg.shoppinglist.db.Hidden;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,7 +86,7 @@ public class EmailRepository {
             address,
             EmailMessage.Status.CREATED.toString(),
             subject,
-            body,
+            Hidden.param(body),
             LocalDateTime.now(),
             LocalDateTime.now()
         );

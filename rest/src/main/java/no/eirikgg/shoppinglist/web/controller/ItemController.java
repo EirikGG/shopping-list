@@ -35,16 +35,16 @@ public class ItemController {
         RoutesConfig routes = config.routes;
 
 
-        routes.get(PATH_ITEM, ic::getItem);
         routes.post(PATH_ITEM, ic::saveItem);
-        routes.delete(PATH_ITEM, ic::deleteItem);
+        routes.get(PATH_ITEM, ic::getItem);
         routes.patch(PATH_ITEM, ic::patchItem);
+        routes.delete(PATH_ITEM, ic::deleteItem);
 
 
-        routes.get(PATH_ITEM_LIST, ic::getItemList);
         routes.post(PATH_ITEM_LIST, ic::saveItemList);
-        routes.delete(PATH_ITEM_LIST, ic::deleteItemList);
+        routes.get(PATH_ITEM_LIST, ic::getItemList);
         routes.patch(PATH_ITEM_LIST, ic::patchItemList);
+        routes.delete(PATH_ITEM_LIST, ic::deleteItemList);
     }
 
 
@@ -56,13 +56,13 @@ public class ItemController {
 
 
 
-    private void getItemList(Context ctx) {}
     private void saveItemList(Context ctx) throws JsonProcessingException {
         UUID sessionId = ctx.attribute(AuthenticationFilter.PARAM_SESSION_ID);
         JsonNode body = mapper.readTree(ctx.body());
         String name = body.get(PARAM_ITEM_LIST_NAME).asText();
         itemService.createItemList(sessionId, name);
     }
+    private void getItemList(Context ctx) {}
     private void deleteItemList(Context ctx) {}
     private void patchItemList(Context ctx) {}
 }

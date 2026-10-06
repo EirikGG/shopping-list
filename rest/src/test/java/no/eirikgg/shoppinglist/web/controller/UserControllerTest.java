@@ -15,6 +15,7 @@ import no.eirikgg.shoppinglist.db.EmbeddedPostgresDb;
 import no.eirikgg.shoppinglist.db.user.EmailSenderFake;
 import no.eirikgg.shoppinglist.errors.Error;
 import no.eirikgg.shoppinglist.web.filter.AuthenticationFilter;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,16 +34,12 @@ class UserControllerTest {
     private static final ObjectMapper mapper = new ObjectMapper();
 
 
-
-
-    private final static String FIRSTNAME = "Eirik";
-    private final static String LASTNAME = "Gustafsson";
-    private final static String BIRTHDATE = "1994-05-14";
-    private final static String GENDER = "MALE";
-    private final static String EMAIL = "eirikgg94@gmail.com";
-    private final static String PASSWORD = "test1234";
-
-
+    public final static String FIRSTNAME = "Eirik";
+    public final static String LASTNAME = "Gustafsson";
+    public final static String BIRTHDATE = "1994-05-14";
+    public final static String GENDER = "MALE";
+    public final static String EMAIL = "eirikgg94@gmail.com";
+    public final static String PASSWORD = "test1234";
 
 
     @Test
@@ -57,14 +54,7 @@ class UserControllerTest {
             int numberOfUsersToCreate = 20;
             for (int i = 0; i < numberOfUsersToCreate; i++) {
                 String email = "unit-test-%d@test.com".formatted(i);
-                Response userResponse = client.post(UserController.PATH_USER, Map.ofEntries(
-                        Map.entry(UserController.PARAM_FIRSTNAME, FIRSTNAME),
-                        Map.entry(UserController.PARAM_LASTNAME, LASTNAME),
-                        Map.entry(UserController.PARAM_BIRTHDATE, BIRTHDATE),
-                        Map.entry(UserController.PARAM_GENDER, GENDER),
-                        Map.entry(UserController.PARAM_EMAIL, email),
-                        Map.entry(UserController.PARAM_PASSWORD, PASSWORD)
-                ));
+                Response userResponse = postUser(client, email);
 
                 int status = userResponse.code();
                 if (200 == status) {
@@ -82,6 +72,20 @@ class UserControllerTest {
         });
     }
 
+    public static Response postUser(HttpClient client) {
+        return postUser(client, EMAIL);
+    }
+    public static Response postUser(HttpClient client, String email) {
+        Response userResponse = client.post(UserController.PATH_USER, Map.ofEntries(
+                Map.entry(UserController.PARAM_FIRSTNAME, FIRSTNAME),
+                Map.entry(UserController.PARAM_LASTNAME, LASTNAME),
+                Map.entry(UserController.PARAM_BIRTHDATE, BIRTHDATE),
+                Map.entry(UserController.PARAM_GENDER, GENDER),
+                Map.entry(UserController.PARAM_EMAIL, email),
+                Map.entry(UserController.PARAM_PASSWORD, PASSWORD)
+        ));
+        return userResponse;
+    }
 
 
     @Test
@@ -102,7 +106,6 @@ class UserControllerTest {
 
 
             Response duplicateUsernameResponse = createUserAndPersistExpectStatus(client, 400);
-
 
 
             log.info("duplicateUsernameResponse: {}", duplicateUsernameResponse.getBody().string());
@@ -177,19 +180,11 @@ class UserControllerTest {
     }
 
 
-
     private static Response createUserAndPersistExpectStatus(
             HttpClient client, int status
     ) throws JsonProcessingException {
 
-        Response userResponse = client.post(UserController.PATH_USER, Map.ofEntries(
-                Map.entry(UserController.PARAM_FIRSTNAME, FIRSTNAME),
-                Map.entry(UserController.PARAM_LASTNAME, LASTNAME),
-                Map.entry(UserController.PARAM_BIRTHDATE, BIRTHDATE),
-                Map.entry(UserController.PARAM_GENDER, GENDER),
-                Map.entry(UserController.PARAM_EMAIL, EMAIL),
-                Map.entry(UserController.PARAM_PASSWORD, PASSWORD)
-        ));
+        Response userResponse = postUser(client);
 
         assertEquals(status, userResponse.code());
 
