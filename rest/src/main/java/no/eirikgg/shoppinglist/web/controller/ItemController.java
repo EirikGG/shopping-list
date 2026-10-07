@@ -10,10 +10,13 @@ import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.service.AuthenticationService;
 import no.eirikgg.shoppinglist.service.ItemService;
 import no.eirikgg.shoppinglist.web.filter.AuthenticationFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 
 public class ItemController {
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     public static final String PATH_ITEM_LIST = "/list";
     public static final String PATH_ITEM = "/item";
@@ -60,6 +63,7 @@ public class ItemController {
         UUID sessionId = ctx.attribute(AuthenticationFilter.PARAM_SESSION_ID);
         JsonNode body = mapper.readTree(ctx.body());
         String name = body.get(PARAM_ITEM_LIST_NAME).asText();
+        log.info("Session id: {}, name: {}", sessionId, name);
         itemService.createItemList(sessionId, name);
     }
     private void getItemList(Context ctx) {}

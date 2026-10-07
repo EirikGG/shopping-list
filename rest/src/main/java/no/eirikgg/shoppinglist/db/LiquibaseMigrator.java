@@ -17,10 +17,13 @@ import java.sql.Connection;
 
 public class LiquibaseMigrator {
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private static final String CHANGELOG_FILE = "db/changelog/db.changelog-master.xml";
 
 
     public void migrate(Db db) {
+        migrate(db, "db/changelog/db.changelog-master.xml");
+    }
+
+    public void migrate(Db db, String changelog) {
         SLF4JBridgeHandler.removeHandlersForRootLogger();
         SLF4JBridgeHandler.install();
 
@@ -30,7 +33,7 @@ public class LiquibaseMigrator {
             Database database = dbInstance.findCorrectDatabaseImplementation(jdbcConnection);
 
             Liquibase liquibase = new Liquibase(
-                    CHANGELOG_FILE,
+                    changelog,
                     new ClassLoaderResourceAccessor(),
                     database
             );
@@ -39,7 +42,7 @@ public class LiquibaseMigrator {
             Scope.child(Scope.Attr.ui, new LoggerUIService(), () ->
                     liquibase.update(new Contexts(), new LabelExpression())
             );
-            log.info("Database migration completed using {}", CHANGELOG_FILE);
+            log.info("Database migration completed using {}", changelog);
         }
         catch (Exception e) {
             throw new RuntimeException("Failed to run database migrations", e);
