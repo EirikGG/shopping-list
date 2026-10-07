@@ -61,6 +61,7 @@ public class ItemController {
 
     private void saveItemList(Context ctx) throws JsonProcessingException {
         UUID sessionId = ctx.attribute(AuthenticationFilter.PARAM_SESSION_ID);
+        log.info("{}", ctx.body());
         JsonNode body = mapper.readTree(ctx.body());
         String name = body.get(PARAM_ITEM_LIST_NAME).asText();
         log.info("Session id: {}, name: {}", sessionId, name);
