@@ -6,6 +6,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.config.JavalinConfig;
 import io.javalin.config.RoutesConfig;
 import io.javalin.http.Context;
+import io.javalin.http.HttpStatus;
+import no.eirikgg.shoppinglist.datamodel.Item;
+import no.eirikgg.shoppinglist.datamodel.ItemList;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.service.AuthenticationService;
 import no.eirikgg.shoppinglist.service.ItemService;
@@ -13,6 +16,9 @@ import no.eirikgg.shoppinglist.web.filter.AuthenticationFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDateTime;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.UUID;
 
 public class ItemController {
@@ -52,6 +58,9 @@ public class ItemController {
 
 
 
+    record GetItemResponse(
+            int id, String name, LocalDateTime completed
+    ) {}
     private void getItem(Context ctx) {}
     private void saveItem(Context ctx) {}
     private void deleteItem(Context ctx) {}
@@ -59,15 +68,46 @@ public class ItemController {
 
 
 
+    record SaveItemListResponse(
+        int id, String name
+    ) {}
     private void saveItemList(Context ctx) throws JsonProcessingException {
         UUID sessionId = ctx.attribute(AuthenticationFilter.PARAM_SESSION_ID);
-        log.info("{}", ctx.body());
         JsonNode body = mapper.readTree(ctx.body());
         String name = body.get(PARAM_ITEM_LIST_NAME).asText();
-        log.info("Session id: {}, name: {}", sessionId, name);
-        itemService.createItemList(sessionId, name);
+        ItemList itemList = itemService.createItemList(sessionId, name);
+        ctx.status(HttpStatus.OK).json(new SaveItemListResponse(
+                itemList.getId().orElseThrow(),
+                itemList.getName()
+        ));
     }
-    private void getItemList(Context ctx) {}
+
+    record GetItemListResponse(
+        int id, String name, List<GetItemResponse> items
+    ) {}
+    private void getItemList(Context ctx) {
+        UUID sessionId = ctx.attribute(AuthenticationFilter.PARAM_SESSION_ID);
+        List<ItemList> itemLists = itemService.getItemLists(sessionId);
+
+        List<GetItemListResponse> response = new LinkedList<>();
+        for (ItemList itemList : itemLists) {
+            List<GetItemResponse> items = itemList.getItems().stream()
+                .map(i -> new GetItemResponse(
+                    i.getId().orElseThrow(),
+                    i.getName(),
+                    i.getCompleted().orElse(null)
+                )
+            ).toList();
+
+            response.add(new GetItemListResponse(
+                    itemList.getId().orElseThrow(),
+                    itemList.getName(),
+                    items
+            ));
+        }
+
+        ctx.status(HttpStatus.OK).json(response);
+    }
     private void deleteItemList(Context ctx) {}
     private void patchItemList(Context ctx) {}
 }
