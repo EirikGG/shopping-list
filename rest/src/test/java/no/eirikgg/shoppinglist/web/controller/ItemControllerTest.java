@@ -10,6 +10,7 @@ import no.eirikgg.shoppinglist.db.EmbeddedPostgresDb;
 import no.eirikgg.shoppinglist.db.LiquibaseMigrator;
 import no.eirikgg.shoppinglist.db.user.EmailSenderFake;
 import org.junit.jupiter.api.Test;
+import org.objectweb.asm.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,11 +49,34 @@ class ItemControllerTest {
     @Test
     void createItemList_andDeleteIt() {
         JavalinTest.test(app, testConfig, (server, client) -> {
-            ItemController.SaveItemListResponse saveItemListResponse = createItemList(client);
+            for (int i = 0; i < 5; i++) {
+                createItemList(client);
 
-            List<ItemController.GetItemListResponse> itemLists = getItemList(client);
-            assertEquals(1, itemLists.size());
+                List<ItemController.GetItemListResponse> itemLists = getItemList(client);
+                assertEquals(1, itemLists.size());
+
+                int itemListId = itemLists.get(0).id();
+                deleteItemList(client, itemListId);
+            }
         });
+    }
+
+    private void deleteItemList(io.javalin.testtools.HttpClient client, int listId)
+            throws IOException, InterruptedException
+    {
+
+        String url = client.getOrigin() + ItemController.PATH_ITEM_LIST;
+        url += "?%s=%d".formatted(ItemController.PARAM_ITEM_LIST_ID, listId);
+        HttpRequest request = HttpRequest.newBuilder()
+             .uri(URI.create(url))
+             .header(Header.AUTHORIZATION, SESSION_ID.toString())
+             .DELETE()
+             .build();
+
+        HttpResponse<String> response = HttpClient.newHttpClient()
+            .send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, response.statusCode());
     }
 
     private ItemController.SaveItemListResponse createItemList(io.javalin.testtools.HttpClient client)
@@ -94,8 +118,9 @@ class ItemControllerTest {
 
         List<ItemController.GetItemListResponse> mappedResponse = mapper.readValue(
                 response.body(),
-                List.class
+                mapper.getTypeFactory().constructCollectionType(List.class, ItemController.GetItemListResponse.class)
         );
+        assertEquals(200, response.statusCode());
 
         return mappedResponse;
     }

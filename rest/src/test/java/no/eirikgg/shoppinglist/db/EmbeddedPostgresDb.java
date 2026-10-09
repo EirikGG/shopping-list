@@ -1,9 +1,9 @@
 package no.eirikgg.shoppinglist.db;
 
+import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 
-import javax.sql.DataSource;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.sql.Connection;
@@ -12,16 +12,22 @@ import java.sql.SQLException;
 public final class EmbeddedPostgresDb implements Db, AutoCloseable {
 
     private final EmbeddedPostgres postgres;
-    private final DataSource dataSource;
+    private final HikariDataSource dataSource;
 
     private EmbeddedPostgresDb() {
         try {
             this.postgres = EmbeddedPostgres.builder().start();
-            this.dataSource = postgres.getPostgresDatabase();
         }
         catch (IOException e) {
             throw new UncheckedIOException("Failed to start embedded PostgreSQL", e);
         }
+
+        HikariConfig config = new HikariConfig();
+        config.setPoolName("shoppinglist-test-pool");
+        config.setDataSource(postgres.getPostgresDatabase());
+        config.setMaximumPoolSize(10);
+        config.setConnectionTimeout(5_000);
+        this.dataSource = new HikariDataSource(config);
     }
 
     @Override
@@ -31,6 +37,9 @@ public final class EmbeddedPostgresDb implements Db, AutoCloseable {
 
     @Override
     public void close() {
+        if (dataSource != null && !dataSource.isClosed()) {
+            dataSource.close();
+        }
         try {
             postgres.close();
         }

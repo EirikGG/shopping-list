@@ -63,4 +63,32 @@ public class ItemService {
             throw new RuntimeException(e);
         }
     }
+
+    public void deleteItemList(UUID sessionId, int itemListId) {
+        try (Connection conn = db.getConnection()) {
+            User user = authenticationRepository.getUserFromSession(conn, sessionId).orElseThrow(
+                    () -> new UserNotLoggedInException("Not a valid session id")
+            );
+            Integer personId = user.getPerson().getId().orElseThrow(
+                    () -> new RuntimeException("Cant find person id connected to session" + sessionId)
+            );
+
+            try {
+                conn.setAutoCommit(false);
+                int updateCount = itemRepository.deleteItemList(conn, personId, itemListId);
+                if (1 != updateCount) {
+                    String message = "Did not delete a single item list with id " + itemListId;
+                    throw new RuntimeException(message);
+                }
+                conn.commit();
+            }
+            catch (Exception e) {
+                conn.rollback();
+                throw e;
+            }
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

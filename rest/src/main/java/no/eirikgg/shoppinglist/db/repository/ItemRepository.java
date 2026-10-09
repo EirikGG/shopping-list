@@ -34,6 +34,7 @@ public class ItemRepository {
             select item_list_id, name
             from item_list
             where item_list_id = ?
+            and deleted is null
             """,
             itemListId,
             rs -> new ItemList(
@@ -48,9 +49,23 @@ public class ItemRepository {
             select item_list_id
             from item_list
             where person_id = ?
+            and deleted is null
             """,
             personId,
             rs -> rs.getInt("item_list_id").orElseThrow()
         );
+    }
+
+    public int deleteItemList(Connection conn, Integer personId, int itemListId) throws SQLException {
+        return dbUtils.update(conn, """
+            update item_list
+            set deleted = ?
+            where person_id = ?
+            and item_list_id = ?
+            """,
+            LocalDateTime.now(),
+            personId,
+            itemListId
+        ).orElse(0);
     }
 }

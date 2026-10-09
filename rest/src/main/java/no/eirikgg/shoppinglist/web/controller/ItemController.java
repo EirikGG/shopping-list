@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.config.JavalinConfig;
 import io.javalin.config.RoutesConfig;
+import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import no.eirikgg.shoppinglist.datamodel.Item;
@@ -28,6 +29,7 @@ public class ItemController {
     public static final String PATH_ITEM = "/item";
 
     public static final String PARAM_ITEM_LIST_NAME = "item-list-name";
+    public static final String PARAM_ITEM_LIST_ID = "item-list-id";
 
     private ObjectMapper mapper = new ObjectMapper();
 
@@ -65,6 +67,9 @@ public class ItemController {
     private void saveItem(Context ctx) {}
     private void deleteItem(Context ctx) {}
     private void patchItem(Context ctx) {}
+
+
+
 
 
 
@@ -108,6 +113,20 @@ public class ItemController {
 
         ctx.status(HttpStatus.OK).json(response);
     }
-    private void deleteItemList(Context ctx) {}
-    private void patchItemList(Context ctx) {}
+
+    private void deleteItemList(Context ctx) {
+        UUID sessionId = ctx.attribute(AuthenticationFilter.PARAM_SESSION_ID);
+        int itemListId;
+        try {
+            itemListId = Integer.parseInt(ctx.queryParam(PARAM_ITEM_LIST_ID));
+        }
+        catch (Exception e) {
+            throw new BadRequestResponse("Not valid item list id");
+        }
+        itemService.deleteItemList(sessionId, itemListId);
+    }
+
+    private void patchItemList(Context ctx) {
+
+    }
 }
