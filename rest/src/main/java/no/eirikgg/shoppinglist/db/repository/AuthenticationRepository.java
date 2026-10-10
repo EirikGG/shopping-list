@@ -95,6 +95,17 @@ public class AuthenticationRepository {
         }
     }
 
+    public void invalidateSession(Connection conn, UUID sessionId) throws SQLException {
+        dbUtils.update(conn, """
+                update session
+                set valid_until = ?
+                where session_id = ?
+                """,
+                LocalDateTime.now(),
+                sessionId
+        );
+    }
+
     public record SessionRow(UUID sessionId, Optional<LocalDateTime> verifiedAt, String email) {}
     public Optional<SessionRow> getSessionRow(Connection conn, UUID sessionId) {
         List<SessionRow> sessions = dbUtils.select(conn, """

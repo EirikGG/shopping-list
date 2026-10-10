@@ -1,11 +1,11 @@
 <script setup>
-import { ref } from 'vue'
-import { useMediaQuery } from '@vueuse/core'
+import { computed, ref } from 'vue'
+import { useLocalStorage, useMediaQuery } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import Icon from './Icon.vue'
 import RowEditor from './RowEditor.vue'
 import SwipeToDelete from './SwipeToDelete.vue'
-import { createItem, deleteItem, renameItem } from '../api/items.js'
+import { createItem, deleteItem, updateItem } from '../api/items.js'
 
 const props = defineProps({
   list: { type: Object, required: true }
@@ -13,7 +13,7 @@ const props = defineProps({
 
 // 'back' is only offered on narrow screens, where the list replaces the
 // overview of all lists.
-const emit = defineEmits(['item-added', 'item-renamed', 'item-deleted', 'back'])
+const emit = defineEmits(['item-added', 'item-updated', 'item-deleted', 'back'])
 
 const { t } = useI18n()
 
@@ -26,9 +26,44 @@ const editingId = ref(null)
 // Matches the breakpoint in the styles below.
 const narrow = useMediaQuery('(max-width: 640px)')
 
+// Completed items are listed under the others, in a section that can be
+// collapsed. Whether it is collapsed is remembered for every list.
+const showCompleted = useLocalStorage('shoppinglist.show-completed', true)
+const openItems = computed(() => props.list.items.filter(item => item.completed === null))
+const completedItems = computed(() => props.list.items.filter(item => item.completed !== null))
+const sections = computed(() => [
+  { key: 'open', items: openItems.value },
+  ...(completedItems.value.length ? [{ key: 'completed', items: completedItems.value }] : [])
+])
+
+// Items with a completion still being saved, so a double tap is not sent twice.
+const toggling = ref(new Set())
+
 async function rename(item, newName) {
-  const renamed = await renameItem(item.id, newName)
-  emit('item-renamed', item.id, renamed.name)
+  emit('item-updated', await updateItem(item.id, newName, item.completed !== null))
+}
+
+// Shown straight away, and put back if saving fails. The timestamp is a
+// stand-in until the backend returns its own.
+async function toggleCompleted(item) {
+  if (toggling.value.has(item.id)) {
+    return
+  }
+
+  const previous = item.completed
+  const completed = previous === null
+  error.value = ''
+  toggling.value.add(item.id)
+  emit('item-updated', { ...item, completed: completed ? new Date().toISOString() : null })
+
+  try {
+    emit('item-updated', await updateItem(item.id, item.name, completed))
+  } catch (e) {
+    emit('item-updated', { ...item, completed: previous })
+    error.value = e.status === 429 ? 'errors.tooManyRequests' : 'lists.completeFailed'
+  } finally {
+    toggling.value.delete(item.id)
+  }
 }
 
 async function remove(item) {
@@ -61,42 +96,74 @@ async function submit() {
     <div class="scroll">
       <h2>{{ list.name }}</h2>
 
-      <ul v-if="list.items.length" class="items">
-        <li
-          v-for="item in list.items"
-          :key="item.id"
-          :class="{ completed: item.completed, editing: editingId === item.id }"
+      <p v-if="!list.items.length" class="empty">{{ t('lists.noItems') }}</p>
+      <p v-else-if="!openItems.length" class="empty">{{ t('lists.allCompleted') }}</p>
+
+      <template v-for="section in sections" :key="section.key">
+        <button
+          v-if="section.key === 'completed'"
+          type="button"
+          class="section-toggle"
+          :aria-expanded="showCompleted"
+          aria-controls="completed-items"
+          @click="showCompleted = !showCompleted"
         >
-          <RowEditor
-            v-if="editingId === item.id"
-            :name="item.name"
-            :save="newName => rename(item, newName)"
-            :remove="() => remove(item)"
-            @done="editingId = null"
-          />
-          <SwipeToDelete
-            v-else
-            :enabled="narrow"
-            :remove="() => deleteItem(item.id)"
-            @removed="emit('item-deleted', item.id)"
-            @failed="swipeFailed"
+          <Icon name="chevron" class="chevron" :class="{ open: showCompleted }" />
+          {{ t('lists.completed', { count: section.items.length }) }}
+        </button>
+
+        <ul
+          v-if="section.items.length && (section.key === 'open' || showCompleted)"
+          :id="section.key === 'completed' ? 'completed-items' : undefined"
+          class="items"
+        >
+          <li
+            v-for="item in section.items"
+            :key="item.id"
+            :class="{ completed: item.completed, editing: editingId === item.id }"
           >
-            <div class="item-row">
-              <span class="item-name">{{ item.name }}</span>
-              <button
-                type="button"
-                class="edit"
-                :aria-label="t('edit.editItem', { name: item.name })"
-                :title="t('edit.edit')"
-                @click="editingId = item.id"
-              >
-                <Icon name="pencil" />
-              </button>
-            </div>
-          </SwipeToDelete>
-        </li>
-      </ul>
-      <p v-else class="empty">{{ t('lists.noItems') }}</p>
+            <RowEditor
+              v-if="editingId === item.id"
+              :name="item.name"
+              :save="newName => rename(item, newName)"
+              :remove="() => remove(item)"
+              @done="editingId = null"
+            />
+            <SwipeToDelete
+              v-else
+              :enabled="narrow"
+              :remove="() => deleteItem(item.id)"
+              @removed="emit('item-deleted', item.id)"
+              @failed="swipeFailed"
+            >
+              <div class="item-row">
+                <button
+                  type="button"
+                  class="complete"
+                  :class="{ done: item.completed }"
+                  role="checkbox"
+                  :aria-checked="item.completed !== null"
+                  @click="toggleCompleted(item)"
+                >
+                  <span class="circle">
+                    <Icon name="check" />
+                  </span>
+                  <span class="item-name">{{ item.name }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="edit"
+                  :aria-label="t('edit.editItem', { name: item.name })"
+                  :title="t('edit.edit')"
+                  @click="editingId = item.id"
+                >
+                  <Icon name="pencil" />
+                </button>
+              </div>
+            </SwipeToDelete>
+          </li>
+        </ul>
+      </template>
     </div>
 
     <form class="add" @submit.prevent="submit">
@@ -184,6 +251,86 @@ h2 {
   gap: 0.5rem;
   min-height: 3rem;
   padding: 0.375rem 0.5rem 0.375rem 1rem;
+}
+
+.item-row {
+  padding-left: 0.25rem;
+}
+
+/* The circle and the name are one button, so tapping anywhere on the item
+   but the pencil completes it. */
+.complete,
+.complete:hover:not(:disabled) {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0 0 0 0.75rem;
+  font-weight: inherit;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  border: none;
+}
+
+.circle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+  width: 1.375rem;
+  height: 1.375rem;
+  color: transparent;
+  border: 2px solid var(--color-text-muted);
+  border-radius: 50%;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.complete:hover .circle {
+  border-color: var(--color-primary);
+}
+
+.complete:active .circle {
+  transform: scale(0.9);
+}
+
+.complete.done .circle {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.circle :deep(svg) {
+  width: 0.875rem;
+  height: 0.875rem;
+  stroke-width: 3.5;
+}
+
+.section-toggle,
+.section-toggle:hover:not(:disabled) {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 1.25rem 0 0.625rem;
+  padding: 0.375rem 0.5rem 0.375rem 0.25rem;
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+}
+
+.section-toggle:hover:not(:disabled) {
+  color: var(--color-text);
+}
+
+.chevron {
+  transition: transform 0.15s ease;
+}
+
+.chevron.open {
+  transform: rotate(90deg);
 }
 
 .item-name {

@@ -40,6 +40,7 @@ public class UserController {
 
     public static final String PATH_USER = "/user";
     public static final String PATH_LOGIN = "/login_user";
+    public static final String PATH_LOGOUT = "/logout";
     public static final String PATH_SESSION_IS_VALID = "/session_is_valid";
     public static final String PATH_VERIFY_EMAIL = "/verify_email";
 
@@ -79,6 +80,7 @@ public class UserController {
         config.routes.post(UserController.PATH_LOGIN, userController::login);
         config.routes.get(UserController.PATH_SESSION_IS_VALID, userController::isValid);
         config.routes.post(UserController.PATH_VERIFY_EMAIL, userController::verifyEmail);
+        config.routes.post(UserController.PATH_LOGOUT, userController::logout);
     }
 
 
@@ -125,6 +127,11 @@ public class UserController {
 
         ctx.status(HttpStatus.OK);
         ctx.json(Map.of(AuthenticationFilter.PARAM_SESSION_ID, sessionId.get()));
+    }
+
+    public void logout(Context ctx) {
+        UUID sessionId = ctx.attribute(AuthenticationFilter.PARAM_SESSION_ID);
+        authenticationService.logout(sessionId);
     }
 
     public void isValid(Context ctx) throws InvalidSessionException, UserEmailNotVerifiedException {

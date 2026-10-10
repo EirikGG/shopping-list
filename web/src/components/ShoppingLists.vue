@@ -53,8 +53,8 @@ async function remove(list) {
   }
 }
 
-function renameItem(list, id, name) {
-  list.items.find(item => item.id === id).name = name
+function updateItem(list, updated) {
+  Object.assign(list.items.find(item => item.id === updated.id), updated)
 }
 
 function deleteItem(list, id) {
@@ -169,7 +169,7 @@ async function create() {
         :key="selectedList.id"
         :list="selectedList"
         @item-added="item => selectedList.items.push(item)"
-        @item-renamed="(id, name) => renameItem(selectedList, id, name)"
+        @item-updated="item => updateItem(selectedList, item)"
         @item-deleted="id => deleteItem(selectedList, id)"
         @back="showingList = false"
       />

@@ -61,7 +61,10 @@
     "back": "Tilbake til listene",
     "itemName": "Vare",
     "addItem": "Legg til",
-    "addItemFailed": "Kunne ikke legge til varen. Prøv igjen."
+    "addItemFailed": "Kunne ikke legge til varen. Prøv igjen.",
+    "completed": "Fullført ({count})",
+    "allCompleted": "Alt på denne listen er gjort.",
+    "completeFailed": "Kunne ikke oppdatere varen. Prøv igjen."
   },
   "edit": {
     "edit": "Rediger",

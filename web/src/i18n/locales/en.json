@@ -61,7 +61,10 @@
     "back": "Back to lists",
     "itemName": "Item",
     "addItem": "Add",
-    "addItemFailed": "Could not add the item. Try again."
+    "addItemFailed": "Could not add the item. Try again.",
+    "completed": "Completed ({count})",
+    "allCompleted": "Everything on this list is done.",
+    "completeFailed": "Could not update the item. Try again."
   },
   "edit": {
     "edit": "Edit",

@@ -114,8 +114,29 @@ class UserControllerTest {
             assertTrue(duplicateUsernameResponse.getBody().string().contains(Error.DUPLICATE_USERNAME.name()));
 
 
-            testSessionId(client, okSessionId);
+            testSessionId(client, okSessionId, 200);
+
+            testLogout(client, okSessionId);
+            testSessionId(client, okSessionId, 401);
         });
+    }
+
+    private void testLogout(
+            HttpClient client, UUID sessionId
+    ) throws IOException, InterruptedException {
+
+        HttpRequest request = HttpRequest.newBuilder()
+                 .uri(URI.create(client.getOrigin() + UserController.PATH_LOGOUT))
+                 .header(Header.AUTHORIZATION, sessionId.toString())
+                 .POST(HttpRequest.BodyPublishers.noBody())
+                 .build();
+
+        HttpResponse<String> response = java.net.http.HttpClient.newHttpClient().send(
+                request,
+                HttpResponse.BodyHandlers.ofString()
+        );
+
+        assertEquals(200, response.statusCode(), "Should be logged out");
     }
 
     private void verifyEmail(HttpClient client, String email, EmailSenderFake fakeEmailSender) throws InterruptedException {
@@ -143,7 +164,7 @@ class UserControllerTest {
 
 
     private static void testSessionId(
-            HttpClient client, UUID okSessionId
+            HttpClient client, UUID okSessionId, int expectedStatusCode
     ) throws IOException, InterruptedException {
 
         HttpRequest request = HttpRequest.newBuilder()
@@ -157,7 +178,7 @@ class UserControllerTest {
                 HttpResponse.BodyHandlers.ofString()
         );
 
-        assertEquals(200, response.statusCode(), "Should be a valid session id");
+        assertEquals(expectedStatusCode, response.statusCode(), "Should be a valid session id");
     }
 
 

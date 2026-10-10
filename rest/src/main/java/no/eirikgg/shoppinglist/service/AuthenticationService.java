@@ -80,4 +80,13 @@ public class AuthenticationService {
             throw new RuntimeException(e);
         }
     }
+
+    public void logout(UUID sessionId) {
+        try (Connection conn = db.getConnection()) {
+            authenticationRepository.invalidateSession(conn, sessionId);
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

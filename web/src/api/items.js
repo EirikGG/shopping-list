@@ -42,9 +42,11 @@ export async function createItem(itemListId, name) {
   return response.json()
 }
 
-// Returns { id, name, completed }.
-export async function renameItem(id, newName) {
-  const response = await request('PATCH', '/item', { id, newName })
+// The backend sets both the name and the completed state on every call, so
+// both are always sent. Completing sets the completed time to now.
+// Returns { id, name, completed }, where completed is a timestamp or null.
+export async function updateItem(id, name, completed) {
+  const response = await request('PATCH', '/item', { id, newName: name, completed })
   return response.json()
 }
 
