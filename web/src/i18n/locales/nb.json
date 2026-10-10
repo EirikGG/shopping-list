@@ -63,6 +63,7 @@
     "addItem": "Legg til",
     "addItemFailed": "Kunne ikke legge til varen. Prøv igjen.",
     "completed": "Fullført ({count})",
+    "completedAt": "Fullført {time}",
     "allCompleted": "Alt på denne listen er gjort.",
     "completeFailed": "Kunne ikke oppdatere varen. Prøv igjen."
   },

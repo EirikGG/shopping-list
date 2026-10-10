@@ -76,3 +76,16 @@ export async function sessionStatus(sessionId) {
 export async function verifyEmail(email, code) {
   await postJson('/verify_email', { email, key: Number(code) })
 }
+
+// Ends the session on the backend, so the id stops working even if it was
+// copied somewhere.
+export async function logout(sessionId) {
+  const response = await fetch('/api/logout', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${sessionId}` }
+  })
+
+  if (!response.ok) {
+    throw await toApiError(response)
+  }
+}

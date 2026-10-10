@@ -7,7 +7,7 @@ import ShoppingLists from './components/ShoppingLists.vue'
 import SignupForm from './components/SignupForm.vue'
 import ThemeSwitcher from './components/ThemeSwitcher.vue'
 import VerifyEmail from './components/VerifyEmail.vue'
-import { sessionStatus } from './api/auth.js'
+import { logout, sessionStatus } from './api/auth.js'
 import { clearSession, sessionEmail, sessionId } from './session.js'
 
 const { t } = useI18n()
@@ -70,9 +70,17 @@ function showTab(name) {
   tab.value = name
 }
 
+// The session is forgotten here first, so logging out works even when the
+// backend cannot be reached or the session has already expired. Ending it on
+// the backend is then a best effort.
 function logOut() {
+  const id = sessionId.value
   createdEmail.value = ''
   clearSession()
+
+  if (id) {
+    logout(id).catch(() => {})
+  }
 }
 </script>
 

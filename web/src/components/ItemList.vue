@@ -6,6 +6,7 @@ import Icon from './Icon.vue'
 import RowEditor from './RowEditor.vue'
 import SwipeToDelete from './SwipeToDelete.vue'
 import { createItem, deleteItem, updateItem } from '../api/items.js'
+import { formatTime, parseBackendTime } from '../time.js'
 
 const props = defineProps({
   list: { type: Object, required: true }
@@ -15,7 +16,7 @@ const props = defineProps({
 // overview of all lists.
 const emit = defineEmits(['item-added', 'item-updated', 'item-deleted', 'back'])
 
-const { t } = useI18n()
+const { locale, t } = useI18n()
 
 const name = ref('')
 // A message key, so the error follows a language change.
@@ -148,7 +149,16 @@ async function submit() {
                   <span class="circle">
                     <Icon name="check" />
                   </span>
-                  <span class="item-name">{{ item.name }}</span>
+                  <span class="text">
+                    <span class="item-name">{{ item.name }}</span>
+                    <time
+                      v-if="item.completed"
+                      class="completed-at"
+                      :datetime="parseBackendTime(item.completed).toISOString()"
+                    >
+                      {{ t('lists.completedAt', { time: formatTime(parseBackendTime(item.completed), locale) }) }}
+                    </time>
+                  </span>
                 </button>
                 <button
                   type="button"
@@ -333,10 +343,21 @@ h2 {
   transform: rotate(90deg);
 }
 
-.item-name {
+.text {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-width: 0;
+  padding: 0.25rem 0;
+}
+
+.item-name {
   overflow-wrap: anywhere;
+}
+
+.completed-at {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
 }
 
 .edit,

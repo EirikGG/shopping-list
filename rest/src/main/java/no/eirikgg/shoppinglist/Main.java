@@ -1,6 +1,7 @@
 package no.eirikgg.shoppinglist;
 
 import io.javalin.Javalin;
+import io.javalin.json.JavalinJackson;
 import no.eirikgg.shoppinglist.web.EmailWorker;
 import no.eirikgg.shoppinglist.web.ExceptionHandlers;
 import no.eirikgg.shoppinglist.web.controller.GeneralController;
@@ -47,6 +48,8 @@ public class Main {
 
     public static Javalin setupJavalinApp(Db db, EmailSenderSmtp emailSender) {
         Javalin app = Javalin.create(config -> {
+
+            config.jsonMapper(new JavalinJackson(Json.MAPPER, false));
 
             RateLimiter globalRateLimiter = new RateLimiter(50, Duration.ofMinutes(1));
             config.routes.before(globalRateLimiter::check);

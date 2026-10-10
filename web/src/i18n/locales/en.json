@@ -63,6 +63,7 @@
     "addItem": "Add",
     "addItemFailed": "Could not add the item. Try again.",
     "completed": "Completed ({count})",
+    "completedAt": "Completed {time}",
     "allCompleted": "Everything on this list is done.",
     "completeFailed": "Could not update the item. Try again."
   },
