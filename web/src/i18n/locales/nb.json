@@ -63,6 +63,18 @@
     "addItem": "Legg til",
     "addItemFailed": "Kunne ikke legge til varen. Prøv igjen."
   },
+  "edit": {
+    "edit": "Rediger",
+    "editList": "Rediger listen {name}",
+    "editItem": "Rediger {name}",
+    "name": "Navn",
+    "save": "Lagre",
+    "delete": "Slett",
+    "cancel": "Avbryt",
+    "confirmDeleteList": "Slette listen \"{name}\" og alt i den?",
+    "renameFailed": "Kunne ikke endre navnet. Prøv igjen.",
+    "deleteFailed": "Kunne ikke slette. Prøv igjen."
+  },
   "errors": {
     "tooManyRequests": "For mange forsøk. Vent et minutt og prøv igjen."
   },

@@ -63,6 +63,18 @@
     "addItem": "Add",
     "addItemFailed": "Could not add the item. Try again."
   },
+  "edit": {
+    "edit": "Edit",
+    "editList": "Edit list {name}",
+    "editItem": "Edit {name}",
+    "name": "Name",
+    "save": "Save",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "confirmDeleteList": "Delete the list \"{name}\" and everything in it?",
+    "renameFailed": "Could not rename. Try again.",
+    "deleteFailed": "Could not delete. Try again."
+  },
   "errors": {
     "tooManyRequests": "Too many attempts. Wait a minute and try again."
   },

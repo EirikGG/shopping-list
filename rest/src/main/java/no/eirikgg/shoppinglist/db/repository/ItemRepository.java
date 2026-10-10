@@ -167,4 +167,12 @@ public class ItemRepository {
                 personId
         );
     }
+
+    public Optional<Integer> getListOwnerPersonId(Connection conn, int itemListId) {
+        return dbUtils.selectSingle(conn,
+                "select person_id from item_list where item_list_id = ?",
+                itemListId,
+                rs -> rs.getInt("person_id").orElse(null)
+        );
+    }
 }

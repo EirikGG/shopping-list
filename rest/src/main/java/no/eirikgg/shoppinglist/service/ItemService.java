@@ -146,6 +146,14 @@ public class ItemService {
                     () -> new RuntimeException("Cant find person id connected to session" + sessionId)
             );
 
+            int listOwnerPersonId = itemRepository.getListOwnerPersonId(conn, itemListId).orElseThrow(
+                    () -> new RuntimeException("Cant find list owner for list with id " + itemListId)
+            );
+
+            if (listOwnerPersonId != personId) {
+                throw new RuntimeException("Cant update list without being the owner");
+            }
+
             int itemId = itemRepository.createItem(conn, sessionId, personId, itemListId, name);
             return itemRepository.getItem(conn, personId, itemId).orElseThrow();
         }

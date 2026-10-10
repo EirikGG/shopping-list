@@ -1,7 +1,11 @@
 <script setup>
 import { ref } from 'vue'
+import { useMediaQuery } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
-import { createItem } from '../api/items.js'
+import Icon from './Icon.vue'
+import RowEditor from './RowEditor.vue'
+import SwipeToDelete from './SwipeToDelete.vue'
+import { createItem, deleteItem, renameItem } from '../api/items.js'
 
 const props = defineProps({
   list: { type: Object, required: true }
@@ -9,7 +13,7 @@ const props = defineProps({
 
 // 'back' is only offered on narrow screens, where the list replaces the
 // overview of all lists.
-const emit = defineEmits(['item-added', 'back'])
+const emit = defineEmits(['item-added', 'item-renamed', 'item-deleted', 'back'])
 
 const { t } = useI18n()
 
@@ -17,6 +21,24 @@ const name = ref('')
 // A message key, so the error follows a language change.
 const error = ref('')
 const busy = ref(false)
+// The item being renamed or deleted, if any. One at a time.
+const editingId = ref(null)
+// Matches the breakpoint in the styles below.
+const narrow = useMediaQuery('(max-width: 640px)')
+
+async function rename(item, newName) {
+  const renamed = await renameItem(item.id, newName)
+  emit('item-renamed', item.id, renamed.name)
+}
+
+async function remove(item) {
+  await deleteItem(item.id)
+  emit('item-deleted', item.id)
+}
+
+function swipeFailed(e) {
+  error.value = e.status === 429 ? 'errors.tooManyRequests' : 'edit.deleteFailed'
+}
 
 async function submit() {
   error.value = ''
@@ -40,8 +62,38 @@ async function submit() {
       <h2>{{ list.name }}</h2>
 
       <ul v-if="list.items.length" class="items">
-        <li v-for="item in list.items" :key="item.id" :class="{ completed: item.completed }">
-          {{ item.name }}
+        <li
+          v-for="item in list.items"
+          :key="item.id"
+          :class="{ completed: item.completed, editing: editingId === item.id }"
+        >
+          <RowEditor
+            v-if="editingId === item.id"
+            :name="item.name"
+            :save="newName => rename(item, newName)"
+            :remove="() => remove(item)"
+            @done="editingId = null"
+          />
+          <SwipeToDelete
+            v-else
+            :enabled="narrow"
+            :remove="() => deleteItem(item.id)"
+            @removed="emit('item-deleted', item.id)"
+            @failed="swipeFailed"
+          >
+            <div class="item-row">
+              <span class="item-name">{{ item.name }}</span>
+              <button
+                type="button"
+                class="edit"
+                :aria-label="t('edit.editItem', { name: item.name })"
+                :title="t('edit.edit')"
+                @click="editingId = item.id"
+              >
+                <Icon name="pencil" />
+              </button>
+            </div>
+          </SwipeToDelete>
         </li>
       </ul>
       <p v-else class="empty">{{ t('lists.noItems') }}</p>
@@ -120,18 +172,45 @@ h2 {
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   box-shadow: 0 1px 3px var(--color-shadow);
+  /* Keeps a swiped row's red background inside the rounded corners. */
+  overflow: hidden;
 }
 
-.items li {
-  padding: 0.75rem 1rem;
+/* The padding is on the row inside the li, so a swipe moves all of it. */
+.item-row,
+.items li.editing {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  padding: 0.375rem 0.5rem 0.375rem 1rem;
+}
+
+.item-name {
+  flex: 1;
+  min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.edit,
+.edit:hover:not(:disabled) {
+  display: flex;
+  flex-shrink: 0;
+  padding: 0.45rem;
+  color: var(--color-text-muted);
+  background: transparent;
+}
+
+.edit:hover:not(:disabled) {
+  color: var(--color-text);
+  background: var(--color-background);
 }
 
 .items li + li {
   border-top: 1px solid var(--color-border);
 }
 
-.items li.completed {
+.items li.completed .item-name {
   text-decoration: line-through;
   color: var(--color-text-muted);
 }

@@ -1,8 +1,15 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import Icon from './Icon.vue'
 import ItemList from './ItemList.vue'
-import { createItemList, getItemLists } from '../api/items.js'
+import RowEditor from './RowEditor.vue'
+import {
+  createItemList,
+  deleteItemList,
+  getItemLists,
+  renameItemList
+} from '../api/items.js'
 
 const { t } = useI18n()
 
@@ -28,6 +35,31 @@ function open(id) {
 const selectedList = computed(
   () => lists.value?.find(list => list.id === selectedId.value) ?? null
 )
+
+// The list being renamed or deleted, if any. One at a time.
+const editingId = ref(null)
+
+async function rename(list, newName) {
+  await renameItemList(list.id, newName)
+  list.name = newName
+}
+
+async function remove(list) {
+  await deleteItemList(list.id)
+  lists.value = lists.value.filter(other => other.id !== list.id)
+  if (selectedId.value === list.id) {
+    selectedId.value = lists.value[0]?.id ?? null
+    showingList.value = false
+  }
+}
+
+function renameItem(list, id, name) {
+  list.items.find(item => item.id === id).name = name
+}
+
+function deleteItem(list, id) {
+  list.items = list.items.filter(item => item.id !== id)
+}
 
 onMounted(load)
 
@@ -70,17 +102,39 @@ async function create() {
   <div v-else class="layout" :class="{ 'showing-list': showingList }">
     <aside class="sidebar">
       <nav v-if="lists.length">
-        <button
+        <div
           v-for="list in lists"
           :key="list.id"
-          class="list-link"
-          :class="{ active: list.id === selectedId }"
-          :aria-current="list.id === selectedId ? 'page' : undefined"
-          @click="open(list.id)"
+          class="list-row"
+          :class="{ active: list.id === selectedId, editing: list.id === editingId }"
         >
-          <span class="list-name">{{ list.name }}</span>
-          <span class="count">{{ list.items.length }}</span>
-        </button>
+          <RowEditor
+            v-if="list.id === editingId"
+            :name="list.name"
+            :save="newName => rename(list, newName)"
+            :remove="() => remove(list)"
+            confirm-delete="edit.confirmDeleteList"
+            @done="editingId = null"
+          />
+          <template v-else>
+            <button
+              class="list-link"
+              :aria-current="list.id === selectedId ? 'page' : undefined"
+              @click="open(list.id)"
+            >
+              <span class="list-name">{{ list.name }}</span>
+              <span class="count">{{ list.items.length }}</span>
+            </button>
+            <button
+              class="edit"
+              :aria-label="t('edit.editList', { name: list.name })"
+              :title="t('edit.edit')"
+              @click="editingId = list.id"
+            >
+              <Icon name="pencil" />
+            </button>
+          </template>
+        </div>
       </nav>
       <p v-else class="muted no-lists">{{ t('lists.noLists') }}</p>
 
@@ -115,6 +169,8 @@ async function create() {
         :key="selectedList.id"
         :list="selectedList"
         @item-added="item => selectedList.items.push(item)"
+        @item-renamed="(id, name) => renameItem(selectedList, id, name)"
+        @item-deleted="id => deleteItem(selectedList, id)"
         @back="showingList = false"
       />
       <p v-else class="muted">{{ t('lists.selectOrCreate') }}</p>
@@ -150,28 +206,55 @@ nav {
   overflow-y: auto;
 }
 
-.list-link {
+.list-row {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--color-text);
+  border-radius: var(--radius);
+}
+
+.list-row:hover:not(.editing) {
+  background: var(--color-background);
+}
+
+.list-row.active:not(.editing) {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+}
+
+.list-row.editing {
+  padding: 0.25rem 0;
+}
+
+.list-link,
+.list-link:hover:not(:disabled) {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 0.5rem;
-  flex-shrink: 0;
-  width: 100%;
-  padding: 0.5rem 0.75rem;
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.25rem 0.5rem 0.75rem;
   font-weight: 500;
   text-align: left;
-  color: var(--color-text);
+  color: inherit;
   background: transparent;
 }
 
-.list-link:hover:not(:disabled) {
-  background: var(--color-background);
+.edit,
+.edit:hover:not(:disabled) {
+  display: flex;
+  flex-shrink: 0;
+  margin-right: 0.25rem;
+  padding: 0.35rem;
+  color: inherit;
+  background: transparent;
+  opacity: 0.7;
 }
 
-.list-link.active,
-.list-link.active:hover:not(:disabled) {
-  color: var(--color-on-primary);
-  background: var(--color-primary);
+.edit:hover:not(:disabled) {
+  opacity: 1;
 }
 
 .list-name {
@@ -207,7 +290,7 @@ nav {
   padding: 0.5rem 0.6rem;
 }
 
-svg {
+.add-list svg {
   width: 1.25rem;
   height: 1.25rem;
   fill: none;
@@ -266,32 +349,48 @@ svg {
     padding: 1.25rem 1rem;
   }
 
-  /* The rows form one card, like the items of a list. */
-  .list-link,
-  .list-link.active,
-  .list-link:hover:not(:disabled),
-  .list-link.active:hover:not(:disabled) {
-    padding: 0.75rem 1rem;
+  /* The rows form one card, like the items of a list. Which list is selected
+     does not matter here, as it is not shown beside them. */
+  .list-row,
+  .list-row:hover:not(.editing),
+  .list-row.active:not(.editing) {
+    min-height: 3rem;
+    padding: 0.375rem 0.5rem 0.375rem 0;
     color: var(--color-text);
     background: var(--color-surface);
-    border-color: var(--color-border);
+    border: 1px solid var(--color-border);
     border-radius: 0;
   }
 
-  .list-link + .list-link {
+  .list-row.editing {
+    padding: 0.375rem 0.5rem 0.375rem 1rem;
+  }
+
+  .list-row + .list-row {
     margin-top: -1px;
   }
 
-  .list-link:first-child {
+  .list-row:first-child {
     border-radius: var(--radius) var(--radius) 0 0;
   }
 
-  .list-link:last-child {
+  .list-row:last-child {
     border-radius: 0 0 var(--radius) var(--radius);
   }
 
-  .list-link:only-child {
+  .list-row:only-child {
     border-radius: var(--radius);
+  }
+
+  .list-link,
+  .list-link:hover:not(:disabled) {
+    padding: 0.375rem 0.5rem 0.375rem 1rem;
+  }
+
+  .edit,
+  .edit:hover:not(:disabled) {
+    margin-right: 0;
+    padding: 0.45rem;
   }
 
   .no-lists {

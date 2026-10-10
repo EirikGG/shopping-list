@@ -41,3 +41,21 @@ export async function createItem(itemListId, name) {
   const response = await request('POST', '/item', { itemListId, name })
   return response.json()
 }
+
+// Returns { id, name, completed }.
+export async function renameItem(id, newName) {
+  const response = await request('PATCH', '/item', { id, newName })
+  return response.json()
+}
+
+export async function deleteItem(id) {
+  await request('DELETE', '/item', { id })
+}
+
+export async function renameItemList(itemListId, newName) {
+  await request('PATCH', '/item-list', { itemListId, newName })
+}
+
+export async function deleteItemList(itemListId) {
+  await request('DELETE', '/item-list', { itemListId })
+}
