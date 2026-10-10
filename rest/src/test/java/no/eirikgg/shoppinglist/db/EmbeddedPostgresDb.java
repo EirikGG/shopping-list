@@ -37,7 +37,7 @@ public final class EmbeddedPostgresDb implements Db, AutoCloseable {
 
     @Override
     public void close() {
-        if (dataSource != null && !dataSource.isClosed()) {
+        if (null != dataSource && !dataSource.isClosed()) {
             dataSource.close();
         }
         try {

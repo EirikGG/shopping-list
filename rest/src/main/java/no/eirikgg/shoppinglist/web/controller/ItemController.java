@@ -1,11 +1,9 @@
 package no.eirikgg.shoppinglist.web.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.config.JavalinConfig;
 import io.javalin.config.RoutesConfig;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import no.eirikgg.shoppinglist.datamodel.Item;
@@ -20,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.time.LocalDateTime;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public class ItemController {
@@ -28,8 +27,6 @@ public class ItemController {
     public static final String PATH_ITEM_LIST = "/list";
     public static final String PATH_ITEM = "/item";
 
-    public static final String PARAM_ITEM_LIST_NAME = "item-list-name";
-    public static final String PARAM_ITEM_LIST_ID = "item-list-id";
 
     private ObjectMapper mapper = new ObjectMapper();
 
@@ -52,7 +49,7 @@ public class ItemController {
         routes.delete(PATH_ITEM, ic::deleteItem);
 
 
-        routes.post(PATH_ITEM_LIST, ic::saveItemList);
+        routes.post(PATH_ITEM_LIST, ic::postItemList);
         routes.get(PATH_ITEM_LIST, ic::getItemList);
         routes.patch(PATH_ITEM_LIST, ic::patchItemList);
         routes.delete(PATH_ITEM_LIST, ic::deleteItemList);
@@ -60,28 +57,64 @@ public class ItemController {
 
 
 
+
+
+
+
+
+
+    record GetItemRequest(
+            int id
+    ) {}
     record GetItemResponse(
             int id, String name, LocalDateTime completed
     ) {}
-    private void getItem(Context ctx) {}
-    private void saveItem(Context ctx) {}
-    private void deleteItem(Context ctx) {}
-    private void patchItem(Context ctx) {}
+    private void getItem(Context ctx) throws JsonProcessingException {
+        UUID sessionId = ctx.attribute(AuthenticationFilter.PARAM_SESSION_ID);
+        GetItemRequest request = mapper.readValue(ctx.body(), GetItemRequest.class);
+        Optional<Item> item = itemService.getItem(sessionId, request.id());
+        if (item.isEmpty()) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            return;
+        }
+        int itemId = item.orElseThrow().getId().orElseThrow();
+        String name = item.orElseThrow().getName();
+        LocalDateTime completed = item.orElseThrow().getCompleted().orElse(null);
+        GetItemResponse response = new GetItemResponse(itemId, name, completed);
+        ctx.status(HttpStatus.OK).json(response);
+    }
+    private void saveItem(Context ctx) throws JsonProcessingException {}
+    private void deleteItem(Context ctx) throws JsonProcessingException {}
+    private void patchItem(Context ctx) throws JsonProcessingException {}
 
 
 
 
 
 
-    record SaveItemListResponse(
+
+
+
+
+
+
+
+
+
+
+
+    record PostItemListRequest(
+        String name
+    ) {}
+    record PostItemListResponse(
         int id, String name
     ) {}
-    private void saveItemList(Context ctx) throws JsonProcessingException {
+    private void postItemList(Context ctx) throws JsonProcessingException {
         UUID sessionId = ctx.attribute(AuthenticationFilter.PARAM_SESSION_ID);
-        JsonNode body = mapper.readTree(ctx.body());
-        String name = body.get(PARAM_ITEM_LIST_NAME).asText();
+        PostItemListRequest request = mapper.readValue(ctx.body(), PostItemListRequest.class);
+        String name = request.name();
         ItemList itemList = itemService.createItemList(sessionId, name);
-        ctx.status(HttpStatus.OK).json(new SaveItemListResponse(
+        ctx.status(HttpStatus.OK).json(new PostItemListResponse(
                 itemList.getId().orElseThrow(),
                 itemList.getName()
         ));
@@ -114,19 +147,25 @@ public class ItemController {
         ctx.status(HttpStatus.OK).json(response);
     }
 
-    private void deleteItemList(Context ctx) {
+    record DeleteItemListRequest(
+            int itemListId
+    ) {}
+    private void deleteItemList(Context ctx) throws JsonProcessingException {
         UUID sessionId = ctx.attribute(AuthenticationFilter.PARAM_SESSION_ID);
-        int itemListId;
-        try {
-            itemListId = Integer.parseInt(ctx.queryParam(PARAM_ITEM_LIST_ID));
-        }
-        catch (Exception e) {
-            throw new BadRequestResponse("Not valid item list id");
-        }
-        itemService.deleteItemList(sessionId, itemListId);
+        DeleteItemListRequest request = mapper.readValue(ctx.body(), DeleteItemListRequest.class);
+        itemService.deleteItemList(sessionId, request.itemListId());
     }
 
-    private void patchItemList(Context ctx) {
+    record PatchItemListRequest(
+            int itemListId, String newName
+    ) {}
+    private void patchItemList(Context ctx) throws JsonProcessingException {
+        UUID sessionId = ctx.attribute(AuthenticationFilter.PARAM_SESSION_ID);
+        PatchItemListRequest request = mapper.readValue(ctx.body(), PatchItemListRequest.class);
 
+        itemService.updateItemList(sessionId,
+                request.itemListId,
+                request.newName
+        );
     }
 }

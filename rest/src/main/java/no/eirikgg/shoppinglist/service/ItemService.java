@@ -1,5 +1,6 @@
 package no.eirikgg.shoppinglist.service;
 
+import no.eirikgg.shoppinglist.datamodel.Item;
 import no.eirikgg.shoppinglist.datamodel.ItemList;
 import no.eirikgg.shoppinglist.datamodel.User;
 import no.eirikgg.shoppinglist.db.Db;
@@ -86,6 +87,50 @@ public class ItemService {
                 conn.rollback();
                 throw e;
             }
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void updateItemList(UUID sessionId, int itemListId, String newName) {
+        try (Connection conn = db.getConnection()) {
+            User user = authenticationRepository.getUserFromSession(conn, sessionId).orElseThrow(
+                    () -> new UserNotLoggedInException("Not a valid session id")
+            );
+            Integer personId = user.getPerson().getId().orElseThrow(
+                    () -> new RuntimeException("Cant find person id connected to session" + sessionId)
+            );
+
+            try {
+                conn.setAutoCommit(false);
+                int updateCount = itemRepository.updateItemListName(conn, personId, itemListId, newName);
+                if (1 != updateCount) {
+                    String message = "Did not update a single list - rolling back";
+                    throw new RuntimeException(message);
+                }
+                conn.commit();
+            }
+            catch (Exception e) {
+                conn.rollback();
+                throw e;
+            }
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public Optional<Item> getItem(UUID sessionId, int itemId) {
+        try (Connection conn = db.getConnection()) {
+            User user = authenticationRepository.getUserFromSession(conn, sessionId).orElseThrow(
+                    () -> new UserNotLoggedInException("Not a valid session id")
+            );
+            Integer personId = user.getPerson().getId().orElseThrow(
+                    () -> new RuntimeException("Cant find person id connected to session" + sessionId)
+            );
+
+            return itemRepository.getItem(conn, personId, itemId);
         }
         catch (SQLException e) {
             throw new RuntimeException(e);

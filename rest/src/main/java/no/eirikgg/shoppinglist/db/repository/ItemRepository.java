@@ -1,5 +1,6 @@
 package no.eirikgg.shoppinglist.db.repository;
 
+import no.eirikgg.shoppinglist.datamodel.Item;
 import no.eirikgg.shoppinglist.datamodel.ItemList;
 import no.eirikgg.shoppinglist.db.DbUtils;
 
@@ -67,5 +68,35 @@ public class ItemRepository {
             personId,
             itemListId
         ).orElse(0);
+    }
+
+    public int updateItemListName(
+            Connection conn, Integer personId, int itemListId, String newName
+    ) throws SQLException {
+        return dbUtils.update(conn, """
+                update item_list 
+                set name                = ? 
+                where person_id         = ? 
+                    and item_list_id    = ?
+                """,
+                newName,
+                personId,
+                itemListId
+        ).orElse(0);
+    }
+
+    public Optional<Item> getItem(Connection conn, Integer personId, int itemId) {
+        return dbUtils.selectSingle(conn, """
+                select item_id, name, completed 
+                from item 
+                where item_id = ? and person_id = ?
+                """,
+                new Object[] {itemId, personId},
+                rs -> new Item(
+                        rs.getInt("item_id").orElseThrow(),
+                        rs.getString("name").orElseThrow(),
+                        rs.getLocalDateTime("completed").orElseThrow()
+                )
+        );
     }
 }
