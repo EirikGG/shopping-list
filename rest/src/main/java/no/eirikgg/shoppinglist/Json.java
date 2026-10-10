@@ -8,6 +8,7 @@ public class Json {
     public static final ObjectMapper MAPPER = new ObjectMapper();
 
     static {
+        MAPPER.findAndRegisterModules();
         MAPPER.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 }

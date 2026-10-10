@@ -111,7 +111,7 @@ public class ItemController {
 
 
     record PatchItemRequest(
-            int id, String newName
+            int id, String newName, boolean completed
     ) {}
     record PatchItemResponse(
             int id, String name, LocalDateTime completed
@@ -119,7 +119,8 @@ public class ItemController {
     private void patchItem(Context ctx) throws JsonProcessingException {
         UUID sessionId = ctx.attribute(AuthenticationFilter.PARAM_SESSION_ID);
         PatchItemRequest request = mapper.readValue(ctx.body(), PatchItemRequest.class);
-        Item item = itemService.patchItem(sessionId, request.id(), request.newName());
+        LocalDateTime completedTime = request.completed ? LocalDateTime.now() : null;
+        Item item = itemService.patchItem(sessionId, request.id(), request.newName(), completedTime);
         PatchItemResponse response = new PatchItemResponse(
                 item.getId().orElseThrow(),
                 item.getName(),

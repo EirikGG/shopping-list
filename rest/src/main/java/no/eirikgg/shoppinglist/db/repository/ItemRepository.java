@@ -155,14 +155,17 @@ public class ItemRepository {
         );
     }
 
-    public void patchItem(Connection conn, Integer personId, int itemId, String newName) throws SQLException {
+    public void patchItem(
+            Connection conn, Integer personId, int itemId, String newName, LocalDateTime completed
+    ) throws SQLException {
         dbUtils.update(conn, """
                 update item 
-                set name = ?
+                set name = ?, completed = ?
                 where item_id = ?
                 and person_id = ?
                 """,
                 newName,
+                completed,
                 itemId,
                 personId
         );

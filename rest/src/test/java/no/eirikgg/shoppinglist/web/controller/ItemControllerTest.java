@@ -26,6 +26,7 @@ import java.sql.SQLException;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 class ItemControllerTest {
@@ -69,9 +70,10 @@ class ItemControllerTest {
             assertEquals(itemName, getResponse.name());
 
             String itemName2 = "test-item2";
-            ItemController.PatchItemResponse patchResponse = patchItem(client, item.id(), itemName2);
+            ItemController.PatchItemResponse patchResponse = patchItem(client, item.id(), itemName2, true);
             assertEquals(item.id(), patchResponse.id());
             assertEquals(itemName2, patchResponse.name());
+            assertNotNull(patchResponse.completed());
 
             deleteItem(client, item.id());
             assertNull(getItem(client, item.id()));
@@ -95,10 +97,10 @@ class ItemControllerTest {
         assertEquals(200, response.statusCode());
     }
 
-    private ItemController.PatchItemResponse patchItem(HttpClient client, int itemId, String newName)
+    private ItemController.PatchItemResponse patchItem(HttpClient client, int itemId, String newName, boolean completed)
             throws IOException, InterruptedException
     {
-        ItemController.PatchItemRequest requestBody = new ItemController.PatchItemRequest(itemId, newName);
+        ItemController.PatchItemRequest requestBody = new ItemController.PatchItemRequest(itemId, newName, completed);
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM))
             .header(Header.AUTHORIZATION, SESSION_ID.toString())

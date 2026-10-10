@@ -10,6 +10,7 @@ import no.eirikgg.shoppinglist.errors.UserNotLoggedInException;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -178,7 +179,7 @@ public class ItemService {
         }
     }
 
-    public Item patchItem(UUID sessionId, int itemId, String newName) {
+    public Item patchItem(UUID sessionId, int itemId, String newName, LocalDateTime completed) {
         try (Connection conn = db.getConnection()) {
             User user = authenticationRepository.getUserFromSession(conn, sessionId).orElseThrow(
                     () -> new UserNotLoggedInException("Not a valid session id")
@@ -187,7 +188,7 @@ public class ItemService {
                     () -> new RuntimeException("Cant find person id connected to session" + sessionId)
             );
 
-            itemRepository.patchItem(conn, personId, itemId, newName);
+            itemRepository.patchItem(conn, personId, itemId, newName, completed);
             return itemRepository.getItem(conn, personId, itemId).orElseThrow();
         }
         catch (SQLException e) {
