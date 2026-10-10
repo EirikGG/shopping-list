@@ -10,7 +10,6 @@ import no.eirikgg.shoppinglist.db.EmbeddedPostgresDb;
 import no.eirikgg.shoppinglist.db.LiquibaseMigrator;
 import no.eirikgg.shoppinglist.db.user.EmailSenderFake;
 import org.junit.jupiter.api.Test;
-import org.objectweb.asm.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

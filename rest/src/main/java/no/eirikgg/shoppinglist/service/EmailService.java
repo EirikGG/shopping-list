@@ -7,11 +7,13 @@ import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.db.repository.EmailRepository;
 import no.eirikgg.shoppinglist.db.repository.UserRepository;
 import no.eirikgg.shoppinglist.errors.EmailNotRegisteredException;
+import no.eirikgg.shoppinglist.errors.StatusAlreadyChangedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
@@ -46,7 +48,16 @@ public class EmailService {
 
     public List<EmailMessage> getUnsendtEmailMessages() {
         try (Connection conn = db.getConnection()) {
-            return emailRepository.getUnsendtEmailMessages(conn);
+            List<Integer> emailIds = emailRepository.getEmailIdsInStatus(conn,
+                    EmailMessage.Status.CREATED
+            );
+            List<EmailMessage> emailMessages = new LinkedList<>();
+            for (Integer emailId : emailIds) {
+                EmailMessage emailMessage = emailRepository.getEmailMessage(conn, emailId).orElseThrow();
+                emailMessages.add(emailMessage);
+            }
+
+            return emailMessages;
         }
         catch (SQLException e) {
             String errorMsg = "Failed to get unsent emails";
@@ -55,9 +66,25 @@ public class EmailService {
         }
     }
 
-    public void updateEmailMessageStatus(EmailMessage emailMessage, EmailMessage.Status status) {
+    public void updateEmailMessageStatus(
+            EmailMessage emailMessage, EmailMessage.Status from, EmailMessage.Status to
+    ) throws StatusAlreadyChangedException {
         try (Connection conn = db.getConnection()) {
-            emailRepository.updateEmailMessage(conn, emailMessage, status);
+            try {
+                conn.setAutoCommit(false);
+                EmailMessage.Status oldStatus = emailRepository.readAndLockEmailStatus(conn, emailMessage);
+                if (!from.equals(oldStatus)) {
+                    throw new StatusAlreadyChangedException("Email message is not in status: %s (%s)".formatted(
+                            from, oldStatus
+                    ));
+                }
+                emailRepository.updateEmailMessage(conn, emailMessage, to);
+                conn.commit();
+            }
+            catch (Exception e) {
+                conn.rollback();
+                throw e;
+            }
         }
         catch (SQLException e) {
             String errorMsg = "Failed to get unsent emails";

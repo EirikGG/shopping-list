@@ -1,7 +1,6 @@
 package no.eirikgg.shoppinglist.db.repository;
 
 import no.eirikgg.shoppinglist.datamodel.EmailMessage;
-import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.db.DbUtils;
 import no.eirikgg.shoppinglist.db.Hidden;
 import org.slf4j.Logger;
@@ -11,6 +10,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public class EmailRepository {
@@ -19,8 +19,8 @@ public class EmailRepository {
     private DbUtils dbUtils = new DbUtils();
 
 
-    public List<EmailMessage> getUnsendtEmailMessages(Connection conn) throws SQLException {
-        return dbUtils.select(conn, """
+    public Optional<EmailMessage> getEmailMessage(Connection conn, int emailId) {
+        return dbUtils.selectSingle(conn, """
             select 
                 email_id,
                 session_id,
@@ -34,10 +34,9 @@ public class EmailRepository {
             from 
                 email_message
             where 
-                sent                is null
-                and status          like ?        
+                email_id = ?
             """,
-            EmailMessage.Status.CREATED.toString(),
+            emailId,
             rs -> new EmailMessage(
                 rs.getInt("email_id").orElseThrow(),
                 rs.getUuid("session_id").orElseThrow(),
@@ -52,13 +51,25 @@ public class EmailRepository {
         );
     }
 
-    public void updateEmailMessage(Connection conn, EmailMessage emailMessage, EmailMessage.Status newStatus) throws SQLException {
+    public EmailMessage.Status readAndLockEmailStatus(Connection conn, EmailMessage emailMessage) {
+        return dbUtils.selectSingle(conn,
+                "select status from email_message where email_id = ? for update",
+                emailMessage.getId().orElseThrow(),
+                rs -> EmailMessage.Status.valueOf(rs.getString("status").orElseThrow())
+        ).orElseThrow();
+    }
+
+    public void updateEmailMessage(
+            Connection conn,
+            EmailMessage emailMessage,
+            EmailMessage.Status newStatus
+    ) throws SQLException {
         dbUtils.update(conn, """
             update email_message
             set status                  = ?
             where email_id              = ?
             """,
-            newStatus.toString(),
+            newStatus.name(),
             emailMessage.getId().orElseThrow()
         ).orElse(0);
     }
@@ -84,11 +95,19 @@ public class EmailRepository {
             """,
             sessionId,
             address,
-            EmailMessage.Status.CREATED.toString(),
+            EmailMessage.Status.CREATED.name(),
             subject,
             Hidden.param(body),
             LocalDateTime.now(),
             LocalDateTime.now()
+        );
+    }
+
+    public List<Integer> getEmailIdsInStatus(Connection conn, EmailMessage.Status status) {
+        return dbUtils.select(conn,
+                "select email_id from email_message where status = ?",
+                status.name(),
+                rs -> rs.getInt("email_id").orElseThrow()
         );
     }
 }

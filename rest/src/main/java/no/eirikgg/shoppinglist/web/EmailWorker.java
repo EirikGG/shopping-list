@@ -49,9 +49,17 @@ public class EmailWorker {
             log.debug("Found {} unsent email messages", emailMessages.size());
             for (EmailMessage emailMessage : emailMessages) {
                 log.info("Sending mail with mail id {}",  emailMessage.getId().orElseThrow());
-                emailService.updateEmailMessageStatus(emailMessage, EmailMessage.Status.PROCESSING);
+                emailService.updateEmailMessageStatus(
+                        emailMessage,
+                        EmailMessage.Status.CREATED,
+                        EmailMessage.Status.PROCESSING
+                );
                 emailService.sendEmail(emailMessage);
-                emailService.updateEmailMessageStatus(emailMessage, EmailMessage.Status.SENDT);
+                emailService.updateEmailMessageStatus(
+                        emailMessage,
+                        EmailMessage.Status.PROCESSING,
+                        EmailMessage.Status.SENDT
+                );
             }
         }
         catch (Exception ex) {
