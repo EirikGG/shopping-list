@@ -108,7 +108,13 @@ public class DbUtils {
     public <R> Optional<R> selectSingle(
             Connection conn, @Language("SQL") String sql, Object param, RowHandler<R> rowMapper
     ) {
-        List<R> values = select(conn, sql, new Object[]{param}, rowMapper);
+        return selectSingle(conn, sql, new Object[] {param}, rowMapper);
+    }
+
+    public <R> Optional<R> selectSingle(
+            Connection conn, @Language("SQL") String sql, Object[] params, RowHandler<R> rowMapper
+    ) {
+        List<R> values = select(conn, sql, params, rowMapper);
         if (values.isEmpty()) {
             return Optional.empty();
         }
