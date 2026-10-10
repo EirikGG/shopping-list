@@ -49,6 +49,20 @@
     "notRegistered": "Ingen konto er registrert med denne e-postadressen.",
     "failed": "Kunne ikke bekrefte e-postadressen akkurat nå. Prøv igjen senere."
   },
+  "lists": {
+    "selectOrCreate": "Opprett en liste i menyen for å komme i gang.",
+    "loading": "Henter listene dine…",
+    "loadFailed": "Kunne ikke hente listene dine. Prøv igjen.",
+    "newList": "Ny liste",
+    "create": "Opprett",
+    "createFailed": "Kunne ikke opprette listen. Prøv igjen.",
+    "noLists": "Du har ingen lister ennå.",
+    "noItems": "Ingen varer ennå.",
+    "back": "Tilbake til listene",
+    "itemName": "Vare",
+    "addItem": "Legg til",
+    "addItemFailed": "Kunne ikke legge til varen. Prøv igjen."
+  },
   "errors": {
     "tooManyRequests": "For mange forsøk. Vent et minutt og prøv igjen."
   },

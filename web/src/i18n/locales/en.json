@@ -49,6 +49,20 @@
     "notRegistered": "No account is registered with this email address.",
     "failed": "Could not verify the email address right now. Try again later."
   },
+  "lists": {
+    "selectOrCreate": "Create a list in the menu to get started.",
+    "loading": "Loading your lists…",
+    "loadFailed": "Could not load your lists. Try again.",
+    "newList": "New list",
+    "create": "Create",
+    "createFailed": "Could not create the list. Try again.",
+    "noLists": "You have no lists yet.",
+    "noItems": "No items yet.",
+    "back": "Back to lists",
+    "itemName": "Item",
+    "addItem": "Add",
+    "addItemFailed": "Could not add the item. Try again."
+  },
   "errors": {
     "tooManyRequests": "Too many attempts. Wait a minute and try again."
   },

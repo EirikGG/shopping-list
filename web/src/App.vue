@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import LanguageSwitcher from './components/LanguageSwitcher.vue'
 import LoginForm from './components/LoginForm.vue'
+import ShoppingLists from './components/ShoppingLists.vue'
 import SignupForm from './components/SignupForm.vue'
 import ThemeSwitcher from './components/ThemeSwitcher.vue'
 import VerifyEmail from './components/VerifyEmail.vue'
@@ -76,7 +77,20 @@ function logOut() {
 </script>
 
 <template>
-  <main>
+  <div v-if="status === 'verified'" class="app-shell">
+    <header class="top-bar">
+      <h1>Shopping list</h1>
+      <div class="top-bar-actions">
+        <ThemeSwitcher />
+        <LanguageSwitcher />
+        <button class="secondary" @click="logOut">{{ t('app.logOut') }}</button>
+      </div>
+    </header>
+
+    <ShoppingLists />
+  </div>
+
+  <main v-else>
     <div class="card">
       <div class="card-header">
         <ThemeSwitcher />
@@ -96,11 +110,6 @@ function logOut() {
       <template v-else-if="status === 'unverified'">
         <VerifyEmail :email="sessionEmail" @verified="status = 'verified'" />
         <button class="secondary log-out" @click="logOut">{{ t('app.logOut') }}</button>
-      </template>
-
-      <template v-else-if="status === 'verified'">
-        <p class="signed-in">{{ t('app.signedIn') }}</p>
-        <button class="secondary" @click="logOut">{{ t('app.logOut') }}</button>
       </template>
 
       <template v-else>
@@ -131,6 +140,51 @@ function logOut() {
 </template>
 
 <style scoped>
+/* dvh follows the mobile browser's address bar; vh is the fallback. */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+}
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.top-bar h1 {
+  margin: 0;
+  text-align: left;
+}
+
+.top-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .top-bar {
+    padding: 0.5rem 1rem;
+  }
+
+  .top-bar h1 {
+    font-size: 1.125rem;
+    white-space: nowrap;
+  }
+
+  .top-bar-actions button.secondary {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.875rem;
+  }
+}
+
 main {
   display: flex;
   justify-content: center;

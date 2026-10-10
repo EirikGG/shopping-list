@@ -31,7 +31,7 @@ public class ItemRepository {
     }
 
     public Optional<ItemList> getItemList(Connection conn, int itemListId) {
-        return dbUtils.selectSingle(conn, """
+        Optional<ItemList> itemList = dbUtils.selectSingle(conn, """
             select item_list_id, name
             from item_list
             where item_list_id = ?
@@ -43,6 +43,25 @@ public class ItemRepository {
                 rs.getString("name").orElseThrow()
             )
         );
+        itemList.ifPresent(list -> list.getItems().addAll(getItemsForItemList(conn, itemListId)));
+        return itemList;
+    }
+
+    public List<Item> getItemsForItemList(Connection conn, int itemListId) {
+        return dbUtils.select(conn, """
+            select item_id, name, completed
+            from item
+            where item_list_id = ?
+            and deleted is null
+            order by item_id
+            """,
+            itemListId,
+            rs -> new Item(
+                rs.getInt("item_id").orElseThrow(),
+                rs.getString("name").orElseThrow(),
+                rs.getLocalDateTime("completed").orElse(null)
+            )
+        );
     }
 
     public List<Integer> getItemListForPerson(Connection conn, int personId) {
@@ -51,6 +70,7 @@ public class ItemRepository {
             from item_list
             where person_id = ?
             and deleted is null
+            order by item_list_id
             """,
             personId,
             rs -> rs.getInt("item_list_id").orElseThrow()

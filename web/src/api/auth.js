@@ -10,7 +10,7 @@ export class ApiError extends Error {
 
 // The backend returns a PublicError body for known cases and an empty body for
 // the rest, so the parse has to be optional.
-async function toApiError(response) {
+export async function toApiError(response) {
   const error = await response.json().catch(() => null)
   return new ApiError(response.statusText, response.status, error?.error)
 }
