@@ -90,7 +90,8 @@ public class ItemRepository {
                 select item_id, name, completed 
                 from item 
                 where item_id = ? 
-                    and person_id = ?
+                and person_id = ?
+                and deleted is null
                 """,
                 new Object[] {itemId, personId},
                 rs -> new Item(

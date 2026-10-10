@@ -6,6 +6,7 @@ import io.javalin.config.JavalinConfig;
 import io.javalin.config.RoutesConfig;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import no.eirikgg.shoppinglist.Json;
 import no.eirikgg.shoppinglist.datamodel.Item;
 import no.eirikgg.shoppinglist.datamodel.ItemList;
 import no.eirikgg.shoppinglist.db.Db;
@@ -28,7 +29,7 @@ public class ItemController {
     public static final String PATH_ITEM = "/item";
 
 
-    private ObjectMapper mapper = new ObjectMapper();
+    private ObjectMapper mapper = Json.MAPPER;
 
     private ItemService itemService;
     private AuthenticationService authenticationService;
@@ -124,7 +125,7 @@ public class ItemController {
                 item.getName(),
                 item.getCompleted().orElse(null)
         );
-        ctx.status(HttpStatus.OK).json(item);
+        ctx.status(HttpStatus.OK).json(response);
     }
 
 

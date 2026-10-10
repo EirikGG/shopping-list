@@ -7,6 +7,7 @@ import io.javalin.http.Header;
 import io.javalin.testtools.HttpClient;
 import io.javalin.testtools.JavalinTest;
 import io.javalin.testtools.TestConfig;
+import no.eirikgg.shoppinglist.Json;
 import no.eirikgg.shoppinglist.Main;
 import no.eirikgg.shoppinglist.db.DbUtils;
 import no.eirikgg.shoppinglist.db.EmbeddedPostgresDb;
@@ -25,6 +26,7 @@ import java.sql.SQLException;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class ItemControllerTest {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -37,7 +39,7 @@ class ItemControllerTest {
     private final String ITEM_LIST_NAME = "unit-test-list";
     private final int ITEM_LIST_ID;
     private final UUID SESSION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = Json.MAPPER;
 
     public ItemControllerTest() throws SQLException {
         db = EmbeddedPostgresDb.createMigratedInstance();
@@ -61,28 +63,59 @@ class ItemControllerTest {
     @Test
     void createItems_andDeleteIt() {
         JavalinTest.test(app, testConfig, (server, client) -> {
-            ItemController.PostItemResponse item1 = createItem(client, "test-item1");
-            ItemController.PostItemResponse item2 = createItem(client, "test-item2");
-            ItemController.PostItemResponse item3 = createItem(client, "test-item3");
-            ItemController.PostItemResponse item4 = createItem(client, "test-item4");
+            String itemName = "test-item1";
+            ItemController.PostItemResponse item = createItem(client, itemName);
+            ItemController.GetItemResponse getResponse = getItem(client, item.id());
+            assertEquals(itemName, getResponse.name());
 
+            String itemName2 = "test-item2";
+            ItemController.PatchItemResponse patchResponse = patchItem(client, item.id(), itemName2);
+            assertEquals(item.id(), patchResponse.id());
+            assertEquals(itemName2, patchResponse.name());
 
-
-
-
-//                List<ItemController.GetItemListResponse> items = getItem(client);
-//                assertEquals(1, items.size());
-//                int itemId = items.get(0).id();
-//
-//                String newName = UUID.randomUUID().toString();
-//                updateItem(client, itemId, newName);
-//
-//                for (ItemController.GetItemListResponse itemList : getItem(client)) {
-//                    assertEquals(newName, itemList.name());
-//                }
-//
-//                deleteItem(client, itemId);
+            deleteItem(client, item.id());
+            assertNull(getItem(client, item.id()));
         });
+    }
+
+    private void deleteItem(
+            HttpClient client, int itemId
+    ) throws IOException, InterruptedException {
+        ItemController.DeleteItemRequest requestBody = new ItemController.DeleteItemRequest(itemId);
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM))
+            .header(Header.AUTHORIZATION, SESSION_ID.toString())
+            .method("DELETE", getBodyPublisher(requestBody))
+            .build();
+
+        HttpResponse<String> response = java.net.http.HttpClient.newHttpClient().send(
+                request, HttpResponse.BodyHandlers.ofString()
+        );
+
+        assertEquals(200, response.statusCode());
+    }
+
+    private ItemController.PatchItemResponse patchItem(HttpClient client, int itemId, String newName)
+            throws IOException, InterruptedException
+    {
+        ItemController.PatchItemRequest requestBody = new ItemController.PatchItemRequest(itemId, newName);
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM))
+            .header(Header.AUTHORIZATION, SESSION_ID.toString())
+            .method("PATCH", getBodyPublisher(requestBody))
+            .build();
+
+        HttpResponse<String> response = java.net.http.HttpClient.newHttpClient().send(
+                request, HttpResponse.BodyHandlers.ofString()
+        );
+
+        ItemController.PatchItemResponse patchItemRequest = mapper.readValue(
+                response.body(), ItemController.PatchItemResponse.class
+        );
+
+        assertEquals(200, response.statusCode());
+        log.info("{}", patchItemRequest);
+        return patchItemRequest;
     }
 
     private ItemController.PostItemResponse createItem(HttpClient client, String itemName)
@@ -106,6 +139,34 @@ class ItemControllerTest {
         assertEquals(201, response.statusCode());
         log.info("{}", postItemResponse);
         return postItemResponse;
+    }
+
+    private ItemController.GetItemResponse getItem(HttpClient client, int itemId)
+            throws IOException, InterruptedException
+    {
+        ItemController.GetItemRequest requestBody = new ItemController.GetItemRequest(itemId);
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM))
+            .header(Header.AUTHORIZATION, SESSION_ID.toString())
+            .method("GET", getBodyPublisher(requestBody))
+            .build();
+
+        HttpResponse<String> response = java.net.http.HttpClient.newHttpClient().send(
+                request, HttpResponse.BodyHandlers.ofString()
+        );
+
+        if (null == response || null == response.body() || response.body().isBlank()) {
+            assertEquals(404, response.statusCode());
+            return null;
+        }
+
+        ItemController.GetItemResponse getItemResponse = mapper.readValue(
+                response.body(), ItemController.GetItemResponse.class
+        );
+
+        assertEquals(200, response.statusCode());
+        log.info("{}", getItemResponse);
+        return getItemResponse;
     }
 
     private HttpRequest.BodyPublisher getBodyPublisher(Object requestObject) throws JsonProcessingException {

@@ -9,6 +9,7 @@ import io.javalin.testtools.HttpClient;
 import io.javalin.testtools.JavalinTest;
 import io.javalin.testtools.Response;
 import io.javalin.testtools.TestConfig;
+import no.eirikgg.shoppinglist.Json;
 import no.eirikgg.shoppinglist.Main;
 import no.eirikgg.shoppinglist.datamodel.EmailTemplate;
 import no.eirikgg.shoppinglist.db.EmbeddedPostgresDb;
@@ -31,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class UserControllerTest {
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper mapper = Json.MAPPER;
 
 
     public final static String FIRSTNAME = "Eirik";

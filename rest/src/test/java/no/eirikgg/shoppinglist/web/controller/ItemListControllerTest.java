@@ -7,6 +7,7 @@ import io.javalin.http.ContentType;
 import io.javalin.http.Header;
 import io.javalin.testtools.JavalinTest;
 import io.javalin.testtools.TestConfig;
+import no.eirikgg.shoppinglist.Json;
 import no.eirikgg.shoppinglist.Main;
 import no.eirikgg.shoppinglist.db.EmbeddedPostgresDb;
 import no.eirikgg.shoppinglist.db.LiquibaseMigrator;
@@ -35,7 +36,7 @@ class ItemListControllerTest {
 
     private final String LIST_NAME = "unit-test-list";
     private final UUID SESSION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = Json.MAPPER;
 
     public ItemListControllerTest() {
         db = EmbeddedPostgresDb.createMigratedInstance();

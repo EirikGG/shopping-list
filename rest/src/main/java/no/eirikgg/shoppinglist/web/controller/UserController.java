@@ -8,6 +8,7 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.UnauthorizedResponse;
+import no.eirikgg.shoppinglist.Json;
 import no.eirikgg.shoppinglist.datamodel.Authorization;
 import no.eirikgg.shoppinglist.datamodel.Person;
 import no.eirikgg.shoppinglist.datamodel.User;
@@ -56,7 +57,7 @@ public class UserController {
     private UserService userService;
     private AuthenticationService authenticationService;
     private EmailService emailService;
-    private ObjectMapper mapper = new ObjectMapper();
+    private ObjectMapper mapper = Json.MAPPER;
 
     public UserController(
             UserService userService,
