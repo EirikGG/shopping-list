@@ -24,7 +24,7 @@ import java.util.UUID;
 public class ItemController {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    public static final String PATH_ITEM_LIST = "/list";
+    public static final String PATH_ITEM_LIST = "/item-list";
     public static final String PATH_ITEM = "/item";
 
 
@@ -83,9 +83,49 @@ public class ItemController {
         GetItemResponse response = new GetItemResponse(itemId, name, completed);
         ctx.status(HttpStatus.OK).json(response);
     }
-    private void saveItem(Context ctx) throws JsonProcessingException {}
-    private void deleteItem(Context ctx) throws JsonProcessingException {}
-    private void patchItem(Context ctx) throws JsonProcessingException {}
+
+
+    record PostItemRequest(
+            int itemListId, String name
+    ) {}
+    record PostItemResponse(
+            int id, String name
+    ) {}
+    private void saveItem(Context ctx) throws JsonProcessingException {
+        UUID sessionId = ctx.attribute(AuthenticationFilter.PARAM_SESSION_ID);
+        PostItemRequest request = mapper.readValue(ctx.body(), PostItemRequest.class);
+        Item item = itemService.createItem(sessionId, request.itemListId(), request.name());
+        PostItemResponse response = new PostItemResponse(item.getId().orElseThrow(), item.getName());
+        ctx.status(HttpStatus.CREATED).json(mapper.writeValueAsString(response));
+    }
+
+    record DeleteItemRequest(
+            int id
+    ) {}
+    private void deleteItem(Context ctx) throws JsonProcessingException {
+        UUID sessionId = ctx.attribute(AuthenticationFilter.PARAM_SESSION_ID);
+        DeleteItemRequest request = mapper.readValue(ctx.body(), DeleteItemRequest.class);
+        itemService.deleteItem(sessionId, request.id());
+    }
+
+
+    record PatchItemRequest(
+            int id, String newName
+    ) {}
+    record PatchItemResponse(
+            int id, String name, LocalDateTime completed
+    ) {}
+    private void patchItem(Context ctx) throws JsonProcessingException {
+        UUID sessionId = ctx.attribute(AuthenticationFilter.PARAM_SESSION_ID);
+        PatchItemRequest request = mapper.readValue(ctx.body(), PatchItemRequest.class);
+        Item item = itemService.patchItem(sessionId, request.id(), request.newName());
+        PatchItemResponse response = new PatchItemResponse(
+                item.getId().orElseThrow(),
+                item.getName(),
+                item.getCompleted().orElse(null)
+        );
+        ctx.status(HttpStatus.OK).json(item);
+    }
 
 
 
@@ -114,7 +154,7 @@ public class ItemController {
         PostItemListRequest request = mapper.readValue(ctx.body(), PostItemListRequest.class);
         String name = request.name();
         ItemList itemList = itemService.createItemList(sessionId, name);
-        ctx.status(HttpStatus.OK).json(new PostItemListResponse(
+        ctx.status(HttpStatus.CREATED).json(new PostItemListResponse(
                 itemList.getId().orElseThrow(),
                 itemList.getName()
         ));

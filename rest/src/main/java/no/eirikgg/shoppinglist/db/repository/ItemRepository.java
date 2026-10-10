@@ -99,4 +99,50 @@ public class ItemRepository {
                 )
         );
     }
+
+    public int createItem(Connection conn, UUID sessionId, Integer personId, int itemListId, String name)
+            throws SQLException {
+        return dbUtils.insert(conn, """
+                insert into item (
+                       item_list_id,
+                       session_id,
+                       person_id,
+                       name,
+                       created
+                )
+                values (?, ?, ?, ?, ?)
+                """,
+                itemListId,
+                sessionId,
+                personId,
+                name,
+                LocalDateTime.now()
+        ).orElseThrow();
+    }
+
+    public void deleteItem(Connection conn, Integer personId, int itemId) throws SQLException {
+        dbUtils.update(conn, """
+                update item 
+                set deleted = ?
+                where item_id = ?
+                and person_id = ?
+                """,
+                LocalDateTime.now(),
+                itemId,
+                personId
+        );
+    }
+
+    public void patchItem(Connection conn, Integer personId, int itemId, String newName) throws SQLException {
+        dbUtils.update(conn, """
+                update item 
+                set name = ?
+                where item_id = ?
+                and person_id = ?
+                """,
+                newName,
+                itemId,
+                personId
+        );
+    }
 }

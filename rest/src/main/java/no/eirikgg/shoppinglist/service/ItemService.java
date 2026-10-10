@@ -136,4 +136,54 @@ public class ItemService {
             throw new RuntimeException(e);
         }
     }
+
+    public Item createItem(UUID sessionId, int itemListId, String name) {
+        try (Connection conn = db.getConnection()) {
+            User user = authenticationRepository.getUserFromSession(conn, sessionId).orElseThrow(
+                    () -> new UserNotLoggedInException("Not a valid session id")
+            );
+            Integer personId = user.getPerson().getId().orElseThrow(
+                    () -> new RuntimeException("Cant find person id connected to session" + sessionId)
+            );
+
+            int itemId = itemRepository.createItem(conn, sessionId, personId, itemListId, name);
+            return itemRepository.getItem(conn, personId, itemId).orElseThrow();
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void deleteItem(UUID sessionId, int itemId) {
+        try (Connection conn = db.getConnection()) {
+            User user = authenticationRepository.getUserFromSession(conn, sessionId).orElseThrow(
+                    () -> new UserNotLoggedInException("Not a valid session id")
+            );
+            Integer personId = user.getPerson().getId().orElseThrow(
+                    () -> new RuntimeException("Cant find person id connected to session" + sessionId)
+            );
+
+            itemRepository.deleteItem(conn, personId, itemId);
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public Item patchItem(UUID sessionId, int itemId, String newName) {
+        try (Connection conn = db.getConnection()) {
+            User user = authenticationRepository.getUserFromSession(conn, sessionId).orElseThrow(
+                    () -> new UserNotLoggedInException("Not a valid session id")
+            );
+            Integer personId = user.getPerson().getId().orElseThrow(
+                    () -> new RuntimeException("Cant find person id connected to session" + sessionId)
+            );
+
+            itemRepository.patchItem(conn, personId, itemId, newName);
+            return itemRepository.getItem(conn, personId, itemId).orElseThrow();
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

@@ -125,7 +125,7 @@ class ItemListControllerTest {
                 ItemController.PostItemListResponse.class
         );
 
-        assertEquals(200, response.statusCode());
+        assertEquals(201, response.statusCode());
         log.info("{}", saveItemListResponse);
         return saveItemListResponse;
     }
