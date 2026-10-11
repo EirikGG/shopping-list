@@ -59,7 +59,6 @@ public class Main {
             LogFilter.setup(config);
             AuthenticationFilter.setup(config, db);
 
-
             GeneralController.setup(config, db);
             UserController.setup(config, db, emailSender);
             ItemController.setup(config, db);
