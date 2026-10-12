@@ -100,8 +100,12 @@ class UserControllerTest {
             createUserAndExpectStatus(client, 400);
 
             Response loginResponse = loginWithUser(client);
-            JsonNode okSessionBodyJson = mapper.readTree(loginResponse.getBody().string());
-            UUID okSessionId = UUID.fromString(okSessionBodyJson.get(AuthenticationFilter.PARAM_SESSION_ID).asText());
+            UserController.PostLoginResponse okSessionBodyJson = mapper.readValue(
+                    loginResponse.getBody().string(),
+                    UserController.PostLoginResponse.class
+            );
+
+            UUID okSessionId = okSessionBodyJson.session();
 
 
             Response duplicateUsernameResponse = createUserAndExpectStatus(client, 400);

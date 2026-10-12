@@ -1,5 +1,3 @@
-const SESSION_ID_KEY = 'session-id'
-
 export class ApiError extends Error {
   constructor(message, status, code) {
     super(message)
@@ -34,12 +32,13 @@ async function postJson(path, body) {
 export async function login(email, password) {
   const response = await postJson('/login_user', { email, password })
   const body = await response.json()
-  return body[SESSION_ID_KEY]
+  return body.session
 }
 
+// The backend answers with an empty body, so there is nothing to return.
 export async function createUser(user) {
   // No username is sent: the backend uses the email as the username.
-  const response = await postJson('/user', {
+  await postJson('/user', {
     firstname: user.firstname,
     lastname: user.lastname,
     birthdate: user.birthdate,
@@ -47,7 +46,6 @@ export async function createUser(user) {
     password: user.password,
     email: user.email
   })
-  return response.json()
 }
 
 // 'verified' | 'unverified' | 'invalid'. A session for a user whose email is
