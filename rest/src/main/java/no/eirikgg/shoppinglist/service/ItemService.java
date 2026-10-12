@@ -2,6 +2,7 @@ package no.eirikgg.shoppinglist.service;
 
 import no.eirikgg.shoppinglist.datamodel.Item;
 import no.eirikgg.shoppinglist.datamodel.ItemList;
+import no.eirikgg.shoppinglist.datamodel.Session;
 import no.eirikgg.shoppinglist.datamodel.User;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.db.repository.AuthenticationRepository;
@@ -25,7 +26,8 @@ public class ItemService {
         this.db = db;
     }
 
-    public ItemList createItemList(UUID sessionId, String name) {
+    public ItemList createItemList(Session session, String name) {
+        UUID sessionId = session.getSessionId();
         try (Connection conn = db.getConnection()) {
             User user = authenticationRepository.getUserFromSession(conn, sessionId).orElseThrow(
                     () -> new UserNotLoggedInException("Not a valid session id")
@@ -46,7 +48,8 @@ public class ItemService {
         }
     }
 
-    public List<ItemList> getItemLists(UUID sessionId) {
+    public List<ItemList> getItemLists(Session session) {
+        UUID sessionId = session.getSessionId();
         try (Connection conn = db.getConnection()) {
             User user = authenticationRepository.getUserFromSession(conn, sessionId).orElseThrow(
                     () -> new UserNotLoggedInException("Not a valid session id")
@@ -66,7 +69,8 @@ public class ItemService {
         }
     }
 
-    public void deleteItemList(UUID sessionId, int itemListId) {
+    public void deleteItemList(Session session, int itemListId) {
+        UUID sessionId = session.getSessionId();
         try (Connection conn = db.getConnection()) {
             User user = authenticationRepository.getUserFromSession(conn, sessionId).orElseThrow(
                     () -> new UserNotLoggedInException("Not a valid session id")
@@ -94,7 +98,8 @@ public class ItemService {
         }
     }
 
-    public void updateItemList(UUID sessionId, int itemListId, String newName) {
+    public void updateItemList(Session session, int itemListId, String newName) {
+        UUID sessionId = session.getSessionId();
         try (Connection conn = db.getConnection()) {
             User user = authenticationRepository.getUserFromSession(conn, sessionId).orElseThrow(
                     () -> new UserNotLoggedInException("Not a valid session id")
@@ -122,8 +127,9 @@ public class ItemService {
         }
     }
 
-    public Optional<Item> getItem(UUID sessionId, int itemId) {
+    public Optional<Item> getItem(Session session, int itemId) {
         try (Connection conn = db.getConnection()) {
+            UUID sessionId = session.getSessionId();
             User user = authenticationRepository.getUserFromSession(conn, sessionId).orElseThrow(
                     () -> new UserNotLoggedInException("Not a valid session id")
             );
@@ -138,7 +144,8 @@ public class ItemService {
         }
     }
 
-    public Item createItem(UUID sessionId, int itemListId, String name) {
+    public Item createItem(Session session, int itemListId, String name) {
+        UUID sessionId = session.getSessionId();
         try (Connection conn = db.getConnection()) {
             User user = authenticationRepository.getUserFromSession(conn, sessionId).orElseThrow(
                     () -> new UserNotLoggedInException("Not a valid session id")
@@ -163,7 +170,8 @@ public class ItemService {
         }
     }
 
-    public void deleteItem(UUID sessionId, int itemId) {
+    public void deleteItem(Session session, int itemId) {
+        UUID sessionId = session.getSessionId();
         try (Connection conn = db.getConnection()) {
             User user = authenticationRepository.getUserFromSession(conn, sessionId).orElseThrow(
                     () -> new UserNotLoggedInException("Not a valid session id")
@@ -179,7 +187,8 @@ public class ItemService {
         }
     }
 
-    public Item patchItem(UUID sessionId, int itemId, String newName, LocalDateTime completed) {
+    public Item patchItem(Session session, int itemId, String newName, LocalDateTime completed) {
+        UUID sessionId = session.getSessionId();
         try (Connection conn = db.getConnection()) {
             User user = authenticationRepository.getUserFromSession(conn, sessionId).orElseThrow(
                     () -> new UserNotLoggedInException("Not a valid session id")

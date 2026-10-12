@@ -7,6 +7,7 @@ import io.javalin.http.HttpStatus;
 import io.javalin.http.UnauthorizedResponse;
 import no.eirikgg.shoppinglist.Json;
 import no.eirikgg.shoppinglist.datamodel.Person;
+import no.eirikgg.shoppinglist.datamodel.Session;
 import no.eirikgg.shoppinglist.datamodel.User;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.errors.EmailAlreadyVerifiedException;
@@ -101,6 +102,7 @@ public class UserController {
     }
 
     record PostLoginRequest(String email, String password) {}
+    record PostLoginResponse(UUID session) {}
     public void login(Context ctx) throws InvalidSessionException, UserEmailNotVerifiedException {
         PostLoginRequest request = ctx.bodyAsClass(PostLoginRequest.class);
         Optional<UUID> sessionId = authenticationService.login(request.email(), request.password());
@@ -110,26 +112,26 @@ public class UserController {
             throw new UnauthorizedResponse("UNAUTHORIZED");
         }
 
-        ctx.status(HttpStatus.OK);
-        ctx.json(Map.of(AuthenticationFilter.PARAM_SESSION_ID, sessionId.get()));
+        PostLoginResponse response = new PostLoginResponse(sessionId.orElseThrow());
+        ctx.status(HttpStatus.OK).json(response);
     }
 
     public void logout(Context ctx) {
-        UUID sessionId = ctx.attribute(AuthenticationFilter.PARAM_SESSION_ID);
-        authenticationService.logout(sessionId);
+        Session session = ctx.attribute(AuthenticationFilter.PARAM_SESSION);
+        authenticationService.logout(session);
     }
 
     public void isValid(Context ctx) throws InvalidSessionException, UserEmailNotVerifiedException {
-        UUID sessionId = ctx.attribute(AuthenticationFilter.PARAM_SESSION_ID);
-        authenticationService.validateSession(sessionId);
+        Session session = ctx.attribute(AuthenticationFilter.PARAM_SESSION);
+        authenticationService.validateSession(session.getSessionId());
 
         ctx.status(HttpStatus.OK);
     }
 
 
     record PostVerifyEmailRequest(String email, int key) {}
-    public void verifyEmail(Context ctx)
-            throws EmailNotRegisteredException, EmailAlreadyVerifiedException, WrongEmailVerificationCodeException{
+    public void verifyEmail(Context ctx) throws EmailNotRegisteredException, EmailAlreadyVerifiedException,
+            WrongEmailVerificationCodeException {
         PostVerifyEmailRequest request = ctx.bodyAsClass(PostVerifyEmailRequest.class);
         log.info("Verifying email address {} with code {}", request.email(), request.key());
         userService.verifyEmailAddress(request.email(), request.key());

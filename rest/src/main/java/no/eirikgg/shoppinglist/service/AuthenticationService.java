@@ -1,5 +1,6 @@
 package no.eirikgg.shoppinglist.service;
 
+import no.eirikgg.shoppinglist.datamodel.Session;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.db.repository.AuthenticationRepository;
 import no.eirikgg.shoppinglist.db.repository.UserRepository;
@@ -81,7 +82,8 @@ public class AuthenticationService {
         }
     }
 
-    public void logout(UUID sessionId) {
+    public void logout(Session session) {
+        UUID sessionId = session.getSessionId();
         try (Connection conn = db.getConnection()) {
             authenticationRepository.invalidateSession(conn, sessionId);
         }

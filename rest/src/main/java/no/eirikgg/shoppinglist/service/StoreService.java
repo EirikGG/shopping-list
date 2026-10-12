@@ -13,5 +13,7 @@ public class StoreService {
         this.db = db;
     }
 
+    public void createStore() {
 
+    }
 }
