@@ -6,6 +6,7 @@ import no.eirikgg.shoppinglist.web.EmailWorker;
 import no.eirikgg.shoppinglist.web.ExceptionHandlers;
 import no.eirikgg.shoppinglist.web.controller.GeneralController;
 import no.eirikgg.shoppinglist.web.controller.ItemController;
+import no.eirikgg.shoppinglist.web.controller.StoreController;
 import no.eirikgg.shoppinglist.web.filter.RateLimiter;
 import no.eirikgg.shoppinglist.web.controller.UserController;
 import no.eirikgg.shoppinglist.db.Db;
@@ -62,6 +63,7 @@ public class Main {
             GeneralController.setup(config, db);
             UserController.setup(config, db, emailSender);
             ItemController.setup(config, db);
+            StoreController.setup(config, db);
 
             ExceptionHandlers.setup(config, db);
 
