@@ -21,7 +21,7 @@ public class StoreRepository {
                     person_id,
                     name,
                     created
-                ) values (?, ?, ?, ?, ?)
+                ) values (?, ?, ?, ?)
                 """,
                 sessionId,
                 personId,
@@ -69,6 +69,20 @@ public class StoreRepository {
             where store_id = ?
             """,
             LocalDateTime.now(),
+            storeId
+        );
+    }
+
+    public void mapStoreToItem(Connection conn, UUID sessionId, int storeId, int itemId) throws SQLException {
+        dbUtils.insert(conn, """
+            insert into item_store_mapping (
+                 session_id,
+                 item_id,
+                 store_id
+            ) values (?, ?, ?)
+            """,
+            sessionId,
+            itemId,
             storeId
         );
     }

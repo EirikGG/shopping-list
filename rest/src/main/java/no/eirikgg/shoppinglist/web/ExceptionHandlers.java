@@ -71,7 +71,7 @@ public class ExceptionHandlers {
     }
 
     private void resourceNotFoundException(ResourceNotFoundException e, Context ctx) {
-        creatPublicError(ctx, e, HttpStatus.UNAUTHORIZED, Error.RESOURCE_NOT_FOUND);
+        creatPublicError(ctx, e, HttpStatus.NOT_FOUND, Error.RESOURCE_NOT_FOUND);
     }
 
 

@@ -10,12 +10,14 @@ import no.eirikgg.shoppinglist.errors.NoAccessToResourceException;
 import no.eirikgg.shoppinglist.errors.ResourceNotFoundException;
 import no.eirikgg.shoppinglist.service.StoreService;
 import no.eirikgg.shoppinglist.web.filter.AuthenticationFilter;
+import org.jetbrains.annotations.NotNull;
 
 import java.time.LocalDateTime;
 
 public class StoreController {
 
     public static final String PATH_STORE = "/store";
+    public static final String PATH_STORE_ITEM_MAPPING = "/store-item-mapping";
 
     private StoreService storeService;
 
@@ -29,6 +31,8 @@ public class StoreController {
         config.routes.get(PATH_STORE, sc::getStore);
         config.routes.patch(PATH_STORE, sc::patchStore);
         config.routes.delete(PATH_STORE, sc::deleteStore);
+
+        config.routes.post(PATH_STORE_ITEM_MAPPING, sc::mapStoreAndItem);
     }
 
 
@@ -40,7 +44,7 @@ public class StoreController {
         Store store = storeService.createStore(session, request.name());
         Integer storeId = store.getId().orElseThrow();
         PostStoreResponse responseBody = new PostStoreResponse(storeId);
-        ctx.status(HttpStatus.OK).json(responseBody);
+        ctx.status(HttpStatus.CREATED).json(responseBody);
     }
 
 
@@ -77,5 +81,17 @@ public class StoreController {
         int storeId = request.storeId();
 
         storeService.deleteStore(session, storeId);
+    }
+
+
+
+    record MapStoreAndItemRequest(int storeId, int itemId) {}
+    private void mapStoreAndItem(Context ctx) throws NoAccessToResourceException, ResourceNotFoundException {
+        Session session = ctx.attribute(AuthenticationFilter.PARAM_SESSION);
+        MapStoreAndItemRequest request = ctx.bodyAsClass(MapStoreAndItemRequest.class);
+        int storeId = request.storeId();
+        int itemId = request.itemId();
+
+        storeService.mapStoreAndItem(session, storeId, itemId);
     }
 }

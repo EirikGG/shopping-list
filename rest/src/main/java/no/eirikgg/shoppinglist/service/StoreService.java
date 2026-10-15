@@ -1,8 +1,10 @@
 package no.eirikgg.shoppinglist.service;
 
+import no.eirikgg.shoppinglist.datamodel.Item;
 import no.eirikgg.shoppinglist.datamodel.Session;
 import no.eirikgg.shoppinglist.datamodel.Store;
 import no.eirikgg.shoppinglist.db.Db;
+import no.eirikgg.shoppinglist.db.repository.ItemRepository;
 import no.eirikgg.shoppinglist.db.repository.StoreRepository;
 import no.eirikgg.shoppinglist.errors.NoAccessToResourceException;
 import no.eirikgg.shoppinglist.errors.ResourceNotFoundException;
@@ -19,6 +21,7 @@ public class StoreService {
 
     private Db db;
     private StoreRepository storeRepository = new StoreRepository();
+    private ItemRepository itemRepository = new ItemRepository();
 
     public StoreService(Db db) {
         this.db = db;
@@ -79,6 +82,29 @@ public class StoreService {
 
             checkStoreAccess(session, store.orElseThrow());
             storeRepository.deleteStore(conn, storeId);
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void mapStoreAndItem(Session session, int storeId, int itemId)
+            throws ResourceNotFoundException, NoAccessToResourceException {
+        try (Connection conn = db.getConnection()) {
+            Optional<Store> store = storeRepository.getStore(conn, storeId);
+            Integer personId = session.getUser().getPerson().getId().orElseThrow();
+            UUID sessionId = session.getSessionId();
+            Optional<Item> item = itemRepository.getItem(conn, personId, itemId);
+
+            if (store.isEmpty()) {
+                throw new ResourceNotFoundException("Store not found");
+            }
+            if (item.isEmpty()) {
+                throw new ResourceNotFoundException("Item not found");
+            }
+
+            checkStoreAccess(session, store.orElseThrow());
+            storeRepository.mapStoreToItem(conn, sessionId, storeId, itemId);
         }
         catch (SQLException e) {
             throw new RuntimeException(e);
