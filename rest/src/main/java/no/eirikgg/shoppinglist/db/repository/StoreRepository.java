@@ -50,4 +50,26 @@ public class StoreRepository {
                 )
         );
     }
+
+    public void updateStore(Connection conn, int storeId, String newName) throws SQLException {
+        dbUtils.update(conn, """
+            update store
+            set name = ?
+            where store_id = ?
+            """,
+            newName,
+            storeId
+        );
+    }
+
+    public void deleteStore(Connection conn, int storeId) throws SQLException {
+        dbUtils.update(conn, """
+            update store
+            set deleted = ?
+            where store_id = ?
+            """,
+            LocalDateTime.now(),
+            storeId
+        );
+    }
 }

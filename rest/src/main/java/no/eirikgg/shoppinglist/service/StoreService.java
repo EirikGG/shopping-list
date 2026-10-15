@@ -5,6 +5,7 @@ import no.eirikgg.shoppinglist.datamodel.Store;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.db.repository.StoreRepository;
 import no.eirikgg.shoppinglist.errors.NoAccessToResourceException;
+import no.eirikgg.shoppinglist.errors.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,23 +38,62 @@ public class StoreService {
         }
     }
 
-    public Optional<Store> getStore(Session session, int storeId) throws NoAccessToResourceException {
+    public Store getStore(Session session, int storeId) throws NoAccessToResourceException, ResourceNotFoundException {
         try (Connection conn = db.getConnection()) {
             Optional<Store> store = storeRepository.getStore(conn, storeId);
-            int personId = session.getUser().getPerson().getId().orElseThrow();
-
             if (store.isEmpty()) {
-                return Optional.empty();
+                throw new ResourceNotFoundException("Store not found");
             }
 
-            if (store.orElseThrow().getPersonId() != personId) {
-                throw new NoAccessToResourceException("No access to resource");
-            }
-
-            return store;
+            checkStoreAccess(session, store.orElseThrow());
+            return store.orElseThrow();
         }
         catch (SQLException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public void patchStore(Session session, int storeId, String newName)
+            throws ResourceNotFoundException, NoAccessToResourceException {
+        try (Connection conn = db.getConnection()) {
+            Optional<Store> store = storeRepository.getStore(conn, storeId);
+            if (store.isEmpty()) {
+                throw new ResourceNotFoundException("Store not found");
+            }
+
+            checkStoreAccess(session, store.orElseThrow());
+            storeRepository.updateStore(conn, storeId, newName);
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void deleteStore(Session session, int storeId)
+            throws ResourceNotFoundException, NoAccessToResourceException {
+        try (Connection conn = db.getConnection()) {
+            Optional<Store> store = storeRepository.getStore(conn, storeId);
+            if (store.isEmpty()) {
+                throw new ResourceNotFoundException("Store not found");
+            }
+
+            checkStoreAccess(session, store.orElseThrow());
+            storeRepository.deleteStore(conn, storeId);
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void checkStoreAccess(Session session, Store store) throws NoAccessToResourceException {
+        int personId = session.getUser().getPerson().getId().orElseThrow();
+
+        if (null == store) {
+            return;
+        }
+
+        if (store.getPersonId() != personId) {
+            throw new NoAccessToResourceException("No access to resource");
         }
     }
 }

@@ -7,11 +7,11 @@ import no.eirikgg.shoppinglist.datamodel.Session;
 import no.eirikgg.shoppinglist.datamodel.Store;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.errors.NoAccessToResourceException;
+import no.eirikgg.shoppinglist.errors.ResourceNotFoundException;
 import no.eirikgg.shoppinglist.service.StoreService;
 import no.eirikgg.shoppinglist.web.filter.AuthenticationFilter;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 public class StoreController {
 
@@ -27,6 +27,8 @@ public class StoreController {
         StoreController sc = new StoreController(db);
         config.routes.post(PATH_STORE, sc::createStore);
         config.routes.get(PATH_STORE, sc::getStore);
+        config.routes.patch(PATH_STORE, sc::patchStore);
+        config.routes.delete(PATH_STORE, sc::deleteStore);
     }
 
 
@@ -44,20 +46,36 @@ public class StoreController {
 
     record GetStoreRequest(int storeId) {}
     record GetStoreResponse(int storeId, String name, LocalDateTime created) {}
-    private void getStore(Context ctx) throws NoAccessToResourceException {
+    private void getStore(Context ctx) throws NoAccessToResourceException, ResourceNotFoundException {
         Session session = ctx.attribute(AuthenticationFilter.PARAM_SESSION);
         GetStoreRequest request = ctx.bodyAsClass(GetStoreRequest.class);
-        Optional<Store> store = storeService.getStore(session, request.storeId());
-
-        if (store.isEmpty()) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            return;
-        }
+        Store store = storeService.getStore(session, request.storeId());
 
         ctx.status(HttpStatus.OK).json(new GetStoreResponse(
-                store.orElseThrow().getId().orElseThrow(),
-                store.orElseThrow().getName(),
-                store.orElseThrow().getCreated()
+                store.getId().orElseThrow(),
+                store.getName(),
+                store.getCreated()
         ));
+    }
+
+
+    record PatchStoreRequest(int storeId, String newName) {}
+    private void patchStore(Context ctx) throws NoAccessToResourceException, ResourceNotFoundException {
+        Session session = ctx.attribute(AuthenticationFilter.PARAM_SESSION);
+        PatchStoreRequest request = ctx.bodyAsClass(PatchStoreRequest.class);
+        int storeId = request.storeId();
+        String newName = request.newName();
+
+        storeService.patchStore(session, storeId, newName);
+    }
+
+
+    record DeleteStoreRequest(int storeId) {}
+    private void deleteStore(Context ctx) throws NoAccessToResourceException, ResourceNotFoundException {
+        Session session = ctx.attribute(AuthenticationFilter.PARAM_SESSION);
+        DeleteStoreRequest request = ctx.bodyAsClass(DeleteStoreRequest.class);
+        int storeId = request.storeId();
+
+        storeService.deleteStore(session, storeId);
     }
 }

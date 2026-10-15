@@ -9,5 +9,6 @@ public enum Error {
 
     INVALID_SESSION_ID,
     USER_EMAIL_NOT_VERIFIED,
-    NO_ACCESS
+    NO_ACCESS,
+    RESOURCE_NOT_FOUND
 }
