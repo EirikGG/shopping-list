@@ -3,10 +3,14 @@ package no.eirikgg.shoppinglist.service;
 import no.eirikgg.shoppinglist.datamodel.Item;
 import no.eirikgg.shoppinglist.datamodel.ItemList;
 import no.eirikgg.shoppinglist.datamodel.Session;
+import no.eirikgg.shoppinglist.datamodel.Store;
 import no.eirikgg.shoppinglist.datamodel.User;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.db.repository.AuthenticationRepository;
 import no.eirikgg.shoppinglist.db.repository.ItemRepository;
+import no.eirikgg.shoppinglist.db.repository.StoreRepository;
+import no.eirikgg.shoppinglist.errors.NoAccessToResourceException;
+import no.eirikgg.shoppinglist.errors.ResourceNotFoundException;
 import no.eirikgg.shoppinglist.errors.UserNotLoggedInException;
 
 import java.sql.Connection;
@@ -20,6 +24,7 @@ public class ItemService {
     private Db db;
 
     private ItemRepository itemRepository = new ItemRepository();
+    private StoreRepository storeRepository = new StoreRepository();
     private AuthenticationRepository authenticationRepository = new AuthenticationRepository();
 
     public ItemService(Db db) {
@@ -144,7 +149,10 @@ public class ItemService {
         }
     }
 
-    public Item createItem(Session session, int itemListId, String name) {
+    // storeIds may be null or empty. The item is connected to the stores in the
+    // same transaction, so an item is never created without its stores.
+    public Item createItem(Session session, int itemListId, String name, List<Integer> storeIds)
+            throws ResourceNotFoundException, NoAccessToResourceException {
         UUID sessionId = session.getSessionId();
         try (Connection conn = db.getConnection()) {
             User user = authenticationRepository.getUserFromSession(conn, sessionId).orElseThrow(
@@ -162,8 +170,29 @@ public class ItemService {
                 throw new RuntimeException("Cant update list without being the owner");
             }
 
-            int itemId = itemRepository.createItem(conn, sessionId, personId, itemListId, name);
-            return itemRepository.getItem(conn, personId, itemId).orElseThrow();
+            List<Integer> stores = null == storeIds ? List.of() : storeIds;
+            for (int storeId : stores) {
+                Store store = storeRepository.getStore(conn, storeId).orElseThrow(
+                        () -> new ResourceNotFoundException("Store not found")
+                );
+                if (store.getPersonId() != personId) {
+                    throw new NoAccessToResourceException("No access to resource");
+                }
+            }
+
+            try {
+                conn.setAutoCommit(false);
+                int itemId = itemRepository.createItem(conn, sessionId, personId, itemListId, name);
+                for (int storeId : stores) {
+                    storeRepository.mapStoreToItem(conn, sessionId, storeId, itemId);
+                }
+                conn.commit();
+                return itemRepository.getItem(conn, personId, itemId).orElseThrow();
+            }
+            catch (Exception e) {
+                conn.rollback();
+                throw e;
+            }
         }
         catch (SQLException e) {
             throw new RuntimeException(e);

@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -50,6 +51,16 @@ public class StoreService {
 
             checkStoreAccess(session, store.orElseThrow());
             return store.orElseThrow();
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public List<Store> getStores(Session session) {
+        try (Connection conn = db.getConnection()) {
+            int personId = session.getUser().getPerson().getId().orElseThrow();
+            return storeRepository.getStoresForPerson(conn, personId);
         }
         catch (SQLException e) {
             throw new RuntimeException(e);
@@ -105,6 +116,20 @@ public class StoreService {
 
             checkStoreAccess(session, store.orElseThrow());
             storeRepository.mapStoreToItem(conn, sessionId, storeId, itemId);
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void unmapStoreFromItem(Session session, int storeId, int itemId) throws ResourceNotFoundException {
+        try (Connection conn = db.getConnection()) {
+            Integer personId = session.getUser().getPerson().getId().orElseThrow();
+            if (itemRepository.getItem(conn, personId, itemId).isEmpty()) {
+                throw new ResourceNotFoundException("Item not found");
+            }
+
+            storeRepository.unmapStoreFromItem(conn, storeId, itemId);
         }
         catch (SQLException e) {
             throw new RuntimeException(e);

@@ -1,6 +1,7 @@
 package no.eirikgg.shoppinglist.web.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.Javalin;
 import io.javalin.http.Header;
@@ -20,6 +21,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -67,6 +69,40 @@ class StoreControllerTest {
             deleteStore(client, store.storeId());
             assertNull(getStore(client, store.storeId()));
         });
+    }
+
+    @Test
+    void getStoreList_returnsActiveStoresSortedByName() {
+        JavalinTest.test(app, testConfig, (server, client) -> {
+            createStore(client, "list-store-b");
+            createStore(client, "list-store-a");
+            StoreController.PostStoreResponse deleted = createStore(client, "list-store-deleted");
+            deleteStore(client, deleted.storeId());
+
+            List<String> names = getStoreList(client).stream()
+                    .map(StoreController.GetStoreResponse::name)
+                    .filter(name -> name.startsWith("list-store-"))
+                    .toList();
+
+            assertEquals(List.of("list-store-a", "list-store-b"), names);
+        });
+    }
+
+    private List<StoreController.GetStoreResponse> getStoreList(HttpClient client)
+            throws IOException, InterruptedException
+    {
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(client.getOrigin() + StoreController.PATH_STORE_LIST))
+            .header(Header.AUTHORIZATION, SESSION_ID.toString())
+            .GET()
+            .build();
+
+        HttpResponse<String> response = java.net.http.HttpClient.newHttpClient().send(
+                request, HttpResponse.BodyHandlers.ofString()
+        );
+
+        assertEquals(200, response.statusCode());
+        return mapper.readValue(response.body(), new TypeReference<>() {});
     }
 
     private void deleteStore(HttpClient client, int storeId) throws IOException, InterruptedException {

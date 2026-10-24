@@ -65,7 +65,23 @@
     "completed": "Completed ({count})",
     "completedAt": "Completed {time}",
     "allCompleted": "Everything on this list is done.",
-    "completeFailed": "Could not update the item. Try again."
+    "completeFailed": "Could not update the item. Try again.",
+    "noFilteredItems": "No items for the chosen stores."
+  },
+  "stores": {
+    "stores": "Stores",
+    "loading": "Loading your stores…",
+    "loadFailed": "Could not load your stores.",
+    "none": "No stores yet.",
+    "newStore": "New store",
+    "storeName": "Store name",
+    "create": "Add store",
+    "createFailed": "Could not add the store. Try again.",
+    "clear": "Remove store {name}",
+    "close": "Close",
+    "choose": "Choose store",
+    "filter": "Filter by store",
+    "showAll": "Show all"
   },
   "edit": {
     "edit": "Edit",

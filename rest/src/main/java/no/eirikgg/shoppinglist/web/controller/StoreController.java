@@ -13,10 +13,12 @@ import no.eirikgg.shoppinglist.web.filter.AuthenticationFilter;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class StoreController {
 
     public static final String PATH_STORE = "/store";
+    public static final String PATH_STORE_LIST = "/store-list";
     public static final String PATH_STORE_ITEM_MAPPING = "/store-item-mapping";
 
     private StoreService storeService;
@@ -31,8 +33,10 @@ public class StoreController {
         config.routes.get(PATH_STORE, sc::getStore);
         config.routes.patch(PATH_STORE, sc::patchStore);
         config.routes.delete(PATH_STORE, sc::deleteStore);
+        config.routes.get(PATH_STORE_LIST, sc::getStoreList);
 
         config.routes.post(PATH_STORE_ITEM_MAPPING, sc::mapStoreAndItem);
+        config.routes.delete(PATH_STORE_ITEM_MAPPING, sc::unmapStoreFromItem);
     }
 
 
@@ -60,6 +64,21 @@ public class StoreController {
                 store.getName(),
                 store.getCreated()
         ));
+    }
+
+
+    // Every store of the logged-in user, sorted by name.
+    private void getStoreList(Context ctx) {
+        Session session = ctx.attribute(AuthenticationFilter.PARAM_SESSION);
+        List<GetStoreResponse> response = storeService.getStores(session).stream()
+                .map(store -> new GetStoreResponse(
+                        store.getId().orElseThrow(),
+                        store.getName(),
+                        store.getCreated()
+                ))
+                .toList();
+
+        ctx.status(HttpStatus.OK).json(response);
     }
 
 
@@ -93,5 +112,14 @@ public class StoreController {
         int itemId = request.itemId();
 
         storeService.mapStoreAndItem(session, storeId, itemId);
+    }
+
+
+    record UnmapStoreAndItemRequest(int storeId, int itemId) {}
+    private void unmapStoreFromItem(Context ctx) throws ResourceNotFoundException {
+        Session session = ctx.attribute(AuthenticationFilter.PARAM_SESSION);
+        UnmapStoreAndItemRequest request = ctx.bodyAsClass(UnmapStoreAndItemRequest.class);
+
+        storeService.unmapStoreFromItem(session, request.storeId(), request.itemId());
     }
 }

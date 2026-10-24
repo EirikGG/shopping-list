@@ -11,6 +11,8 @@ import no.eirikgg.shoppinglist.datamodel.Item;
 import no.eirikgg.shoppinglist.datamodel.ItemList;
 import no.eirikgg.shoppinglist.datamodel.Session;
 import no.eirikgg.shoppinglist.db.Db;
+import no.eirikgg.shoppinglist.errors.NoAccessToResourceException;
+import no.eirikgg.shoppinglist.errors.ResourceNotFoundException;
 import no.eirikgg.shoppinglist.service.AuthenticationService;
 import no.eirikgg.shoppinglist.service.ItemService;
 import no.eirikgg.shoppinglist.web.filter.AuthenticationFilter;
@@ -65,11 +67,21 @@ public class ItemController {
 
 
 
+    record ItemStoreResponse(
+            int storeId, String name
+    ) {}
+    private static List<ItemStoreResponse> toStoreResponses(Item item) {
+        return item.getStores().stream()
+                .map(store -> new ItemStoreResponse(store.getId().orElseThrow(), store.getName()))
+                .toList();
+    }
+
+
     record GetItemRequest(
             int id
     ) {}
     record GetItemResponse(
-            int id, String name, LocalDateTime completed
+            int id, String name, LocalDateTime completed, List<ItemStoreResponse> stores
     ) {}
     private void getItem(Context ctx) throws JsonProcessingException {
         Session session = ctx.attribute(AuthenticationFilter.PARAM_SESSION);
@@ -82,22 +94,28 @@ public class ItemController {
         int itemId = item.orElseThrow().getId().orElseThrow();
         String name = item.orElseThrow().getName();
         LocalDateTime completed = item.orElseThrow().getCompleted().orElse(null);
-        GetItemResponse response = new GetItemResponse(itemId, name, completed);
+        GetItemResponse response = new GetItemResponse(itemId, name, completed, toStoreResponses(item.orElseThrow()));
         ctx.status(HttpStatus.OK).json(response);
     }
 
 
+    // storeIds is optional.
     record PostItemRequest(
-            int itemListId, String name
+            int itemListId, String name, List<Integer> storeIds
     ) {}
     record PostItemResponse(
-            int id, String name
+            int id, String name, List<ItemStoreResponse> stores
     ) {}
-    private void saveItem(Context ctx) throws JsonProcessingException {
+    private void saveItem(Context ctx)
+            throws JsonProcessingException, ResourceNotFoundException, NoAccessToResourceException {
         Session session = ctx.attribute(AuthenticationFilter.PARAM_SESSION);
         PostItemRequest request = ctx.bodyAsClass(PostItemRequest.class);
-        Item item = itemService.createItem(session, request.itemListId(), request.name());
-        PostItemResponse response = new PostItemResponse(item.getId().orElseThrow(), item.getName());
+        Item item = itemService.createItem(session, request.itemListId(), request.name(), request.storeIds());
+        PostItemResponse response = new PostItemResponse(
+                item.getId().orElseThrow(),
+                item.getName(),
+                toStoreResponses(item)
+        );
         ctx.status(HttpStatus.CREATED).json(mapper.writeValueAsString(response));
     }
 
@@ -115,7 +133,7 @@ public class ItemController {
             int id, String newName, boolean completed
     ) {}
     record PatchItemResponse(
-            int id, String name, LocalDateTime completed
+            int id, String name, LocalDateTime completed, List<ItemStoreResponse> stores
     ) {}
     private void patchItem(Context ctx) throws JsonProcessingException {
         Session session = ctx.attribute(AuthenticationFilter.PARAM_SESSION);
@@ -125,7 +143,8 @@ public class ItemController {
         PatchItemResponse response = new PatchItemResponse(
                 item.getId().orElseThrow(),
                 item.getName(),
-                item.getCompleted().orElse(null)
+                item.getCompleted().orElse(null),
+                toStoreResponses(item)
         );
         ctx.status(HttpStatus.OK).json(response);
     }
@@ -176,7 +195,8 @@ public class ItemController {
                 .map(i -> new GetItemResponse(
                     i.getId().orElseThrow(),
                     i.getName(),
-                    i.getCompleted().orElse(null)
+                    i.getCompleted().orElse(null),
+                    toStoreResponses(i)
                 )
             ).toList();
 

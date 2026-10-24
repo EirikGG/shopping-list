@@ -80,6 +80,8 @@ public class ItemRepository {
                 join store as s 
                     on s.store_id = mapping.store_id 
                 where mapping.item_id = ?
+                and s.deleted is null
+                order by lower(s.name), s.store_id
                 """,
                 itemId,
                 rs -> new Store(
