@@ -150,7 +150,7 @@ class UserControllerTest {
                 break;
             }
 
-            Thread.sleep(1000);
+            Thread.sleep(500);
         }
 
         if (null == emailBody) {

@@ -115,7 +115,7 @@ class StoreControllerTest {
                 request, HttpResponse.BodyHandlers.ofString()
         );
 
-        assertEquals(200, response.statusCode());
+        assertEquals(201, response.statusCode());
 
         StoreController.PostStoreResponse postStoreResponse = mapper.readValue(
                 response.body(), StoreController.PostStoreResponse.class
