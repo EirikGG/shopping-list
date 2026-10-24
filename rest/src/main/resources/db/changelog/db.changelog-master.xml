@@ -19,4 +19,6 @@
     <include file="/db/updates/0012-items.sql"/>
     <include file="/db/updates/0013-unique-person-login-email.sql"/>
     <include file="/db/updates/0014-indexes.sql"/>
+    <include file="/db/updates/0015-stores.sql"/>
+    <include file="/db/updates/0016-item-store-mapping-many.sql"/>
 </databaseChangeLog>

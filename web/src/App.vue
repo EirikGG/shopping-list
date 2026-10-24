@@ -148,12 +148,13 @@ function logOut() {
 </template>
 
 <style scoped>
-/* dvh follows the mobile browser's address bar; vh is the fallback. */
+/* dvh follows the mobile browser's address bar; vh is the fallback.
+   --viewport-height also leaves out the on-screen keyboard (src/viewport.js). */
 .app-shell {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  height: 100dvh;
+  height: var(--viewport-height, 100dvh);
 }
 
 .top-bar {

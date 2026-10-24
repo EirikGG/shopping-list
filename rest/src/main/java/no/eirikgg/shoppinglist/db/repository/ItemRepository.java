@@ -2,6 +2,7 @@ package no.eirikgg.shoppinglist.db.repository;
 
 import no.eirikgg.shoppinglist.datamodel.Item;
 import no.eirikgg.shoppinglist.datamodel.ItemList;
+import no.eirikgg.shoppinglist.datamodel.Store;
 import no.eirikgg.shoppinglist.db.DbUtils;
 
 import java.sql.Connection;
@@ -56,11 +57,39 @@ public class ItemRepository {
             order by item_id
             """,
             itemListId,
-            rs -> new Item(
-                rs.getInt("item_id").orElseThrow(),
-                rs.getString("name").orElseThrow(),
-                rs.getLocalDateTime("completed").orElse(null)
-            )
+            rs -> {
+                Integer itemId = rs.getInt("item_id").orElseThrow();
+                return new Item(
+                        itemId,
+                        rs.getString("name").orElseThrow(),
+                        rs.getLocalDateTime("completed").orElse(null),
+                        getStoresForItemList(conn, itemId)
+                );
+            }
+        );
+    }
+
+    private List<Store> getStoresForItemList(Connection conn, Integer itemId) {
+        return dbUtils.select(conn, """
+                select 
+                    mapping.store_id
+                    , s.person_id
+                    , s.name
+                    , s.created
+                from item_store_mapping as mapping
+                join store as s 
+                    on s.store_id = mapping.store_id 
+                where mapping.item_id = ?
+                and s.deleted is null
+                order by lower(s.name), s.store_id
+                """,
+                itemId,
+                rs -> new Store(
+                        rs.getInt("store_id").orElseThrow(),
+                        rs.getInt("person_id").orElseThrow(),
+                        rs.getString("name").orElseThrow(),
+                        rs.getLocalDateTime("created").orElseThrow()
+                )
         );
     }
 
@@ -117,7 +146,8 @@ public class ItemRepository {
                 rs -> new Item(
                         rs.getInt("item_id").orElseThrow(),
                         rs.getString("name").orElseThrow(),
-                        rs.getLocalDateTime("completed").orElse(null)
+                        rs.getLocalDateTime("completed").orElse(null),
+                        getStoresForItemList(conn, rs.getInt("item_id").orElseThrow())
                 )
         );
     }

@@ -24,11 +24,11 @@ public class GeneralController {
     public static void setup(JavalinConfig config, Db db) {
         GeneralController gc = new GeneralController(db);
 
-        config.routes.get(PATH_PING, gc::pingDb);
+        config.routes.get(PATH_PING, gc::ping);
         config.routes.get(PATH_NOOP, gc::noop);
     }
 
-    public void pingDb(Context ctx) {
+    public void ping(Context ctx) {
         HttpStatus status = db.dbConnectionOk() ? HttpStatus.OK : HttpStatus.INTERNAL_SERVER_ERROR;
 
         Map<String, String> response = new HashMap<>();

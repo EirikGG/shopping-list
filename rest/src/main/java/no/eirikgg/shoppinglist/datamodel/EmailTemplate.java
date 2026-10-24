@@ -32,7 +32,7 @@ public class EmailTemplate {
             """.formatted(verificationNum);
         }
 
-        public static String getVerificationCodeFromBody(String body) {
+        public static int getVerificationCodeFromBody(String body) {
             Pattern pattern = Pattern.compile(">\\s*(\\d{5})\\s*</p>");
 
             Matcher matcher = pattern.matcher(body);
@@ -41,7 +41,7 @@ public class EmailTemplate {
                 throw new IllegalArgumentException("Verification code not found");
             }
 
-            return matcher.group(1);
+            return Integer.parseInt(matcher.group(1));
         }
     }
 }

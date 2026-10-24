@@ -1,16 +1,13 @@
 package no.eirikgg.shoppinglist.web.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.config.JavalinConfig;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.UnauthorizedResponse;
 import no.eirikgg.shoppinglist.Json;
-import no.eirikgg.shoppinglist.datamodel.Authorization;
 import no.eirikgg.shoppinglist.datamodel.Person;
+import no.eirikgg.shoppinglist.datamodel.Session;
 import no.eirikgg.shoppinglist.datamodel.User;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.errors.EmailAlreadyVerifiedException;
@@ -44,21 +41,11 @@ public class UserController {
     public static final String PATH_SESSION_IS_VALID = "/session_is_valid";
     public static final String PATH_VERIFY_EMAIL = "/verify_email";
 
-
-    public static final String PARAM_FIRSTNAME = "firstname";
-    public static final String PARAM_LASTNAME = "lastname";
-    public static final String PARAM_BIRTHDATE = "birthdate";
-    public static final String PARAM_GENDER = "gender";
-    public static final String PARAM_PASSWORD = "password";
-    public static final String PARAM_EMAIL = "email";
-    public static final String PARAM_VERIFY_EMAIL = "key";
-
     private RateLimiter rateLimiter = new RateLimiter(5, Duration.ofMinutes(1));
 
     private UserService userService;
     private AuthenticationService authenticationService;
     private EmailService emailService;
-    private ObjectMapper mapper = Json.MAPPER;
 
     public UserController(
             UserService userService,
@@ -83,76 +70,70 @@ public class UserController {
         config.routes.post(UserController.PATH_LOGOUT, userController::logout);
     }
 
-
-    public void createUser(Context ctx) throws JsonProcessingException, UsernameAlreadyExistsException,
-            InvalidSessionException, EmailNotRegisteredException {
-
+    record PostCreateUserRequest(
+        String firstname,
+        String lastname,
+        LocalDate birthdate,
+        Person.Gender gender,
+        String password,
+        String email
+    ) {}
+    public void createUser(Context ctx)
+            throws UsernameAlreadyExistsException, InvalidSessionException, EmailNotRegisteredException {
         rateLimiter.check(ctx);
 
-        JsonNode json = mapper.readTree(ctx.body());
-
-        String firstName = json.get(PARAM_FIRSTNAME).asText();
-        String lastName = json.get(PARAM_LASTNAME).asText();
-        LocalDate birthdate = LocalDate.parse(json.get(PARAM_BIRTHDATE).asText(), Person.birthdateFormat);
-        Person.Gender gender = Person.Gender.valueOf(json.get(PARAM_GENDER).asText());
-        String username = json.get(PARAM_EMAIL).asText();
-        String password = json.get(PARAM_PASSWORD).asText();
+        PostCreateUserRequest request = ctx.bodyAsClass(PostCreateUserRequest.class);
+        String email = request.email();
+        String password = request.password();
         String hashedPassword = PasswordService.hashPassword(password);
 
-        User userRequest = new User(
-                new Person(firstName, lastName, birthdate, gender),
-                new Authorization(username, hashedPassword)
+        User persistedUser = userService.createUser(
+                request.firstname(),
+                request.lastname(),
+                request.birthdate(),
+                request.gender(),
+                email,
+                hashedPassword
         );
-
-        User persistedUser = userService.createUser(userRequest);
-        UUID sessionId = authenticationService.login(username, password).orElseThrow(
+        UUID sessionId = authenticationService.login(email, password).orElseThrow(
                 () -> new RuntimeException("User just created - should be able to login")
         );
         emailService.createUserVerificationEmail(sessionId, persistedUser);
-        ctx.status(HttpStatus.OK).json(persistedUser);
     }
 
-    public void login(Context ctx) throws JsonProcessingException, InvalidSessionException,
-            UserEmailNotVerifiedException {
-        JsonNode json = mapper.readTree(ctx.body());
-        String username = json.get(PARAM_EMAIL).asText();
-        String password = json.get(PARAM_PASSWORD).asText();
-
-        Optional<UUID> sessionId = authenticationService.login(username, password);
+    record PostLoginRequest(String email, String password) {}
+    record PostLoginResponse(UUID session) {}
+    public void login(Context ctx) throws InvalidSessionException, UserEmailNotVerifiedException {
+        PostLoginRequest request = ctx.bodyAsClass(PostLoginRequest.class);
+        Optional<UUID> sessionId = authenticationService.login(request.email(), request.password());
 
         if (sessionId.isEmpty()) {
             ctx.status(HttpStatus.UNAUTHORIZED);
             throw new UnauthorizedResponse("UNAUTHORIZED");
         }
 
-        ctx.status(HttpStatus.OK);
-        ctx.json(Map.of(AuthenticationFilter.PARAM_SESSION_ID, sessionId.get()));
+        PostLoginResponse response = new PostLoginResponse(sessionId.orElseThrow());
+        ctx.status(HttpStatus.OK).json(response);
     }
 
     public void logout(Context ctx) {
-        UUID sessionId = ctx.attribute(AuthenticationFilter.PARAM_SESSION_ID);
-        authenticationService.logout(sessionId);
+        Session session = ctx.attribute(AuthenticationFilter.PARAM_SESSION);
+        authenticationService.logout(session);
     }
 
     public void isValid(Context ctx) throws InvalidSessionException, UserEmailNotVerifiedException {
-        UUID sessionId = ctx.attribute(AuthenticationFilter.PARAM_SESSION_ID);
-        authenticationService.validateSession(sessionId);
+        Session session = ctx.attribute(AuthenticationFilter.PARAM_SESSION);
+        authenticationService.validateSession(session.getSessionId());
 
         ctx.status(HttpStatus.OK);
     }
 
 
-    public void verifyEmail(Context ctx)
-            throws EmailNotRegisteredException, EmailAlreadyVerifiedException, WrongEmailVerificationCodeException,
-            JsonProcessingException {
-        JsonNode json = mapper.readTree(ctx.body());
-        String email = json.get(PARAM_EMAIL).asText();
-        Integer verificationCode = json.get(PARAM_VERIFY_EMAIL).asInt();
-        if (null == verificationCode || 0 == verificationCode) {
-            throw new BadRequestResponse("Missing verification code param");
-        }
-
-        log.info("Verifying email address {} with code {}", email, verificationCode);
-        userService.verifyEmailAddress(email, verificationCode);
+    record PostVerifyEmailRequest(String email, int key) {}
+    public void verifyEmail(Context ctx) throws EmailNotRegisteredException, EmailAlreadyVerifiedException,
+            WrongEmailVerificationCodeException {
+        PostVerifyEmailRequest request = ctx.bodyAsClass(PostVerifyEmailRequest.class);
+        log.info("Verifying email address {} with code {}", request.email(), request.key());
+        userService.verifyEmailAddress(request.email(), request.key());
     }
 }

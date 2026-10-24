@@ -14,8 +14,10 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
 
@@ -39,7 +41,13 @@ public class UserRepository {
 
 
 
-    public Person savePerson(Connection conn, Person person) throws SQLException {
+    public Person createPerson(
+            Connection conn,
+            String firstname,
+            String lastname,
+            LocalDate birthdate,
+            Person.Gender gender
+    ) throws SQLException {
         LocalDateTime created = LocalDateTime.now();
         int personId = dbUtils.insert(conn, """
             insert into person (
@@ -58,10 +66,10 @@ public class UserRepository {
                 ?
             )
             """,
-            person.getFirstName(),
-            person.getLastName(),
-            person.getBirthdate(),
-            person.getGender().name(),
+            firstname,
+            lastname,
+            birthdate,
+            Objects.toString(gender),
             created,
             LocalDateTime.of(9999, 12, 31, 23, 59, 59)
         ).orElseThrow(
@@ -99,10 +107,9 @@ public class UserRepository {
     }
 
     public Authorization saveAutorization(
-            Connection conn, Person persistedPerson, Authorization authorization
+            Connection conn, Person persistedPerson, String email, String hashedPassword
     ) throws UsernameAlreadyExistsException, SQLException {
 
-        String email = authorization.getEmail();
         int numberOfLogins = dbUtils.selectSingle(conn, """
             select count(*) as number_of_logins 
             from person_login 
@@ -132,7 +139,7 @@ public class UserRepository {
             """,
             persistedPerson.getId().orElseThrow(),
             email,
-            Hidden.param(authorization.getPasswordHash()),
+            Hidden.param(hashedPassword),
             created,
             LocalDateTime.of(9999, 12, 31, 23, 59),
             random.nextInt(10_000, 100_000),

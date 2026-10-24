@@ -4,8 +4,10 @@ import { useLocalStorage, useMediaQuery } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import Icon from './Icon.vue'
 import RowEditor from './RowEditor.vue'
+import StorePicker from './StorePicker.vue'
 import SwipeToDelete from './SwipeToDelete.vue'
 import { createItem, deleteItem, updateItem } from '../api/items.js'
+import { addItemStore, removeItemStore, stores } from '../api/stores.js'
 import { formatTime, parseBackendTime } from '../time.js'
 
 const props = defineProps({
@@ -27,11 +29,99 @@ const editingId = ref(null)
 // Matches the breakpoint in the styles below.
 const narrow = useMediaQuery('(max-width: 640px)')
 
+const addBar = ref(null)
+const nameInput = ref(null)
+// The stores the next item is added to. Kept after adding, so several items
+// for the same stores can be added in a row.
+const storeIds = ref([])
+// Leaves out stores deleted since they were chosen.
+const selectedStores = computed(
+  () => stores.value?.filter(store => storeIds.value.includes(store.id)) ?? []
+)
+
+// The store picker opens when the item field gets focus, and stays open while
+// anything in the add bar has it.
+const picking = ref(false)
+
+function onFocusOut(event) {
+  if (!addBar.value.contains(event.relatedTarget)) {
+    picking.value = false
+  }
+}
+
+function closePicker() {
+  picking.value = false
+  nameInput.value.blur()
+}
+
+// Names come from the loaded stores when there are any, so renaming or
+// deleting a store shows on the items straight away.
+function storeNames(item) {
+  return (item.stores ?? [])
+    .map(itemStore => stores.value
+      ? stores.value.find(store => store.id === itemStore.storeId)?.name
+      : itemStore.name)
+    .filter(Boolean)
+    .join(', ')
+}
+
+// The back button closes the picker first, if it is open.
+function onBack() {
+  if (picking.value) {
+    closePicker()
+  } else {
+    emit('back')
+  }
+}
+
 // Completed items are listed under the others, in a section that can be
 // collapsed. Whether it is collapsed is remembered for every list.
 const showCompleted = useLocalStorage('shoppinglist.show-completed', true)
-const openItems = computed(() => props.list.items.filter(item => item.completed === null))
-const completedItems = computed(() => props.list.items.filter(item => item.completed !== null))
+
+// The list can be narrowed to the items of some stores. The choice is kept
+// across lists and visits, as it follows the store you are in.
+const storeFilter = useLocalStorage('shoppinglist.store-filter', [])
+
+// The stores used by items in this list, sorted by name. Names come from the
+// loaded stores when there are any, which also leaves out deleted stores.
+const listStores = computed(() => {
+  const byId = new Map()
+  for (const item of props.list.items) {
+    for (const itemStore of item.stores ?? []) {
+      const name = stores.value
+        ? stores.value.find(store => store.id === itemStore.storeId)?.name
+        : itemStore.name
+      if (name) {
+        byId.set(itemStore.storeId, { id: itemStore.storeId, name })
+      }
+    }
+  }
+  return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name) || a.id - b.id)
+})
+
+// Stores filtered on that this list does not use are ignored.
+const activeFilter = computed(
+  () => storeFilter.value.filter(id => listStores.value.some(store => store.id === id))
+)
+
+function toggleFilter(id) {
+  storeFilter.value = activeFilter.value.includes(id)
+    ? activeFilter.value.filter(other => other !== id)
+    : [...activeFilter.value, id]
+}
+
+// An item is shown if it has any of the filtered stores.
+const visibleItems = computed(() => {
+  if (!activeFilter.value.length) {
+    return props.list.items
+  }
+  return props.list.items.filter(
+    item => item.stores?.some(store => activeFilter.value.includes(store.storeId))
+  )
+})
+
+const openItems = computed(() => visibleItems.value.filter(item => item.completed === null))
+const completedItems = computed(() => visibleItems.value.filter(item => item.completed !== null))
 const sections = computed(() => [
   { key: 'open', items: openItems.value },
   ...(completedItems.value.length ? [{ key: 'completed', items: completedItems.value }] : [])
@@ -67,6 +157,33 @@ async function toggleCompleted(item) {
   }
 }
 
+// Saved as soon as a store is tapped, apart from the name, and shown straight
+// away. Put back if saving fails.
+async function changeStores(item, ids) {
+  const previous = item.stores ?? []
+  const previousIds = previous.map(store => store.storeId)
+  const added = ids.filter(id => !previousIds.includes(id))
+  const removed = previousIds.filter(id => !ids.includes(id))
+
+  error.value = ''
+  emit('item-updated', {
+    ...item,
+    stores: (stores.value ?? [])
+      .filter(store => ids.includes(store.id))
+      .map(store => ({ storeId: store.id, name: store.name }))
+  })
+
+  try {
+    await Promise.all([
+      ...added.map(id => addItemStore(item.id, id)),
+      ...removed.map(id => removeItemStore(item.id, id))
+    ])
+  } catch (e) {
+    emit('item-updated', { ...item, stores: previous })
+    error.value = e.status === 429 ? 'errors.tooManyRequests' : 'lists.completeFailed'
+  }
+}
+
 async function remove(item) {
   await deleteItem(item.id)
   emit('item-deleted', item.id)
@@ -81,7 +198,11 @@ async function submit() {
   busy.value = true
 
   try {
-    const item = await createItem(props.list.id, name.value)
+    const item = await createItem(
+      props.list.id,
+      name.value,
+      selectedStores.value.map(store => store.id)
+    )
     emit('item-added', { ...item, completed: null })
     name.value = ''
   } catch (e) {
@@ -97,7 +218,31 @@ async function submit() {
     <div class="scroll">
       <h2>{{ list.name }}</h2>
 
+      <div v-if="listStores.length" class="filter" role="group" :aria-label="t('stores.filter')">
+        <button
+          v-for="store in listStores"
+          :key="store.id"
+          type="button"
+          class="filter-chip"
+          :class="{ active: activeFilter.includes(store.id) }"
+          :aria-pressed="activeFilter.includes(store.id)"
+          @click="toggleFilter(store.id)"
+        >
+          <Icon name="store" />
+          {{ store.name }}
+        </button>
+        <button
+          v-if="activeFilter.length"
+          type="button"
+          class="filter-chip show-all"
+          @click="storeFilter = []"
+        >
+          {{ t('stores.showAll') }}
+        </button>
+      </div>
+
       <p v-if="!list.items.length" class="empty">{{ t('lists.noItems') }}</p>
+      <p v-else-if="!visibleItems.length" class="empty">{{ t('lists.noFilteredItems') }}</p>
       <p v-else-if="!openItems.length" class="empty">{{ t('lists.allCompleted') }}</p>
 
       <template v-for="section in sections" :key="section.key">
@@ -123,13 +268,18 @@ async function submit() {
             :key="item.id"
             :class="{ completed: item.completed, editing: editingId === item.id }"
           >
-            <RowEditor
-              v-if="editingId === item.id"
-              :name="item.name"
-              :save="newName => rename(item, newName)"
-              :remove="() => remove(item)"
-              @done="editingId = null"
-            />
+            <template v-if="editingId === item.id">
+              <RowEditor
+                :name="item.name"
+                :save="newName => rename(item, newName)"
+                :remove="() => remove(item)"
+                @done="editingId = null"
+              />
+              <StorePicker
+                :model-value="(item.stores ?? []).map(store => store.storeId)"
+                @update:model-value="ids => changeStores(item, ids)"
+              />
+            </template>
             <SwipeToDelete
               v-else
               :enabled="narrow"
@@ -151,6 +301,10 @@ async function submit() {
                   </span>
                   <span class="text">
                     <span class="item-name">{{ item.name }}</span>
+                    <span v-if="storeNames(item)" class="item-store">
+                      <Icon name="store" />
+                      {{ storeNames(item) }}
+                    </span>
                     <time
                       v-if="item.completed"
                       class="completed-at"
@@ -176,30 +330,64 @@ async function submit() {
       </template>
     </div>
 
-    <form class="add" @submit.prevent="submit">
+    <!-- The picker sits beside the form rather than in it, as editing a store
+         uses a form of its own. -->
+    <div
+      ref="addBar"
+      class="add"
+      @focusout="onFocusOut"
+      @keydown.esc="closePicker"
+    >
       <p v-if="error" class="error" aria-live="polite">{{ t(error) }}</p>
-      <div class="row">
+      <ul v-if="selectedStores.length && !picking" class="chosen-stores">
+        <li v-for="store in selectedStores" :key="store.id">
+          <button type="button" class="chosen" @mousedown.prevent @click="nameInput.focus()">
+            <Icon name="store" />
+            {{ store.name }}
+          </button>
+          <button
+            type="button"
+            class="clear"
+            :aria-label="t('stores.clear', { name: store.name })"
+            :title="t('stores.clear', { name: store.name })"
+            @mousedown.prevent
+            @click="storeIds = storeIds.filter(id => id !== store.id)"
+          >
+            <Icon name="x" />
+          </button>
+        </li>
+      </ul>
+      <form class="row" @submit.prevent="submit">
+        <!-- mousedown is cancelled so the field keeps its focus until the
+             click decides between closing the picker and going back. -->
         <button
           type="button"
           class="back"
-          :aria-label="t('lists.back')"
-          :title="t('lists.back')"
-          @click="emit('back')"
+          :aria-label="picking ? t('stores.close') : t('lists.back')"
+          :title="picking ? t('stores.close') : t('lists.back')"
+          @mousedown.prevent
+          @click="onBack"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
         </button>
         <input
+          ref="nameInput"
           v-model.trim="name"
           :aria-label="t('lists.itemName')"
           :placeholder="t('lists.itemName')"
           maxlength="512"
           required
+          @focus="picking = true"
         />
-        <button type="submit" :disabled="busy || !name">{{ t('lists.addItem') }}</button>
-      </div>
-    </form>
+        <!-- Keeps the keyboard open on phones, for adding the next item. -->
+        <button type="submit" :disabled="busy || !name" @mousedown.prevent>
+          {{ t('lists.addItem') }}
+        </button>
+      </form>
+      <StorePicker v-if="picking" v-model="storeIds" @done="nameInput.focus()" />
+    </div>
   </section>
 </template>
 
@@ -265,6 +453,13 @@ h2 {
 
 .item-row {
   padding-left: 0.25rem;
+}
+
+/* The store picker goes under the name field while an item is edited. */
+.items li.editing {
+  flex-direction: column;
+  align-items: stretch;
+  padding-bottom: 0.75rem;
 }
 
 /* The circle and the name are one button, so tapping anywhere on the item
@@ -355,9 +550,70 @@ h2 {
   overflow-wrap: anywhere;
 }
 
-.completed-at {
+.completed-at,
+.item-store {
   font-size: 0.8125rem;
   color: var(--color-text-muted);
+}
+
+.item-store {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.item-store :deep(svg) {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+}
+
+.picker {
+  margin-top: 0.75rem;
+}
+
+.chosen-stores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.chosen-stores li {
+  display: flex;
+  align-items: center;
+}
+
+.chosen,
+.chosen:hover:not(:disabled),
+.clear,
+.clear:hover:not(:disabled) {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-primary);
+  background: transparent;
+}
+
+.chosen :deep(svg),
+.clear :deep(svg) {
+  width: 1rem;
+  height: 1rem;
+}
+
+.clear,
+.clear:hover:not(:disabled) {
+  color: var(--color-text-muted);
+}
+
+.chosen:hover:not(:disabled),
+.clear:hover:not(:disabled) {
+  background: var(--color-background);
 }
 
 .edit,
@@ -381,6 +637,53 @@ h2 {
 .items li.completed .item-name {
   text-decoration: line-through;
   color: var(--color-text-muted);
+}
+
+/* The stores used in the list, as chips that narrow the list down. */
+.filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: -0.5rem 0 1rem;
+}
+
+.filter-chip,
+.filter-chip:hover:not(:disabled) {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+}
+
+.filter-chip:hover:not(:disabled) {
+  border-color: var(--color-primary);
+}
+
+.filter-chip.active,
+.filter-chip.active:hover:not(:disabled) {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.filter-chip.show-all,
+.filter-chip.show-all:hover:not(:disabled) {
+  color: var(--color-primary);
+  background: transparent;
+  border-color: transparent;
+}
+
+.filter-chip :deep(svg) {
+  width: 0.9375rem;
+  height: 0.9375rem;
 }
 
 .empty {
@@ -415,6 +718,23 @@ h2 {
     padding: 0.625rem 1rem calc(0.625rem + env(safe-area-inset-bottom));
     background: var(--color-surface);
     border-top: 1px solid var(--color-border);
+  }
+
+  .picker {
+    margin-top: 0.5rem;
+  }
+
+  /* One row that scrolls sideways, running to the edges of the screen. */
+  .filter {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin: -0.5rem -1rem 1rem;
+    padding: 0 1rem;
+    scrollbar-width: none;
+  }
+
+  .filter::-webkit-scrollbar {
+    display: none;
   }
 
   .back,

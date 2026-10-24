@@ -65,7 +65,23 @@
     "completed": "Fullført ({count})",
     "completedAt": "Fullført {time}",
     "allCompleted": "Alt på denne listen er gjort.",
-    "completeFailed": "Kunne ikke oppdatere varen. Prøv igjen."
+    "completeFailed": "Kunne ikke oppdatere varen. Prøv igjen.",
+    "noFilteredItems": "Ingen varer for de valgte butikkene."
+  },
+  "stores": {
+    "stores": "Butikker",
+    "loading": "Henter butikkene dine…",
+    "loadFailed": "Kunne ikke hente butikkene dine.",
+    "none": "Ingen butikker ennå.",
+    "newStore": "Ny butikk",
+    "storeName": "Butikknavn",
+    "create": "Legg til butikk",
+    "createFailed": "Kunne ikke legge til butikken. Prøv igjen.",
+    "clear": "Fjern butikken {name}",
+    "close": "Lukk",
+    "choose": "Velg butikk",
+    "filter": "Filtrer på butikk",
+    "showAll": "Vis alle"
   },
   "edit": {
     "edit": "Rediger",

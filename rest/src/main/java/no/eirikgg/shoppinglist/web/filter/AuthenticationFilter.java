@@ -5,6 +5,7 @@ import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
 import io.javalin.http.Header;
 import io.javalin.http.UnauthorizedResponse;
+import no.eirikgg.shoppinglist.datamodel.Session;
 import no.eirikgg.shoppinglist.web.controller.GeneralController;
 import no.eirikgg.shoppinglist.web.controller.UserController;
 import no.eirikgg.shoppinglist.datamodel.User;
@@ -23,8 +24,8 @@ public class AuthenticationFilter {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
 
-    public static final String PARAM_USER = "user";
-    public static final String PARAM_SESSION_ID = "session-id";
+    public static final String PARAM_SESSION = "session";
+    public static final String PARAM_SESSION_ID = "session";
 
 
     private AuthenticationService authenticationService;
@@ -53,17 +54,13 @@ public class AuthenticationFilter {
                 .map(UUID::fromString)
                 .orElseThrow(() -> new UnauthorizedResponse("User not authorized"));
 
-        Optional<User> user = authenticationService.getLoggedInUser(sessionId);
+        User user = authenticationService.getLoggedInUser(sessionId).orElseThrow(
+                () -> new UnauthorizedResponse("User not authorized")
+        );
 
-        if (user.isPresent()) {
-            log.debug("Logged in user: {}", user.get().getAuthorization().getEmail());
-            ctx.attribute(PARAM_USER, user.orElseThrow());
-            ctx.attribute(PARAM_SESSION_ID, sessionId);
-        }
-        else {
-            log.debug("{} requires login - not authorized", path);
-            throw new UnauthorizedResponse("User not authorized");
-        }
+        log.debug("Logged in user: {}", user.getAuthorization().getEmail());
+        Session session = new Session(sessionId, user);
+        ctx.attribute(PARAM_SESSION, session);
     }
 
     private boolean skipLogin(HandlerType method, String path) {
