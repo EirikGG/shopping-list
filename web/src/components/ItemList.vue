@@ -215,6 +215,9 @@ async function submit() {
     )
     emit('item-added', { ...item, completed: null })
     name.value = ''
+    // Done adding: the picker closes, and on phones the keyboard with it. A
+    // failed add keeps it open to try again.
+    closePicker()
   } catch (e) {
     error.value = e.status === 429 ? 'errors.tooManyRequests' : 'lists.addItemFailed'
   } finally {
@@ -412,7 +415,9 @@ async function submit() {
           required
           @focus="picking = true"
         />
-        <!-- Keeps the keyboard open on phones, for adding the next item. -->
+        <!-- mousedown is cancelled so the field keeps its focus until the item
+             is saved. Otherwise the picker closes on the tap, the layout
+             shifts, and the tap can miss the button. -->
         <button type="submit" :disabled="busy || !name" @mousedown.prevent>
           {{ t('lists.addItem') }}
         </button>
