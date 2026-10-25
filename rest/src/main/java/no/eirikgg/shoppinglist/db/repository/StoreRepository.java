@@ -1,8 +1,8 @@
 package no.eirikgg.shoppinglist.db.repository;
 
-import no.eirikgg.shoppinglist.datamodel.Session;
 import no.eirikgg.shoppinglist.datamodel.Store;
 import no.eirikgg.shoppinglist.db.DbUtils;
+import no.eirikgg.shoppinglist.db.RSWrapper;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -11,21 +11,26 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+// Stores belong to a list. Access is checked by the caller, through the list.
 public class StoreRepository {
 
     private DbUtils dbUtils = new DbUtils();
 
-    public int createStore(Connection conn, UUID sessionId, int personId, String name) throws SQLException {
+    public int createStore(
+            Connection conn, UUID sessionId, int personId, int itemListId, String name
+    ) throws SQLException {
         return dbUtils.insert(conn, """
                 insert into store (
                     session_id,
                     person_id,
+                    item_list_id,
                     name,
                     created
-                ) values (?, ?, ?, ?)
+                ) values (?, ?, ?, ?, ?)
                 """,
                 sessionId,
                 personId,
+                itemListId,
                 name,
                 LocalDateTime.now()
         ).orElseThrow();
@@ -33,9 +38,10 @@ public class StoreRepository {
 
     public Optional<Store> getStore(Connection conn, int storeId) {
         return dbUtils.selectSingle(conn, """
-                select   
+                select
                     store_id,
                     person_id,
+                    item_list_id,
                     name,
                     created
                 from store
@@ -43,34 +49,37 @@ public class StoreRepository {
                 and deleted is null
                 """,
                 storeId,
-                rs -> new Store(
-                        rs.getInt("store_id").orElseThrow(),
-                        rs.getInt("person_id").orElseThrow(),
-                        rs.getString("name").orElseThrow(),
-                        rs.getLocalDateTime("created").orElseThrow()
-                )
+                StoreRepository::toStore
         );
     }
 
-    public List<Store> getStoresForPerson(Connection conn, int personId) {
+    // The stores of a list, sorted by name.
+    public List<Store> getStoresForList(Connection conn, int itemListId) {
         return dbUtils.select(conn, """
                 select
                     store_id,
                     person_id,
+                    item_list_id,
                     name,
                     created
                 from store
-                where person_id = ?
+                where item_list_id = ?
                 and deleted is null
                 order by lower(name), store_id
                 """,
-                personId,
-                rs -> new Store(
-                        rs.getInt("store_id").orElseThrow(),
-                        rs.getInt("person_id").orElseThrow(),
-                        rs.getString("name").orElseThrow(),
-                        rs.getLocalDateTime("created").orElseThrow()
-                )
+                itemListId,
+                StoreRepository::toStore
+        );
+    }
+
+    // Reads store_id, person_id, item_list_id, name and created.
+    static Store toStore(RSWrapper rs) {
+        return new Store(
+                rs.getInt("store_id").orElseThrow(),
+                rs.getInt("person_id").orElseThrow(),
+                rs.getInt("item_list_id").orElseThrow(),
+                rs.getString("name").orElseThrow(),
+                rs.getLocalDateTime("created").orElseThrow()
         );
     }
 

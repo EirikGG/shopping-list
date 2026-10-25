@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- The master changelog up to 0018: the schema before stores moved to
+         lists. Used by StoresBelongToListsMigrationTest. -->
+    <include file="/db/updates/0001-person.sql"/>
+    <include file="/db/updates/0002-person_email.sql"/>
+    <include file="/db/updates/0003-person_phone.sql"/>
+    <include file="/db/updates/0004-person_login.sql"/>
+    <include file="/db/updates/0005-session.sql"/>
+    <include file="/db/updates/0006-email_message.sql"/>
+    <include file="/db/updates/0007-person_email_verified.sql"/>
+    <include file="/db/updates/0008-drop-email-table.sql"/>
+    <include file="/db/updates/0009-drop-phone-table.sql"/>
+    <include file="/db/updates/0010-rename-username-to-email.sql"/>
+    <include file="/db/updates/0011-add-verification-to-login.sql"/>
+    <include file="/db/updates/0012-items.sql"/>
+    <include file="/db/updates/0013-unique-person-login-email.sql"/>
+    <include file="/db/updates/0014-indexes.sql"/>
+    <include file="/db/updates/0015-stores.sql"/>
+    <include file="/db/updates/0016-item-store-mapping-many.sql"/>
+    <include file="/db/updates/0017-item-list-person.sql"/>
+    <include file="/db/updates/0018-drop-person-birthdate-and-gender.sql"/>
+</databaseChangeLog>

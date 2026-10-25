@@ -2,58 +2,57 @@ import { ref, watch } from 'vue'
 import { request } from './request.js'
 import { sessionId } from '../session.js'
 
-// The stores of the logged-in user, shared by every list: [{ id, name }],
-// sorted by name. null until loaded.
-export const stores = ref(null)
+// Stores belong to a list and are shared by everyone on it. Loaded stores,
+// per list id: { [listId]: [{ id, name }] }, sorted by name.
+const storesByList = ref({})
 
-let loading = null
+// Stores deleted since the lists were loaded. Store ids are unique across
+// lists, so one set does for all.
+export const deletedStoreIds = ref(new Set())
 
-// Another login can be another user, so the stores are fetched again.
+// Another login can be another user, so everything is fetched again.
 watch(sessionId, () => {
-  stores.value = null
+  storesByList.value = {}
   deletedStoreIds.value = new Set()
-  loading = null
 })
 
 function sortByName(list) {
   return [...list].sort((a, b) => a.name.localeCompare(b.name) || a.id - b.id)
 }
 
-// Loads the stores once. Later calls reuse the result, unless the first load
-// failed.
-export function loadStores() {
-  if (!loading) {
-    const id = sessionId.value
-    loading = request('GET', '/store-list')
-      .then(response => response.json())
-      .then(list => {
-        // Dropped if the session changed while loading.
-        if (sessionId.value === id) {
-          stores.value = list.map(store => ({ id: store.storeId, name: store.name }))
-        }
-      })
-      .catch(e => {
-        loading = null
-        throw e
-      })
+function setStores(listId, stores) {
+  storesByList.value = { ...storesByList.value, [listId]: sortByName(stores) }
+}
+
+// The loaded stores of a list, or null if not loaded yet.
+export function storesOf(listId) {
+  return storesByList.value[listId] ?? null
+}
+
+// Fetched every time, as others on the list may have added stores. What was
+// loaded before is shown in the meantime.
+export async function loadStores(listId) {
+  const session = sessionId.value
+  const response = await request('GET', `/store-list?itemListId=${encodeURIComponent(listId)}`)
+  const list = await response.json()
+  // Dropped if the session changed while loading.
+  if (sessionId.value === session) {
+    setStores(listId, list.map(store => ({ id: store.storeId, name: store.name })))
   }
-  return loading
 }
 
 // Returns the new store as { id, name }.
-export async function createStore(name) {
-  const response = await request('POST', '/store', { name })
+export async function createStore(listId, name) {
+  const response = await request('POST', '/store', { itemListId: listId, name })
   const { storeId } = await response.json()
   const store = { id: storeId, name }
-  stores.value = sortByName([...(stores.value ?? []), store])
+  setStores(listId, [...(storesOf(listId) ?? []), store])
   return store
 }
 
-export async function renameStore(id, newName) {
+export async function renameStore(listId, id, newName) {
   await request('PATCH', '/store', { storeId: id, newName })
-  stores.value = sortByName(
-    stores.value.map(store => (store.id === id ? { ...store, name: newName } : store))
-  )
+  setStores(listId, (storesOf(listId) ?? []).map(store => (store.id === id ? { ...store, name: newName } : store)))
 }
 
 // Only deletes on the backend. forgetStore drops it from the list, which a
@@ -62,22 +61,18 @@ export async function deleteStore(id) {
   await request('DELETE', '/store', { storeId: id })
 }
 
-export function forgetStore(id) {
-  stores.value = stores.value.filter(store => store.id !== id)
+export function forgetStore(listId, id) {
+  setStores(listId, (storesOf(listId) ?? []).filter(store => store.id !== id))
   deletedStoreIds.value = new Set([...deletedStoreIds.value, id])
 }
 
-// Stores deleted since the lists were loaded.
-export const deletedStoreIds = ref(new Set())
-
 // The name to show for a store on an item, or null if it has been deleted.
-// The user's own stores give the latest name; stores of others in a shared
-// list keep the name they had when loaded.
-export function storeName(itemStore) {
+// Loaded stores give the latest name; otherwise the name the item came with.
+export function storeName(listId, itemStore) {
   if (deletedStoreIds.value.has(itemStore.storeId)) {
     return null
   }
-  return stores.value?.find(store => store.id === itemStore.storeId)?.name ?? itemStore.name
+  return storesOf(listId)?.find(store => store.id === itemStore.storeId)?.name ?? itemStore.name
 }
 
 // An item can have any number of stores.

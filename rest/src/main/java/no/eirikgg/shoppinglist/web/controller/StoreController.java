@@ -40,12 +40,13 @@ public class StoreController {
     }
 
 
-    record PostStoreRequest(String name) {}
+    // A store is created on a list, and shared by everyone on it.
+    record PostStoreRequest(int itemListId, String name) {}
     record PostStoreResponse(int storeId) {}
-    private void createStore(Context ctx) {
+    private void createStore(Context ctx) throws ResourceNotFoundException {
         Session session = ctx.attribute(AuthenticationFilter.PARAM_SESSION);
         PostStoreRequest request = ctx.bodyAsClass(PostStoreRequest.class);
-        Store store = storeService.createStore(session, request.name());
+        Store store = storeService.createStore(session, request.itemListId(), request.name());
         Integer storeId = store.getId().orElseThrow();
         PostStoreResponse responseBody = new PostStoreResponse(storeId);
         ctx.status(HttpStatus.CREATED).json(responseBody);
@@ -67,10 +68,12 @@ public class StoreController {
     }
 
 
-    // Every store of the logged-in user, sorted by name.
-    private void getStoreList(Context ctx) {
+    // The stores of a list, sorted by name: GET /store-list?itemListId=1
+    public static final String PARAM_ITEM_LIST_ID = "itemListId";
+    private void getStoreList(Context ctx) throws ResourceNotFoundException {
         Session session = ctx.attribute(AuthenticationFilter.PARAM_SESSION);
-        List<GetStoreResponse> response = storeService.getStores(session).stream()
+        int itemListId = ctx.queryParamAsClass(PARAM_ITEM_LIST_ID, Integer.class).get();
+        List<GetStoreResponse> response = storeService.getStores(session, itemListId).stream()
                 .map(store -> new GetStoreResponse(
                         store.getId().orElseThrow(),
                         store.getName(),

@@ -8,7 +8,7 @@ import RowEditor from './RowEditor.vue'
 import StorePicker from './StorePicker.vue'
 import SwipeToDelete from './SwipeToDelete.vue'
 import { createItem, deleteItem, updateItem } from '../api/items.js'
-import { addItemStore, removeItemStore, storeName, stores } from '../api/stores.js'
+import { addItemStore, removeItemStore, storeName, storesOf } from '../api/stores.js'
 import { formatTime, parseBackendTime } from '../time.js'
 
 const props = defineProps({
@@ -48,8 +48,10 @@ const nameInput = ref(null)
 // for the same stores can be added in a row.
 const storeIds = ref([])
 // Leaves out stores deleted since they were chosen.
+// The list's stores, once the picker has loaded them.
+const knownStores = computed(() => storesOf(props.list.id))
 const selectedStores = computed(
-  () => stores.value?.filter(store => storeIds.value.includes(store.id)) ?? []
+  () => knownStores.value?.filter(store => storeIds.value.includes(store.id)) ?? []
 )
 
 // The store picker opens when the item field gets focus, and stays open while
@@ -68,7 +70,7 @@ function closePicker() {
 }
 
 function storeNames(item) {
-  return (item.stores ?? []).map(storeName).filter(Boolean).join(', ')
+  return (item.stores ?? []).map(store => storeName(props.list.id, store)).filter(Boolean).join(', ')
 }
 
 // The back button closes the picker first, if it is open.
@@ -85,16 +87,18 @@ function onBack() {
 const showCompleted = useLocalStorage('shoppinglist.show-completed', true)
 
 // The list can be narrowed to the items of some stores. The choice is kept
-// across lists and visits, as it follows the store you are in.
-const storeFilter = useLocalStorage('shoppinglist.store-filter', [])
+// across lists and visits, as it follows the store you are in. It holds store
+// names, as each list has its own stores: "Rema" in one list is not the same
+// store as "Rema" in another, but it is the same shop.
+const storeFilter = useLocalStorage('shoppinglist.store-filter-names', [])
 
 // The stores used by items in this list, sorted by name, leaving out deleted
-// ones. In a shared list this includes the stores of the others.
+// ones.
 const listStores = computed(() => {
   const byId = new Map()
   for (const item of props.list.items) {
     for (const itemStore of item.stores ?? []) {
-      const name = storeName(itemStore)
+      const name = storeName(props.list.id, itemStore)
       if (name) {
         byId.set(itemStore.storeId, { id: itemStore.storeId, name })
       }
@@ -105,13 +109,14 @@ const listStores = computed(() => {
 
 // Stores filtered on that this list does not use are ignored.
 const activeFilter = computed(
-  () => storeFilter.value.filter(id => listStores.value.some(store => store.id === id))
+  () => storeFilter.value.filter(name => listStores.value.some(store => store.name === name))
 )
 
-function toggleFilter(id) {
-  storeFilter.value = activeFilter.value.includes(id)
-    ? activeFilter.value.filter(other => other !== id)
-    : [...activeFilter.value, id]
+// Filters on stores this list does not have are kept for the other lists.
+function toggleFilter(name) {
+  storeFilter.value = storeFilter.value.includes(name)
+    ? storeFilter.value.filter(other => other !== name)
+    : [...storeFilter.value, name]
 }
 
 // An item is shown if it has any of the filtered stores.
@@ -120,7 +125,7 @@ const visibleItems = computed(() => {
     return props.list.items
   }
   return props.list.items.filter(
-    item => item.stores?.some(store => activeFilter.value.includes(store.storeId))
+    item => item.stores?.some(store => activeFilter.value.includes(storeName(props.list.id, store)))
   )
 })
 
@@ -170,9 +175,8 @@ async function changeStores(item, ids) {
   const removed = previousIds.filter(id => !ids.includes(id))
 
   error.value = ''
-  // Stores of others in a shared list are not in the picker, so they are kept
-  // as they were.
-  const own = (stores.value ?? [])
+  // Stores not loaded yet keep the name the item had.
+  const own = (knownStores.value ?? [])
     .filter(store => ids.includes(store.id))
     .map(store => ({ storeId: store.id, name: store.name }))
   const others = previous.filter(
@@ -258,9 +262,9 @@ async function submit() {
           :key="store.id"
           type="button"
           class="filter-chip"
-          :class="{ active: activeFilter.includes(store.id) }"
-          :aria-pressed="activeFilter.includes(store.id)"
-          @click="toggleFilter(store.id)"
+          :class="{ active: activeFilter.includes(store.name) }"
+          :aria-pressed="activeFilter.includes(store.name)"
+          @click="toggleFilter(store.name)"
         >
           <Icon name="store" />
           {{ store.name }}
@@ -310,6 +314,7 @@ async function submit() {
                 @done="editingId = null"
               />
               <StorePicker
+                :list-id="list.id"
                 :model-value="(item.stores ?? []).map(store => store.storeId)"
                 @update:model-value="ids => changeStores(item, ids)"
               />
@@ -422,7 +427,7 @@ async function submit() {
           {{ t('lists.addItem') }}
         </button>
       </form>
-      <StorePicker v-if="picking" v-model="storeIds" @done="nameInput.focus()" />
+      <StorePicker v-if="picking" v-model="storeIds" :list-id="list.id" @done="nameInput.focus()" />
     </div>
   </section>
 </template>

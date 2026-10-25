@@ -74,6 +74,7 @@ public class ItemRepository {
                 select 
                     mapping.store_id
                     , s.person_id
+                    , s.item_list_id
                     , s.name
                     , s.created
                 from item_store_mapping as mapping
@@ -84,12 +85,16 @@ public class ItemRepository {
                 order by lower(s.name), s.store_id
                 """,
                 itemId,
-                rs -> new Store(
-                        rs.getInt("store_id").orElseThrow(),
-                        rs.getInt("person_id").orElseThrow(),
-                        rs.getString("name").orElseThrow(),
-                        rs.getLocalDateTime("created").orElseThrow()
-                )
+                StoreRepository::toStore
+        );
+    }
+
+    // The list an item is on, if the item exists.
+    public Optional<Integer> getItemListIdOfItem(Connection conn, int itemId) {
+        return dbUtils.selectSingle(conn,
+                "select item_list_id from item where item_id = ? and deleted is null",
+                itemId,
+                rs -> rs.getInt("item_list_id").orElseThrow()
         );
     }
 

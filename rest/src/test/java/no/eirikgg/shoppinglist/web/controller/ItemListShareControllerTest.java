@@ -101,6 +101,69 @@ class ItemListShareControllerTest {
         });
     }
 
+    @Test
+    void storesBelongToTheList_andAreSharedWithEveryoneOnIt() {
+        JavalinTest.test(app, testConfig, (server, client) -> {
+            int listId = createList(client, OWNER, "list-with-stores");
+            int rema = createStore(client, OWNER, listId, "Rema");
+            send(client, OWNER, "POST", ItemController.PATH_ITEM_LIST_MEMBER,
+                    new ItemController.PostItemListMemberRequest(listId, OTHER_EMAIL));
+
+            // The member sees the owner's store and can use it.
+            assertEquals(List.of("Rema"), storeNames(client, OTHER, listId));
+            assertEquals(201, send(client, OTHER, "POST", ItemController.PATH_ITEM,
+                    new ItemController.PostItemRequest(listId, "milk", List.of(rema))).statusCode());
+
+            // Stores the member adds or renames are the list's, so the owner sees them.
+            int kiwi = createStore(client, OTHER, listId, "Kiwi");
+            assertEquals(200, send(client, OTHER, "PATCH", StoreController.PATH_STORE,
+                    new StoreController.PatchStoreRequest(kiwi, "Kiwi Torget")).statusCode());
+            assertEquals(List.of("Kiwi Torget", "Rema"), storeNames(client, OWNER, listId));
+
+            // A store from another list cannot be used here, and its list's
+            // stores are not visible to someone without access to it.
+            int ownersOtherList = createList(client, OWNER, "owners-other-list");
+            int coop = createStore(client, OWNER, ownersOtherList, "Coop");
+            assertEquals(403, send(client, OWNER, "POST", ItemController.PATH_ITEM,
+                    new ItemController.PostItemRequest(listId, "eggs", List.of(coop))).statusCode());
+            assertEquals(404, storeListStatus(client, OTHER, ownersOtherList));
+
+            // After leaving, the list's stores are gone for the member too.
+            int otherPersonId = findList(client, OTHER, listId).orElseThrow().members().stream()
+                    .filter(ItemController.ItemListMemberResponse::you)
+                    .findFirst().orElseThrow().personId();
+            send(client, OTHER, "DELETE", ItemController.PATH_ITEM_LIST_MEMBER,
+                    new ItemController.DeleteItemListMemberRequest(listId, otherPersonId));
+            assertEquals(404, storeListStatus(client, OTHER, listId));
+        });
+    }
+
+    private int createStore(HttpClient client, UUID session, int listId, String name)
+            throws IOException, InterruptedException
+    {
+        HttpResponse<String> response = send(client, session, "POST", StoreController.PATH_STORE,
+                new StoreController.PostStoreRequest(listId, name));
+        assertEquals(201, response.statusCode());
+        return mapper.readValue(response.body(), StoreController.PostStoreResponse.class).storeId();
+    }
+
+    private String storeListPath(int listId) {
+        return StoreController.PATH_STORE_LIST + "?" + StoreController.PARAM_ITEM_LIST_ID + "=" + listId;
+    }
+
+    private List<String> storeNames(HttpClient client, UUID session, int listId)
+            throws IOException, InterruptedException
+    {
+        HttpResponse<String> response = send(client, session, "GET", storeListPath(listId), null);
+        assertEquals(200, response.statusCode());
+        List<StoreController.GetStoreResponse> stores = mapper.readValue(response.body(), new TypeReference<>() {});
+        return stores.stream().map(StoreController.GetStoreResponse::name).toList();
+    }
+
+    private int storeListStatus(HttpClient client, UUID session, int listId) throws IOException, InterruptedException {
+        return send(client, session, "GET", storeListPath(listId), null).statusCode();
+    }
+
     private int createList(HttpClient client, UUID session, String name) throws IOException, InterruptedException {
         HttpResponse<String> response = send(client, session, "POST", ItemController.PATH_ITEM_LIST,
                 new ItemController.PostItemListRequest(name));

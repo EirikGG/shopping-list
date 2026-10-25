@@ -186,8 +186,9 @@ public class ItemService {
                 Store store = storeRepository.getStore(conn, storeId).orElseThrow(
                         () -> new ResourceNotFoundException("Store not found")
                 );
-                if (store.getPersonId() != personId) {
-                    throw new NoAccessToResourceException("No access to resource");
+                // Only the list's own stores, which everyone on the list shares.
+                if (store.getItemListId() != itemListId) {
+                    throw new NoAccessToResourceException("Store is not on this list");
                 }
             }
 

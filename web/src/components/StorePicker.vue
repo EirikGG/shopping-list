@@ -1,5 +1,5 @@
 <script setup>
-import { nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import Icon from './Icon.vue'
@@ -11,12 +11,13 @@ import {
   forgetStore,
   loadStores,
   renameStore,
-  stores
+  storesOf
 } from '../api/stores.js'
 
-// Picks the store for a new item, and adds, renames and deletes stores. Shown
-// under the add item field while it has focus.
+// Picks the stores for an item, and adds, renames and deletes stores. The
+// stores belong to the list, so everyone on it sees the same ones.
 const props = defineProps({
+  listId: { type: Number, required: true },
   // The ids of the chosen stores.
   modelValue: { type: Array, default: () => [] }
 })
@@ -26,6 +27,8 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'done'])
 
 const { t } = useI18n()
+
+const stores = computed(() => storesOf(props.listId))
 
 // Matches the breakpoint in the styles below.
 const narrow = useMediaQuery('(max-width: 640px)')
@@ -47,7 +50,7 @@ onMounted(load)
 async function load() {
   loadError.value = ''
   try {
-    await loadStores()
+    await loadStores(props.listId)
   } catch (e) {
     loadError.value = e.status === 429 ? 'errors.tooManyRequests' : 'stores.loadFailed'
   }
@@ -96,7 +99,7 @@ function forget(store) {
   if (isChosen(store)) {
     emit('update:modelValue', props.modelValue.filter(id => id !== store.id))
   }
-  forgetStore(store.id)
+  forgetStore(props.listId, store.id)
 }
 
 // The editing ends before the row goes, so the focus is handed back to the
@@ -150,7 +153,7 @@ async function add() {
   busy.value = true
 
   try {
-    const store = await createStore(newName.value)
+    const store = await createStore(props.listId, newName.value)
     choose(store.id)
     stopAdding()
   } catch (e) {
@@ -184,7 +187,7 @@ async function add() {
           <RowEditor
             v-if="editingId === store.id"
             :name="store.name"
-            :save="newName => renameStore(store.id, newName)"
+            :save="newName => renameStore(listId, store.id, newName)"
             :remove="() => remove(store)"
             @done="stopEditing"
           />

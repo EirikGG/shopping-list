@@ -10,6 +10,7 @@ import io.javalin.testtools.JavalinTest;
 import io.javalin.testtools.TestConfig;
 import no.eirikgg.shoppinglist.Json;
 import no.eirikgg.shoppinglist.TestApp;
+import no.eirikgg.shoppinglist.db.DbUtils;
 import no.eirikgg.shoppinglist.db.EmbeddedPostgresDb;
 import no.eirikgg.shoppinglist.db.LiquibaseMigrator;
 import no.eirikgg.shoppinglist.db.user.EmailSenderFake;
@@ -21,6 +22,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,11 +41,21 @@ class StoreControllerTest {
 
     private final UUID SESSION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
     private final ObjectMapper mapper = Json.MAPPER;
+    // Stores belong to a list; this is the test user's list from t0002.
+    private final int ITEM_LIST_ID;
 
-    public StoreControllerTest() {
+    public StoreControllerTest() throws SQLException {
         db = EmbeddedPostgresDb.createMigratedInstance();
         LiquibaseMigrator migrator = new LiquibaseMigrator();
         migrator.migrate(db, "db/updates/t0001-create-test-user-and-login.sql");
+        migrator.migrate(db, "db/updates/t0002-create-item-list-for-test-user.sql");
+        try (Connection conn = db.getConnection()) {
+            ITEM_LIST_ID = new DbUtils().selectSingle(conn,
+                    "select item_list_id from item_list where name = ?",
+                    "unit-test-list",
+                    rs -> rs.getInt("item_list_id").orElseThrow()
+            ).orElseThrow();
+        }
 
         fakeEmailSender = new EmailSenderFake();
         testConfig = new TestConfig(true, false);
@@ -92,7 +105,8 @@ class StoreControllerTest {
             throws IOException, InterruptedException
     {
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(client.getOrigin() + StoreController.PATH_STORE_LIST))
+            .uri(URI.create(client.getOrigin() + StoreController.PATH_STORE_LIST
+                    + "?" + StoreController.PARAM_ITEM_LIST_ID + "=" + ITEM_LIST_ID))
             .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
             .GET()
             .build();
@@ -140,7 +154,7 @@ class StoreControllerTest {
     private StoreController.PostStoreResponse createStore(HttpClient client, String storeName)
             throws IOException, InterruptedException
     {
-        StoreController.PostStoreRequest requestBody = new StoreController.PostStoreRequest(storeName);
+        StoreController.PostStoreRequest requestBody = new StoreController.PostStoreRequest(ITEM_LIST_ID, storeName);
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + StoreController.PATH_STORE))
             .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))

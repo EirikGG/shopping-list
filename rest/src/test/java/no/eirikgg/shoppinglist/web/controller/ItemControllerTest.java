@@ -142,7 +142,7 @@ class ItemControllerTest {
     }
 
     private int createStore(HttpClient client, String storeName) throws IOException, InterruptedException {
-        StoreController.PostStoreRequest requestBody = new StoreController.PostStoreRequest(storeName);
+        StoreController.PostStoreRequest requestBody = new StoreController.PostStoreRequest(ITEM_LIST_ID, storeName);
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + StoreController.PATH_STORE))
             .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))

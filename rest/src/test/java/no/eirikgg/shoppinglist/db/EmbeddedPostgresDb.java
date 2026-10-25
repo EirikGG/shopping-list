@@ -49,11 +49,17 @@ public final class EmbeddedPostgresDb implements Db, AutoCloseable {
     }
 
     public static EmbeddedPostgresDb createMigratedInstance() {
+        return createInstanceMigratedWith("db/changelog/db.changelog-master.xml");
+    }
+
+    // Migrated with the given changelog only, e.g. to test a migration on data
+    // in the shape it had before.
+    public static EmbeddedPostgresDb createInstanceMigratedWith(String changelog) {
         EmbeddedPostgresDb db = new EmbeddedPostgresDb();
 
         try {
             LiquibaseMigrator migrator = new LiquibaseMigrator();
-            migrator.migrate(db);
+            migrator.migrate(db, changelog);
             return db;
         }
         catch (RuntimeException e) {

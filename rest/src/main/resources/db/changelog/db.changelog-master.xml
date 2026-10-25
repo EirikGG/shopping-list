@@ -23,4 +23,5 @@
     <include file="/db/updates/0016-item-store-mapping-many.sql"/>
     <include file="/db/updates/0017-item-list-person.sql"/>
     <include file="/db/updates/0018-drop-person-birthdate-and-gender.sql"/>
+    <include file="/db/updates/0019-stores-belong-to-lists.sql"/>
 </databaseChangeLog>
