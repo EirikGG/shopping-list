@@ -6,9 +6,12 @@
         </encoder>
     </appender>
 
-    <logger name="no.eirikgg.shoppinglist" level="debug"/>
+    <!-- Levels come from the environment (.env through docker-compose.yml):
+         trace, debug, info, warn, error or off. LOG_LEVEL is the app's own
+         code; LOG_LEVEL_ROOT is everything else, such as Jetty and Liquibase. -->
+    <logger name="no.eirikgg.shoppinglist" level="${LOG_LEVEL:-debug}"/>
 
-    <root level="INFO">
+    <root level="${LOG_LEVEL_ROOT:-info}">
         <appender-ref ref="CONSOLE"/>
     </root>
 

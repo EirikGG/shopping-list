@@ -51,6 +51,8 @@ services:
       # Rate limits use the client address the web proxy passes in X-Real-IP.
       # Safe only because the port below is not reachable from outside.
       TRUST_PROXY: "true"
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      LOG_LEVEL_ROOT: ${LOG_LEVEL_ROOT:-info}
     # Localhost only: browsers reach the backend through the web proxy, and a
     # direct connection could fake X-Real-IP. Docker publishes ports past the
     # firewall, so binding to 127.0.0.1 is what keeps it private.
