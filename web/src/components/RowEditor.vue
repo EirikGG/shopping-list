@@ -12,7 +12,9 @@ const props = defineProps({
   remove: { type: Function, required: true },
   // A message key, asked before deleting. Without it the row is deleted
   // straight away.
-  confirmDelete: { type: String, default: '' }
+  confirmDelete: { type: String, default: '' },
+  // A message key for the remove button, such as leaving a shared list.
+  removeLabel: { type: String, default: 'edit.delete' }
 })
 
 const emit = defineEmits(['done'])
@@ -82,8 +84,8 @@ function onDelete() {
       <button
         type="button"
         class="icon danger"
-        :aria-label="t('edit.delete')"
-        :title="t('edit.delete')"
+        :aria-label="t(removeLabel)"
+        :title="t(removeLabel)"
         :disabled="busy"
         @click="onDelete"
       >

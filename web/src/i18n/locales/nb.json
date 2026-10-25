@@ -83,6 +83,22 @@
     "filter": "Filtrer på butikk",
     "showAll": "Vis alle"
   },
+  "share": {
+    "title": "Delt med",
+    "shareList": "Del {name}",
+    "shared": "Delt",
+    "email": "E-post til den du vil dele med",
+    "add": "Del",
+    "owner": "Eier",
+    "you": "deg",
+    "remove": "Fjern {name}",
+    "leave": "Forlat listen",
+    "confirmLeave": "Forlate listen «{name}»? Du mister tilgangen til den.",
+    "notFound": "Ingen konto bruker den e-postadressen.",
+    "shareFailed": "Kunne ikke dele listen. Prøv igjen.",
+    "removeFailed": "Kunne ikke fjerne personen. Prøv igjen.",
+    "leaveFailed": "Kunne ikke forlate listen. Prøv igjen."
+  },
   "edit": {
     "edit": "Rediger",
     "editList": "Rediger listen {name}",

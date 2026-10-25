@@ -83,6 +83,22 @@
     "filter": "Filter by store",
     "showAll": "Show all"
   },
+  "share": {
+    "title": "Shared with",
+    "shareList": "Share {name}",
+    "shared": "Shared",
+    "email": "Email of the person to share with",
+    "add": "Share",
+    "owner": "Owner",
+    "you": "you",
+    "remove": "Remove {name}",
+    "leave": "Leave list",
+    "confirmLeave": "Leave the list \"{name}\"? You will lose access to it.",
+    "notFound": "No account uses that email.",
+    "shareFailed": "Could not share the list. Try again.",
+    "removeFailed": "Could not remove the person. Try again.",
+    "leaveFailed": "Could not leave the list. Try again."
+  },
   "edit": {
     "edit": "Edit",
     "editList": "Edit list {name}",

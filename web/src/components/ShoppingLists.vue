@@ -8,6 +8,7 @@ import {
   createItemList,
   deleteItemList,
   getItemLists,
+  removeItemListMember,
   renameItemList
 } from '../api/items.js'
 
@@ -44,8 +45,17 @@ async function rename(list, newName) {
   list.name = newName
 }
 
+// The owner deletes the list; a member leaves it. Either way it is gone here.
 async function remove(list) {
-  await deleteItemList(list.id)
+  if (list.role === 'OWNER') {
+    await deleteItemList(list.id)
+  } else {
+    await removeItemListMember(list.id, list.members.find(member => member.you).personId)
+  }
+  dropList(list)
+}
+
+function dropList(list) {
   lists.value = lists.value.filter(other => other.id !== list.id)
   if (selectedId.value === list.id) {
     selectedId.value = lists.value[0]?.id ?? null
@@ -113,7 +123,8 @@ async function create() {
             :name="list.name"
             :save="newName => rename(list, newName)"
             :remove="() => remove(list)"
-            confirm-delete="edit.confirmDeleteList"
+            :confirm-delete="list.role === 'OWNER' ? 'edit.confirmDeleteList' : 'share.confirmLeave'"
+            :remove-label="list.role === 'OWNER' ? 'edit.delete' : 'share.leave'"
             @done="editingId = null"
           />
           <template v-else>
@@ -123,6 +134,13 @@ async function create() {
               @click="open(list.id)"
             >
               <span class="list-name">{{ list.name }}</span>
+              <Icon
+                v-if="list.members.length > 1"
+                name="users"
+                class="shared-icon"
+                :aria-label="t('share.shared')"
+                role="img"
+              />
               <span class="count">{{ list.items.length }}</span>
             </button>
             <button
@@ -172,6 +190,8 @@ async function create() {
         @item-updated="item => updateItem(selectedList, item)"
         @item-deleted="id => deleteItem(selectedList, id)"
         @back="showingList = false"
+        @members-changed="members => (selectedList.members = members)"
+        @left="dropList(selectedList)"
       />
       <p v-else class="muted">{{ t('lists.selectOrCreate') }}</p>
     </main>
@@ -261,6 +281,17 @@ nav {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.list-name {
+  flex: 1;
+}
+
+.shared-icon {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  opacity: 0.75;
 }
 
 .count {

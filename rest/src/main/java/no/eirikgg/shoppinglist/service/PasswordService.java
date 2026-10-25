@@ -123,8 +123,6 @@ public static boolean verify(
         }
     }
 
-
-private static final Logger log = LoggerFactory.getLogger(PasswordService.class);
     public static String hashPassword(String password) {
         char[] passwordBytes = password.toCharArray();
         String hash = PasswordService.hash(passwordBytes);

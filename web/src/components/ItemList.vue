@@ -3,11 +3,12 @@ import { computed, ref } from 'vue'
 import { useLocalStorage, useMediaQuery } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import Icon from './Icon.vue'
+import ListSharing from './ListSharing.vue'
 import RowEditor from './RowEditor.vue'
 import StorePicker from './StorePicker.vue'
 import SwipeToDelete from './SwipeToDelete.vue'
 import { createItem, deleteItem, updateItem } from '../api/items.js'
-import { addItemStore, removeItemStore, stores } from '../api/stores.js'
+import { addItemStore, removeItemStore, storeName, stores } from '../api/stores.js'
 import { formatTime, parseBackendTime } from '../time.js'
 
 const props = defineProps({
@@ -16,9 +17,21 @@ const props = defineProps({
 
 // 'back' is only offered on narrow screens, where the list replaces the
 // overview of all lists.
-const emit = defineEmits(['item-added', 'item-updated', 'item-deleted', 'back'])
+// 'members-changed' and 'left' come from sharing the list.
+const emit = defineEmits([
+  'item-added',
+  'item-updated',
+  'item-deleted',
+  'back',
+  'members-changed',
+  'left'
+])
 
 const { locale, t } = useI18n()
+
+// Whether the panel showing who the list is shared with is open.
+const showSharing = ref(false)
+const shared = computed(() => props.list.members.length > 1)
 
 const name = ref('')
 // A message key, so the error follows a language change.
@@ -54,15 +67,8 @@ function closePicker() {
   nameInput.value.blur()
 }
 
-// Names come from the loaded stores when there are any, so renaming or
-// deleting a store shows on the items straight away.
 function storeNames(item) {
-  return (item.stores ?? [])
-    .map(itemStore => stores.value
-      ? stores.value.find(store => store.id === itemStore.storeId)?.name
-      : itemStore.name)
-    .filter(Boolean)
-    .join(', ')
+  return (item.stores ?? []).map(storeName).filter(Boolean).join(', ')
 }
 
 // The back button closes the picker first, if it is open.
@@ -82,15 +88,13 @@ const showCompleted = useLocalStorage('shoppinglist.show-completed', true)
 // across lists and visits, as it follows the store you are in.
 const storeFilter = useLocalStorage('shoppinglist.store-filter', [])
 
-// The stores used by items in this list, sorted by name. Names come from the
-// loaded stores when there are any, which also leaves out deleted stores.
+// The stores used by items in this list, sorted by name, leaving out deleted
+// ones. In a shared list this includes the stores of the others.
 const listStores = computed(() => {
   const byId = new Map()
   for (const item of props.list.items) {
     for (const itemStore of item.stores ?? []) {
-      const name = stores.value
-        ? stores.value.find(store => store.id === itemStore.storeId)?.name
-        : itemStore.name
+      const name = storeName(itemStore)
       if (name) {
         byId.set(itemStore.storeId, { id: itemStore.storeId, name })
       }
@@ -166,11 +170,17 @@ async function changeStores(item, ids) {
   const removed = previousIds.filter(id => !ids.includes(id))
 
   error.value = ''
+  // Stores of others in a shared list are not in the picker, so they are kept
+  // as they were.
+  const own = (stores.value ?? [])
+    .filter(store => ids.includes(store.id))
+    .map(store => ({ storeId: store.id, name: store.name }))
+  const others = previous.filter(
+    itemStore => ids.includes(itemStore.storeId) && !own.some(o => o.storeId === itemStore.storeId)
+  )
   emit('item-updated', {
     ...item,
-    stores: (stores.value ?? [])
-      .filter(store => ids.includes(store.id))
-      .map(store => ({ storeId: store.id, name: store.name }))
+    stores: [...own, ...others].sort((a, b) => a.name.localeCompare(b.name))
   })
 
   try {
@@ -216,7 +226,28 @@ async function submit() {
 <template>
   <section class="list">
     <div class="scroll">
-      <h2>{{ list.name }}</h2>
+      <div class="heading">
+        <h2>{{ list.name }}</h2>
+        <button
+          type="button"
+          class="share"
+          :class="{ active: showSharing, shared }"
+          :aria-expanded="showSharing"
+          :aria-label="t('share.shareList', { name: list.name })"
+          :title="t('share.shareList', { name: list.name })"
+          @click="showSharing = !showSharing"
+        >
+          <Icon name="users" />
+          <span v-if="shared" class="member-count">{{ list.members.length }}</span>
+        </button>
+      </div>
+
+      <ListSharing
+        v-if="showSharing"
+        :list="list"
+        @members-changed="members => emit('members-changed', members)"
+        @left="emit('left')"
+      />
 
       <div v-if="listStores.length" class="filter" role="group" :aria-label="t('stores.filter')">
         <button
@@ -404,6 +435,41 @@ async function submit() {
 .add {
   order: -1;
   margin-bottom: 1.25rem;
+}
+
+.heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0 0 1.25rem;
+}
+
+.heading h2 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+.share,
+.share:hover:not(:disabled) {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.45rem;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  background: transparent;
+}
+
+.share:hover:not(:disabled),
+.share.active {
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.share.shared {
+  color: var(--color-primary);
 }
 
 h2 {

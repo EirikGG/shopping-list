@@ -11,6 +11,7 @@ let loading = null
 // Another login can be another user, so the stores are fetched again.
 watch(sessionId, () => {
   stores.value = null
+  deletedStoreIds.value = new Set()
   loading = null
 })
 
@@ -63,6 +64,20 @@ export async function deleteStore(id) {
 
 export function forgetStore(id) {
   stores.value = stores.value.filter(store => store.id !== id)
+  deletedStoreIds.value = new Set([...deletedStoreIds.value, id])
+}
+
+// Stores deleted since the lists were loaded.
+export const deletedStoreIds = ref(new Set())
+
+// The name to show for a store on an item, or null if it has been deleted.
+// The user's own stores give the latest name; stores of others in a shared
+// list keep the name they had when loaded.
+export function storeName(itemStore) {
+  if (deletedStoreIds.value.has(itemStore.storeId)) {
+    return null
+  }
+  return stores.value?.find(store => store.id === itemStore.storeId)?.name ?? itemStore.name
 }
 
 // An item can have any number of stores.
