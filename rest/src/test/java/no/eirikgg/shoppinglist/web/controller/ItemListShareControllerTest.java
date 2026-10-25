@@ -74,13 +74,14 @@ class ItemListShareControllerTest {
             assertEquals("added-by-member",
                     findList(client, OWNER, listId).orElseThrow().items().getFirst().name());
 
-            // Only the owner can share and delete, and the owner cannot leave.
-            assertEquals(401, send(client, OTHER, "POST", ItemController.PATH_ITEM_LIST_MEMBER,
+            // Only the owner can share and delete, and the owner cannot leave. These
+            // are 403, not 401, so they do not log the user out.
+            assertEquals(403, send(client, OTHER, "POST", ItemController.PATH_ITEM_LIST_MEMBER,
                     new ItemController.PostItemListMemberRequest(listId, "unit-test-user@test.com")).statusCode());
-            assertEquals(401, send(client, OTHER, "DELETE", ItemController.PATH_ITEM_LIST,
+            assertEquals(403, send(client, OTHER, "DELETE", ItemController.PATH_ITEM_LIST,
                     new ItemController.DeleteItemListRequest(listId)).statusCode());
             int ownerPersonId = otherView.members().getFirst().personId();
-            assertEquals(401, send(client, OWNER, "DELETE", ItemController.PATH_ITEM_LIST_MEMBER,
+            assertEquals(403, send(client, OWNER, "DELETE", ItemController.PATH_ITEM_LIST_MEMBER,
                     new ItemController.DeleteItemListMemberRequest(listId, ownerPersonId)).statusCode());
 
             // The member leaves, and loses access.

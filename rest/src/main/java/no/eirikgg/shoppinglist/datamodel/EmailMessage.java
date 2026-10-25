@@ -10,7 +10,9 @@ public class EmailMessage extends DbIdentity {
     public enum Status {
         CREATED,
         PROCESSING,
-        SENDT
+        SENDT,
+        // Sending threw. Not retried; set it back to CREATED to send it again.
+        FAILED
     }
 
     private UUID sessionId;

@@ -20,8 +20,9 @@ public class AuthenticationRepository {
 
     private DbUtils dbUtils = new DbUtils();
 
-    // How long a login lasts. The login token expires at the same time.
-    public static final Duration SESSION_LENGTH = Duration.ofHours(4);
+    // How long a login lasts, counted from logging in; it is not extended by
+    // use. The login token expires at the same time.
+    public static final Duration SESSION_LENGTH = Duration.ofDays(30);
 
 
     public record NewSession(UUID sessionId, LocalDateTime validUntil) {}

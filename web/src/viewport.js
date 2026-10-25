@@ -11,8 +11,13 @@ function update() {
     return
   }
   document.documentElement.style.setProperty('--viewport-height', `${viewport.height}px`)
-  // iOS scrolls the page up to show a focused field; the shell already fits.
-  window.scrollTo(0, 0)
+  // iOS scrolls the page up to show a focused field. The logged-in shell is
+  // exactly as tall as what is visible, so that scroll is undone there. Only
+  // there: the login and signup forms are normal pages that must scroll to
+  // the field being typed in, or it ends up hidden behind the keyboard.
+  if (document.querySelector('.app-shell') && window.scrollY !== 0) {
+    window.scrollTo(0, 0)
+  }
 }
 
 if (viewport) {

@@ -81,7 +81,9 @@ public class ExceptionHandlers {
 
 
     private void noAccessToResourceException(NoAccessToResourceException e, Context ctx) {
-        creatPublicError(ctx, e, HttpStatus.UNAUTHORIZED, Error.NO_ACCESS);
+        // 403, not 401: the user is logged in, just not allowed this. The web app
+        // logs the user out on a 401.
+        creatPublicError(ctx, e, HttpStatus.FORBIDDEN, Error.NO_ACCESS);
     }
 
     private void resourceNotFoundException(ResourceNotFoundException e, Context ctx) {
