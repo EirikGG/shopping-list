@@ -86,9 +86,12 @@ services:
     image: axllent/mailpit:latest
     container_name: mailpit
     restart: unless-stopped
+    # Mailpit always listens on 8025 (web UI) and 1025 (SMTP) in the container.
+    # The defaults keep this valid when prod's .env has no Mailpit settings,
+    # since Compose reads every service, even those outside the active profile.
     ports:
-      - "8025:${MAILPIT_UI_PORT}"
-      - "1025:${MAIL_PORT}"
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+      - "1025:1025"
     networks:
       - backend
     profiles:
