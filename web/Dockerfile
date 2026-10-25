@@ -1,5 +1,5 @@
 # Two targets: "dev" runs the Vite dev server with live reload, "prod" serves
-# the built app from nginx. docker-compose.yml picks one per profile.
+# the built app over HTTPS from Caddy. docker-compose.yml picks one per profile.
 
 FROM node:22-alpine AS deps
 WORKDIR /app
@@ -17,8 +17,8 @@ COPY . .
 RUN npm run build
 
 
-FROM nginx:1.27-alpine AS prod
-# The nginx image fills in ${WEB_PORT} and ${API_TARGET} from the environment
-# when the container starts.
-COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template
-COPY --from=build /app/dist /usr/share/nginx/html
+FROM caddy:2-alpine AS prod
+# Caddy fills in {$SITE_ADDRESS} and {$API_TARGET} from the environment when
+# it starts, and handles HTTPS certificates itself.
+COPY Caddyfile /etc/caddy/Caddyfile
+COPY --from=build /app/dist /srv

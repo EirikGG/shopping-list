@@ -67,7 +67,8 @@ services:
       - dev
 
 
-  # The built app served by nginx, which also forwards /api to the backend.
+  # The built app served over HTTPS by Caddy, which also forwards /api to the
+  # backend. See web/Caddyfile.
   web:
     build:
       context: web/
@@ -75,10 +76,19 @@ services:
       target: prod
     restart: unless-stopped
     environment:
-      WEB_PORT: ${WEB_PORT}
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
       API_TARGET: http://app:${APP_PORT}
+    # 80 is needed too: Let's Encrypt checks the domain over it, and Caddy
+    # redirects plain HTTP to HTTPS. 443/udp is HTTP/3.
     ports:
-      - "${WEB_PORT}:${WEB_PORT}"
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      # The certificates. Kept across rebuilds, as Let's Encrypt limits how
+      # often a new one can be issued.
+      - caddy-data:/data
+      - caddy-config:/config
     networks:
       - backend
     depends_on:
@@ -142,6 +152,8 @@ services:
 
 volumes:
   postgres-data:
+  caddy-data:
+  caddy-config:
 
 networks:
   backend:

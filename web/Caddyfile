@@ -1,0 +1,42 @@
+# Serves the built app over HTTPS and forwards /api to the backend.
+#
+# SITE_ADDRESS is the domain, e.g. list.eirikgg.no. For a real domain Caddy
+# gets a certificate from Let's Encrypt, renews it, and redirects HTTP to
+# HTTPS. This needs DNS pointing here and ports 80 and 443 open. For
+# "localhost" it uses a self-signed certificate instead.
+{$SITE_ADDRESS} {
+	encode gzip
+
+	header {
+		# Browsers keep to HTTPS for this domain for a year.
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# /api/item goes to the backend as /item. Caddy is the first stop for
+	# every request, so the connecting address is the user's own. It replaces
+	# any X-Real-IP the client sent; the backend rate-limits by it.
+	handle_path /api/* {
+		reverse_proxy {$API_TARGET} {
+			header_up X-Real-IP {remote_host}
+		}
+	}
+
+	handle {
+		root * /srv
+
+		# Vite puts a content hash in these file names, so they never change.
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+
+		# index.html must be fetched fresh, so a deploy shows up straight away.
+		@pages not path /assets/*
+		header @pages Cache-Control "no-cache"
+
+		# Deep links get the app, which then shows the right page.
+		try_files {path} /index.html
+		file_server
+	}
+}
