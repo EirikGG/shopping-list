@@ -8,7 +8,7 @@ import io.javalin.http.Header;
 import io.javalin.testtools.JavalinTest;
 import io.javalin.testtools.TestConfig;
 import no.eirikgg.shoppinglist.Json;
-import no.eirikgg.shoppinglist.Main;
+import no.eirikgg.shoppinglist.TestApp;
 import no.eirikgg.shoppinglist.db.EmbeddedPostgresDb;
 import no.eirikgg.shoppinglist.db.LiquibaseMigrator;
 import no.eirikgg.shoppinglist.db.user.EmailSenderFake;
@@ -45,7 +45,7 @@ class ItemListControllerTest {
 
         fakeEmailSender = new EmailSenderFake();
         testConfig = new TestConfig(true, false);
-        app = Main.setupJavalinApp(db, fakeEmailSender);
+        app = TestApp.create(db, fakeEmailSender);
     }
 
     @Test
@@ -79,7 +79,7 @@ class ItemListControllerTest {
         );
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM_LIST))
-                .header(Header.AUTHORIZATION, SESSION_ID.toString())
+                .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
                 .header(Header.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                 .method("PATCH", getBodyPublisher(requestBody))
                 .build();
@@ -98,7 +98,7 @@ class ItemListControllerTest {
         );
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM_LIST))
-                .header(Header.AUTHORIZATION, SESSION_ID.toString())
+                .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
                 .method("DELETE", getBodyPublisher(requestBody))
                 .build();
 
@@ -114,7 +114,7 @@ class ItemListControllerTest {
         ItemController.PostItemListRequest requestBody = new ItemController.PostItemListRequest(LIST_NAME);
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM_LIST))
-            .header(Header.AUTHORIZATION, SESSION_ID.toString())
+            .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
             .POST(getBodyPublisher(requestBody))
             .build();
 
@@ -137,7 +137,7 @@ class ItemListControllerTest {
     {
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM_LIST))
-            .header(Header.AUTHORIZATION, SESSION_ID.toString())
+            .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
             .GET()
             .build();
 

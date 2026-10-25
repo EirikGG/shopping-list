@@ -22,6 +22,7 @@ import no.eirikgg.shoppinglist.web.filter.RateLimiter;
 import no.eirikgg.shoppinglist.service.AuthenticationService;
 import no.eirikgg.shoppinglist.service.CredentialValidator;
 import no.eirikgg.shoppinglist.service.EmailService;
+import no.eirikgg.shoppinglist.service.JwtService;
 import no.eirikgg.shoppinglist.service.EmailSender;
 import no.eirikgg.shoppinglist.service.PasswordService;
 import no.eirikgg.shoppinglist.service.UserService;
@@ -47,22 +48,26 @@ public class UserController {
     private UserService userService;
     private AuthenticationService authenticationService;
     private EmailService emailService;
+    private JwtService jwtService;
 
     public UserController(
             UserService userService,
             AuthenticationService authenticationService,
-            EmailService emailService
+            EmailService emailService,
+            JwtService jwtService
     ) {
         this.userService = userService;
         this.authenticationService = authenticationService;
         this.emailService = emailService;
+        this.jwtService = jwtService;
     }
 
-    public static void setup(JavalinConfig config, Db db, EmailSender emailSender) {
+    public static void setup(JavalinConfig config, Db db, EmailSender emailSender, JwtService jwtService) {
         UserController userController = new UserController(
                 new UserService(db),
                 new AuthenticationService(db),
-                new EmailService(db, emailSender)
+                new EmailService(db, emailSender),
+                jwtService
         );
         config.routes.post(UserController.PATH_USER, userController::createUser);
         config.routes.post(UserController.PATH_LOGIN, userController::login);
@@ -96,22 +101,27 @@ public class UserController {
         );
         UUID sessionId = authenticationService.login(email, password).orElseThrow(
                 () -> new RuntimeException("User just created - should be able to login")
-        );
+        ).sessionId();
         emailService.createUserVerificationEmail(sessionId, persistedUser);
     }
 
     record PostLoginRequest(String email, String password) {}
-    record PostLoginResponse(UUID session) {}
+    // token is a JWT, sent back as "Authorization: Bearer <token>".
+    record PostLoginResponse(String token) {}
     public void login(Context ctx) throws InvalidSessionException, UserEmailNotVerifiedException {
         PostLoginRequest request = ctx.bodyAsClass(PostLoginRequest.class);
-        Optional<UUID> sessionId = authenticationService.login(request.email(), request.password());
+        Optional<AuthenticationService.Login> login = authenticationService.login(
+                request.email(), request.password()
+        );
 
-        if (sessionId.isEmpty()) {
+        if (login.isEmpty()) {
             ctx.status(HttpStatus.UNAUTHORIZED);
             throw new UnauthorizedResponse("UNAUTHORIZED");
         }
 
-        PostLoginResponse response = new PostLoginResponse(sessionId.orElseThrow());
+        AuthenticationService.Login session = login.orElseThrow();
+        String token = jwtService.createToken(session.personId(), session.sessionId(), session.expiresAt());
+        PostLoginResponse response = new PostLoginResponse(token);
         ctx.status(HttpStatus.OK).json(response);
     }
 
@@ -132,7 +142,7 @@ public class UserController {
     public void verifyEmail(Context ctx) throws EmailNotRegisteredException, EmailAlreadyVerifiedException,
             WrongEmailVerificationCodeException {
         PostVerifyEmailRequest request = ctx.bodyAsClass(PostVerifyEmailRequest.class);
-        log.info("Verifying email address {} with code {}", request.email(), request.key());
+        log.info("Verifying email address {}", request.email());
         userService.verifyEmailAddress(request.email(), request.key());
     }
 }

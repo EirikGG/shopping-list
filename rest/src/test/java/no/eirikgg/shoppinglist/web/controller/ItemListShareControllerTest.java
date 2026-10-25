@@ -8,7 +8,7 @@ import io.javalin.testtools.HttpClient;
 import io.javalin.testtools.JavalinTest;
 import io.javalin.testtools.TestConfig;
 import no.eirikgg.shoppinglist.Json;
-import no.eirikgg.shoppinglist.Main;
+import no.eirikgg.shoppinglist.TestApp;
 import no.eirikgg.shoppinglist.datamodel.ItemListMember;
 import no.eirikgg.shoppinglist.db.EmbeddedPostgresDb;
 import no.eirikgg.shoppinglist.db.LiquibaseMigrator;
@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ItemListShareControllerTest {
 
+    private final EmbeddedPostgresDb db;
     private final Javalin app;
     private final TestConfig testConfig = new TestConfig(true, false);
     private final ObjectMapper mapper = Json.MAPPER;
@@ -38,11 +39,11 @@ class ItemListShareControllerTest {
     private final String OTHER_EMAIL = "second-unit-test-user@test.com";
 
     public ItemListShareControllerTest() {
-        EmbeddedPostgresDb db = EmbeddedPostgresDb.createMigratedInstance();
+        db = EmbeddedPostgresDb.createMigratedInstance();
         LiquibaseMigrator migrator = new LiquibaseMigrator();
         migrator.migrate(db, "db/updates/t0001-create-test-user-and-login.sql");
         migrator.migrate(db, "db/updates/t0003-create-second-test-user.sql");
-        app = Main.setupJavalinApp(db, new EmailSenderFake());
+        app = TestApp.create(db, new EmailSenderFake());
     }
 
     @Test
@@ -123,7 +124,7 @@ class ItemListShareControllerTest {
                 : HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(body));
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(client.getOrigin() + path))
-                .header(Header.AUTHORIZATION, session.toString())
+                .header(Header.AUTHORIZATION, TestApp.bearer(db, session))
                 .method(method, publisher)
                 .build();
         return java.net.http.HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());

@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -19,9 +20,16 @@ public class AuthenticationRepository {
 
     private DbUtils dbUtils = new DbUtils();
 
+    // How long a login lasts. The login token expires at the same time.
+    public static final Duration SESSION_LENGTH = Duration.ofHours(4);
 
-    public UUID createSession(Connection conn, User user) throws SQLException {
+
+    public record NewSession(UUID sessionId, LocalDateTime validUntil) {}
+
+    public NewSession createSession(Connection conn, User user) throws SQLException {
         UUID sessionId = UUID.randomUUID();
+        LocalDateTime validFrom = LocalDateTime.now();
+        LocalDateTime validUntil = validFrom.plus(SESSION_LENGTH);
         dbUtils.insert(conn, """
             insert into session(
                 session_id,
@@ -37,11 +45,11 @@ public class AuthenticationRepository {
             """,
             sessionId,
             user.getAuthorization().getId().orElseThrow(),
-            LocalDateTime.now(),
-            LocalDateTime.now().plusHours(4)
+            validFrom,
+            validUntil
         );
 
-        return sessionId;
+        return new NewSession(sessionId, validUntil);
     }
 
     public Optional<User> getUserFromSession(Connection conn, UUID sessionId) {

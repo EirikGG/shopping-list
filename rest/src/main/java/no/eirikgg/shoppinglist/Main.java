@@ -13,9 +13,10 @@ import no.eirikgg.shoppinglist.web.controller.UserController;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.db.PostgresDb;
 import no.eirikgg.shoppinglist.web.filter.AuthenticationFilter;
-import no.eirikgg.shoppinglist.web.filter.LogFilter;
+import no.eirikgg.shoppinglist.web.filter.RequestLog;
 import no.eirikgg.shoppinglist.service.EmailSender;
 import no.eirikgg.shoppinglist.service.EmailSenderSmtp;
+import no.eirikgg.shoppinglist.service.JwtService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +44,9 @@ public class Main {
         // Set in docker-compose.yml, where the backend is only reached through a proxy.
         boolean trustProxy = Boolean.parseBoolean(System.getenv("TRUST_PROXY"));
         log.info("Taking client addresses from {}", trustProxy ? ClientIp.HEADER : "the connection");
-        Javalin app = setupJavalinApp(db, emailSender, trustProxy);
+        // From the environment, like the mail key, so it is never printed.
+        JwtService jwtService = new JwtService(System.getenv("JWT_SECRET"));
+        Javalin app = setupJavalinApp(db, emailSender, jwtService, trustProxy);
 
         log.info("Configured javalin routes");
         app.start(appPort);
@@ -68,13 +71,11 @@ public class Main {
     }
 
 
-    public static Javalin setupJavalinApp(Db db, EmailSender emailSender) {
-        return setupJavalinApp(db, emailSender, false);
-    }
-
     // trustProxy takes the client address from the proxy's X-Real-IP header.
     // See ClientIp for when that is safe.
-    public static Javalin setupJavalinApp(Db db, EmailSender emailSender, boolean trustProxy) {
+    public static Javalin setupJavalinApp(
+            Db db, EmailSender emailSender, JwtService jwtService, boolean trustProxy
+    ) {
         Javalin app = Javalin.create(config -> {
 
             config.jsonMapper(new JavalinJackson(Json.MAPPER, false));
@@ -85,11 +86,11 @@ public class Main {
 
             EmailWorker.setup(config, db, emailSender);
 
-            LogFilter.setup(config);
-            AuthenticationFilter.setup(config, db);
+            RequestLog.setup(config);
+            AuthenticationFilter.setup(config, db, jwtService);
 
             GeneralController.setup(config, db);
-            UserController.setup(config, db, emailSender);
+            UserController.setup(config, db, emailSender, jwtService);
             ItemController.setup(config, db);
             StoreController.setup(config, db);
 

@@ -13,11 +13,10 @@ import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.errors.InvalidSessionException;
 import no.eirikgg.shoppinglist.errors.UserEmailNotVerifiedException;
 import no.eirikgg.shoppinglist.service.AuthenticationService;
+import no.eirikgg.shoppinglist.service.JwtService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Optional;
-import java.util.UUID;
 
 
 public class AuthenticationFilter {
@@ -28,15 +27,19 @@ public class AuthenticationFilter {
     public static final String PARAM_SESSION_ID = "session";
 
 
-    private AuthenticationService authenticationService;
+    private static final String BEARER = "Bearer ";
 
-    public AuthenticationFilter(AuthenticationService authenticationService) {
+    private AuthenticationService authenticationService;
+    private JwtService jwtService;
+
+    public AuthenticationFilter(AuthenticationService authenticationService, JwtService jwtService) {
         this.authenticationService = authenticationService;
+        this.jwtService = jwtService;
     }
 
-    public static void setup(JavalinConfig config, Db db) {
+    public static void setup(JavalinConfig config, Db db, JwtService jwtService) {
         AuthenticationService authenticationService = new AuthenticationService(db);
-        AuthenticationFilter authenticationFilter = new AuthenticationFilter(authenticationService);
+        AuthenticationFilter authenticationFilter = new AuthenticationFilter(authenticationService, jwtService);
         config.routes.beforeMatched(authenticationFilter::filter);
     }
 
@@ -48,18 +51,28 @@ public class AuthenticationFilter {
             return;
         }
 
-        UUID sessionId = Optional.of(ctx)
-                .map(context -> context.header(Header.AUTHORIZATION))
-                .map(header -> header.replace("Bearer ", ""))
-                .map(UUID::fromString)
-                .orElseThrow(() -> new UnauthorizedResponse("User not authorized"));
+        // The token is a JWT from the login. Its signature and expiry are
+        // checked first; then the session it names must still be active in the
+        // database, so logging out ends it, and it must belong to the same person.
+        String header = ctx.header(Header.AUTHORIZATION);
+        if (null == header || header.isBlank()) {
+            throw new UnauthorizedResponse("User not authorized");
+        }
+        String token = header.startsWith(BEARER) ? header.substring(BEARER.length()) : header;
 
-        User user = authenticationService.getLoggedInUser(sessionId).orElseThrow(
+        JwtService.Claims claims = jwtService.verify(token.trim()).orElseThrow(
                 () -> new UnauthorizedResponse("User not authorized")
         );
 
-        log.debug("Logged in user: {}", user.getAuthorization().getEmail());
-        Session session = new Session(sessionId, user);
+        User user = authenticationService.getLoggedInUser(claims.sessionId()).orElseThrow(
+                () -> new UnauthorizedResponse("User not authorized")
+        );
+        if (user.getPerson().getId().orElseThrow() != claims.personId()) {
+            throw new UnauthorizedResponse("User not authorized");
+        }
+
+        // Read by the request log (RequestLog), which never logs the token.
+        Session session = new Session(claims.sessionId(), user);
         ctx.attribute(PARAM_SESSION, session);
     }
 

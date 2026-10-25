@@ -8,7 +8,7 @@ import io.javalin.testtools.HttpClient;
 import io.javalin.testtools.JavalinTest;
 import io.javalin.testtools.TestConfig;
 import no.eirikgg.shoppinglist.Json;
-import no.eirikgg.shoppinglist.Main;
+import no.eirikgg.shoppinglist.TestApp;
 import no.eirikgg.shoppinglist.db.DbUtils;
 import no.eirikgg.shoppinglist.db.EmbeddedPostgresDb;
 import no.eirikgg.shoppinglist.db.LiquibaseMigrator;
@@ -52,7 +52,7 @@ class ItemControllerTest {
 
         fakeEmailSender = new EmailSenderFake();
         testConfig = new TestConfig(true, false);
-        app = Main.setupJavalinApp(db, fakeEmailSender);
+        app = TestApp.create(db, fakeEmailSender);
         DbUtils dbUtils = new DbUtils();
         try (Connection conn = db.getConnection()) {
             ITEM_LIST_ID = dbUtils.selectSingle(conn,
@@ -130,7 +130,7 @@ class ItemControllerTest {
     {
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + StoreController.PATH_STORE_ITEM_MAPPING))
-            .header(Header.AUTHORIZATION, SESSION_ID.toString())
+            .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
             .method(method, getBodyPublisher(requestBody))
             .build();
 
@@ -145,7 +145,7 @@ class ItemControllerTest {
         StoreController.PostStoreRequest requestBody = new StoreController.PostStoreRequest(storeName);
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + StoreController.PATH_STORE))
-            .header(Header.AUTHORIZATION, SESSION_ID.toString())
+            .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
             .POST(getBodyPublisher(requestBody))
             .build();
 
@@ -163,7 +163,7 @@ class ItemControllerTest {
         ItemController.DeleteItemRequest requestBody = new ItemController.DeleteItemRequest(itemId);
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM))
-            .header(Header.AUTHORIZATION, SESSION_ID.toString())
+            .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
             .method("DELETE", getBodyPublisher(requestBody))
             .build();
 
@@ -180,7 +180,7 @@ class ItemControllerTest {
         ItemController.PatchItemRequest requestBody = new ItemController.PatchItemRequest(itemId, newName, completed);
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM))
-            .header(Header.AUTHORIZATION, SESSION_ID.toString())
+            .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
             .method("PATCH", getBodyPublisher(requestBody))
             .build();
 
@@ -211,7 +211,7 @@ class ItemControllerTest {
         );
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM))
-            .header(Header.AUTHORIZATION, SESSION_ID.toString())
+            .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
             .POST(getBodyPublisher(requestBody))
             .build();
 
@@ -234,7 +234,7 @@ class ItemControllerTest {
         ItemController.GetItemRequest requestBody = new ItemController.GetItemRequest(itemId);
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM))
-            .header(Header.AUTHORIZATION, SESSION_ID.toString())
+            .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
             .method("GET", getBodyPublisher(requestBody))
             .build();
 

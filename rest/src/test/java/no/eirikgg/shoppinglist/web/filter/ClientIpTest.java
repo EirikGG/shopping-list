@@ -4,7 +4,7 @@ import io.javalin.Javalin;
 import io.javalin.testtools.HttpClient;
 import io.javalin.testtools.JavalinTest;
 import io.javalin.testtools.TestConfig;
-import no.eirikgg.shoppinglist.Main;
+import no.eirikgg.shoppinglist.TestApp;
 import no.eirikgg.shoppinglist.db.EmbeddedPostgresDb;
 import no.eirikgg.shoppinglist.db.user.EmailSenderFake;
 import org.junit.jupiter.api.Test;
@@ -30,7 +30,7 @@ class ClientIpTest {
 
     @Test
     void behindTheProxy_eachUserHasTheirOwnLimit() {
-        Javalin app = Main.setupJavalinApp(db, new EmailSenderFake(), true);
+        Javalin app = TestApp.create(db, new EmailSenderFake(), true);
         JavalinTest.test(app, testConfig, (server, client) -> {
             for (int i = 0; i < LIMIT; i++) {
                 assertNotEquals(429, get(client, USER_A));
@@ -44,7 +44,7 @@ class ClientIpTest {
 
     @Test
     void withoutTrustingTheProxy_theHeaderCannotDodgeTheLimit() {
-        Javalin app = Main.setupJavalinApp(db, new EmailSenderFake(), false);
+        Javalin app = TestApp.create(db, new EmailSenderFake(), false);
         JavalinTest.test(app, testConfig, (server, client) -> {
             for (int i = 0; i < LIMIT; i++) {
                 get(client, USER_A);

@@ -9,7 +9,7 @@ import io.javalin.testtools.JavalinTest;
 import io.javalin.testtools.Response;
 import io.javalin.testtools.TestConfig;
 import no.eirikgg.shoppinglist.Json;
-import no.eirikgg.shoppinglist.Main;
+import no.eirikgg.shoppinglist.TestApp;
 import no.eirikgg.shoppinglist.datamodel.EmailTemplate;
 import no.eirikgg.shoppinglist.db.EmbeddedPostgresDb;
 import no.eirikgg.shoppinglist.db.user.EmailSenderFake;
@@ -24,7 +24,6 @@ import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -43,7 +42,7 @@ class UserControllerTest {
     void createMultipleUsers_expectRateLimiting() {
         EmbeddedPostgresDb db = EmbeddedPostgresDb.createMigratedInstance();
         EmailSenderFake fakeEmailSender = new EmailSenderFake();
-        Javalin app = Main.setupJavalinApp(db, fakeEmailSender);
+        Javalin app = TestApp.create(db, fakeEmailSender);
         TestConfig testConfig = new TestConfig(true, false);
         JavalinTest.test(app, testConfig, (server, client) -> {
 
@@ -85,7 +84,7 @@ class UserControllerTest {
     void createUserAndLogin_expectLoggedInOk() {
         EmbeddedPostgresDb db = EmbeddedPostgresDb.createMigratedInstance();
         EmailSenderFake fakeEmailSender = new EmailSenderFake();
-        Javalin app = Main.setupJavalinApp(db, fakeEmailSender);
+        Javalin app = TestApp.create(db, fakeEmailSender);
         TestConfig testConfig = new TestConfig(true, false);
         JavalinTest.test(app, testConfig, (server, client) -> {
 
@@ -99,7 +98,7 @@ class UserControllerTest {
                     UserController.PostLoginResponse.class
             );
 
-            UUID okSessionId = okSessionBodyJson.session();
+            String token = okSessionBodyJson.token();
 
 
             Response duplicateUsernameResponse = createUserAndExpectStatus(client, 400);
@@ -110,20 +109,20 @@ class UserControllerTest {
             assertTrue(duplicateUsernameResponse.getBody().string().contains(Error.DUPLICATE_USERNAME.name()));
 
 
-            testSessionId(client, okSessionId, 200);
+            testSessionId(client, token, 200);
 
-            testLogout(client, okSessionId);
-            testSessionId(client, okSessionId, 401);
+            testLogout(client, token);
+            testSessionId(client, token, 401);
         });
     }
 
     private void testLogout(
-            HttpClient client, UUID sessionId
+            HttpClient client, String token
     ) throws IOException, InterruptedException {
 
         HttpRequest request = HttpRequest.newBuilder()
                  .uri(URI.create(client.getOrigin() + UserController.PATH_LOGOUT))
-                 .header(Header.AUTHORIZATION, sessionId.toString())
+                 .header(Header.AUTHORIZATION, "Bearer " + token)
                  .POST(HttpRequest.BodyPublishers.noBody())
                  .build();
 
@@ -160,12 +159,12 @@ class UserControllerTest {
 
 
     private static void testSessionId(
-            HttpClient client, UUID okSessionId, int expectedStatusCode
+            HttpClient client, String token, int expectedStatusCode
     ) throws IOException, InterruptedException {
 
         HttpRequest request = HttpRequest.newBuilder()
                  .uri(URI.create(client.getOrigin() + UserController.PATH_SESSION_IS_VALID))
-                 .header(Header.AUTHORIZATION, okSessionId.toString())
+                 .header(Header.AUTHORIZATION, "Bearer " + token)
                  .GET()
                  .build();
 
@@ -197,7 +196,7 @@ class UserControllerTest {
     @Test
     void createUser_validatesEmailAndPassword() {
         EmbeddedPostgresDb db = EmbeddedPostgresDb.createMigratedInstance();
-        Javalin app = Main.setupJavalinApp(db, new EmailSenderFake());
+        Javalin app = TestApp.create(db, new EmailSenderFake());
         TestConfig testConfig = new TestConfig(true, false);
         JavalinTest.test(app, testConfig, (server, client) -> {
             Response invalidEmail = client.post(UserController.PATH_USER, new UserController.PostCreateUserRequest(

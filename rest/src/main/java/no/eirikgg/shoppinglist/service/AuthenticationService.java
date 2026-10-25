@@ -12,7 +12,9 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -29,7 +31,10 @@ public class AuthenticationService {
     }
 
 
-    public Optional<UUID> login(String username, String password) throws InvalidSessionException {
+    // The new session, and who it belongs to, for the login token.
+    public record Login(UUID sessionId, int personId, Instant expiresAt) {}
+
+    public Optional<Login> login(String username, String password) throws InvalidSessionException {
         try (Connection conn = db.getConnection()) {
             User user = userRepository.getUser(conn, username).orElse(null);
 
@@ -44,8 +49,12 @@ public class AuthenticationService {
                 return Optional.empty();
             }
 
-            UUID sessionId = authenticationRepository.createSession(conn, user);
-            return Optional.of(sessionId);
+            AuthenticationRepository.NewSession session = authenticationRepository.createSession(conn, user);
+            return Optional.of(new Login(
+                    session.sessionId(),
+                    user.getPerson().getId().orElseThrow(),
+                    session.validUntil().atZone(ZoneId.systemDefault()).toInstant()
+            ));
         }
         catch (SQLException e) {
             throw new RuntimeException(e);

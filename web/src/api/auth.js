@@ -28,11 +28,12 @@ async function postJson(path, body) {
 }
 
 // Logging in works before the email is verified; the session only becomes
-// valid once it is.
+// valid once it is. Returns the login token (a JWT), which is sent as
+// "Authorization: Bearer <token>" and stored where the session id used to be.
 export async function login(email, password) {
   const response = await postJson('/login_user', { email, password })
   const body = await response.json()
-  return body.session
+  return body.token
 }
 
 // The backend answers with an empty body, so there is nothing to return.

@@ -9,7 +9,7 @@ import io.javalin.testtools.HttpClient;
 import io.javalin.testtools.JavalinTest;
 import io.javalin.testtools.TestConfig;
 import no.eirikgg.shoppinglist.Json;
-import no.eirikgg.shoppinglist.Main;
+import no.eirikgg.shoppinglist.TestApp;
 import no.eirikgg.shoppinglist.db.EmbeddedPostgresDb;
 import no.eirikgg.shoppinglist.db.LiquibaseMigrator;
 import no.eirikgg.shoppinglist.db.user.EmailSenderFake;
@@ -46,7 +46,7 @@ class StoreControllerTest {
 
         fakeEmailSender = new EmailSenderFake();
         testConfig = new TestConfig(true, false);
-        app = Main.setupJavalinApp(db, fakeEmailSender);
+        app = TestApp.create(db, fakeEmailSender);
     }
 
     @Test
@@ -93,7 +93,7 @@ class StoreControllerTest {
     {
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + StoreController.PATH_STORE_LIST))
-            .header(Header.AUTHORIZATION, SESSION_ID.toString())
+            .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
             .GET()
             .build();
 
@@ -109,7 +109,7 @@ class StoreControllerTest {
         StoreController.DeleteStoreRequest requestBody = new StoreController.DeleteStoreRequest(storeId);
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + StoreController.PATH_STORE))
-            .header(Header.AUTHORIZATION, SESSION_ID.toString())
+            .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
             .method("DELETE", getBodyPublisher(requestBody))
             .build();
 
@@ -126,7 +126,7 @@ class StoreControllerTest {
         StoreController.PatchStoreRequest requestBody = new StoreController.PatchStoreRequest(storeId, newName);
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + StoreController.PATH_STORE))
-            .header(Header.AUTHORIZATION, SESSION_ID.toString())
+            .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
             .method("PATCH", getBodyPublisher(requestBody))
             .build();
 
@@ -143,7 +143,7 @@ class StoreControllerTest {
         StoreController.PostStoreRequest requestBody = new StoreController.PostStoreRequest(storeName);
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + StoreController.PATH_STORE))
-            .header(Header.AUTHORIZATION, SESSION_ID.toString())
+            .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
             .POST(getBodyPublisher(requestBody))
             .build();
 
@@ -167,7 +167,7 @@ class StoreControllerTest {
         StoreController.GetStoreRequest requestBody = new StoreController.GetStoreRequest(storeId);
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + StoreController.PATH_STORE))
-            .header(Header.AUTHORIZATION, SESSION_ID.toString())
+            .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
             .method("GET", getBodyPublisher(requestBody))
             .build();
 

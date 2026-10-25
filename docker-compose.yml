@@ -51,6 +51,8 @@ services:
       # Rate limits use the client address the web proxy passes in X-Real-IP.
       # Safe only because the port below is not reachable from outside.
       TRUST_PROXY: "true"
+      # Signs the login tokens. Changing it logs everyone out.
+      JWT_SECRET: ${JWT_SECRET:-}
       LOG_LEVEL: ${LOG_LEVEL:-debug}
       LOG_LEVEL_ROOT: ${LOG_LEVEL_ROOT:-info}
     # Localhost only: browsers reach the backend through the web proxy, and a
