@@ -6,28 +6,29 @@ import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.UnauthorizedResponse;
 import no.eirikgg.shoppinglist.Json;
-import no.eirikgg.shoppinglist.datamodel.Person;
 import no.eirikgg.shoppinglist.datamodel.Session;
 import no.eirikgg.shoppinglist.datamodel.User;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.errors.EmailAlreadyVerifiedException;
+import no.eirikgg.shoppinglist.errors.InvalidEmailException;
 import no.eirikgg.shoppinglist.errors.InvalidSessionException;
 import no.eirikgg.shoppinglist.errors.EmailNotRegisteredException;
 import no.eirikgg.shoppinglist.errors.UserEmailNotVerifiedException;
 import no.eirikgg.shoppinglist.errors.UsernameAlreadyExistsException;
+import no.eirikgg.shoppinglist.errors.WeakPasswordException;
 import no.eirikgg.shoppinglist.errors.WrongEmailVerificationCodeException;
 import no.eirikgg.shoppinglist.web.filter.AuthenticationFilter;
 import no.eirikgg.shoppinglist.web.filter.RateLimiter;
 import no.eirikgg.shoppinglist.service.AuthenticationService;
+import no.eirikgg.shoppinglist.service.CredentialValidator;
 import no.eirikgg.shoppinglist.service.EmailService;
-import no.eirikgg.shoppinglist.service.EmailSenderSmtp;
+import no.eirikgg.shoppinglist.service.EmailSender;
 import no.eirikgg.shoppinglist.service.PasswordService;
 import no.eirikgg.shoppinglist.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.time.LocalDate;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -57,7 +58,7 @@ public class UserController {
         this.emailService = emailService;
     }
 
-    public static void setup(JavalinConfig config, Db db, EmailSenderSmtp emailSender) {
+    public static void setup(JavalinConfig config, Db db, EmailSender emailSender) {
         UserController userController = new UserController(
                 new UserService(db),
                 new AuthenticationService(db),
@@ -73,25 +74,23 @@ public class UserController {
     record PostCreateUserRequest(
         String firstname,
         String lastname,
-        LocalDate birthdate,
-        Person.Gender gender,
         String password,
         String email
     ) {}
     public void createUser(Context ctx)
-            throws UsernameAlreadyExistsException, InvalidSessionException, EmailNotRegisteredException {
+            throws UsernameAlreadyExistsException, InvalidSessionException, EmailNotRegisteredException,
+            InvalidEmailException, WeakPasswordException {
         rateLimiter.check(ctx);
 
         PostCreateUserRequest request = ctx.bodyAsClass(PostCreateUserRequest.class);
-        String email = request.email();
+        String email = CredentialValidator.validateEmail(request.email());
         String password = request.password();
+        CredentialValidator.validatePassword(password);
         String hashedPassword = PasswordService.hashPassword(password);
 
         User persistedUser = userService.createUser(
                 request.firstname(),
                 request.lastname(),
-                request.birthdate(),
-                request.gender(),
                 email,
                 hashedPassword
         );

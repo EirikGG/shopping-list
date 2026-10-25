@@ -12,7 +12,6 @@ import no.eirikgg.shoppinglist.errors.WrongEmailVerificationCodeException;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class UserService {
@@ -29,8 +28,6 @@ public class UserService {
     public User createUser(
             String firstname,
             String lastname,
-            LocalDate birthdate,
-            Person.Gender gender,
             String email,
             String hashedPassword
     ) throws UsernameAlreadyExistsException {
@@ -40,9 +37,7 @@ public class UserService {
                 Person person = userRepository.createPerson(
                         conn,
                         firstname,
-                        lastname,
-                        birthdate,
-                        gender
+                        lastname
                 );
                 Authorization authorization = userRepository.saveAutorization(
                         conn,

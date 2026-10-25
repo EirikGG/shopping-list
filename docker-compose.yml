@@ -41,8 +41,13 @@ services:
         -DDB.PASSWORD=${DB_PASSWORD}
         -DDB.POOL_SIZE=${DB_POOL_SIZE}
         -DAPP.PORT=${APP_PORT}
-        -DMAIL.HOST=mailpit
-        -DMAIL.PORT=${MAIL_PORT}
+      # Plain variables, not -D options: JAVA_TOOL_OPTIONS is printed to the
+      # log at startup, which would leak the API key.
+      MAIL_HOST: ${MAIL_HOST:-mailpit}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_API_KEY: ${MAIL_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-}
     ports:
       - "${APP_PORT}:${APP_PORT}"
     networks:

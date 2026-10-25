@@ -11,7 +11,6 @@ import io.javalin.testtools.TestConfig;
 import no.eirikgg.shoppinglist.Json;
 import no.eirikgg.shoppinglist.Main;
 import no.eirikgg.shoppinglist.datamodel.EmailTemplate;
-import no.eirikgg.shoppinglist.datamodel.Person;
 import no.eirikgg.shoppinglist.db.EmbeddedPostgresDb;
 import no.eirikgg.shoppinglist.db.user.EmailSenderFake;
 import no.eirikgg.shoppinglist.errors.Error;
@@ -24,7 +23,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
 
@@ -37,10 +35,8 @@ class UserControllerTest {
 
     public final static String FIRSTNAME = "Eirik";
     public final static String LASTNAME = "Gustafsson";
-    public final static LocalDate BIRTHDATE = LocalDate.of(1994, 05, 14);
-    public final static Person.Gender GENDER = Person.Gender.MALE;
     public final static String EMAIL = "eirikgg94@gmail.com";
-    public final static String PASSWORD = "test1234";
+    public final static String PASSWORD = "Test1234";
 
 
     @Test
@@ -77,8 +73,6 @@ class UserControllerTest {
         UserController.PostCreateUserRequest request = new UserController.PostCreateUserRequest(
                 FIRSTNAME,
                 LASTNAME,
-                BIRTHDATE,
-                GENDER,
                 PASSWORD,
                 email
         );
@@ -197,6 +191,28 @@ class UserControllerTest {
         log.info("login response: {}", failedLoginResponse.getBody().string());
         assertEquals(401, failedLoginResponse.code());
         return loginResponse;
+    }
+
+
+    @Test
+    void createUser_validatesEmailAndPassword() {
+        EmbeddedPostgresDb db = EmbeddedPostgresDb.createMigratedInstance();
+        Javalin app = Main.setupJavalinApp(db, new EmailSenderFake());
+        TestConfig testConfig = new TestConfig(true, false);
+        JavalinTest.test(app, testConfig, (server, client) -> {
+            Response invalidEmail = client.post(UserController.PATH_USER, new UserController.PostCreateUserRequest(
+                    FIRSTNAME, LASTNAME, PASSWORD, "not-an-email"
+            ));
+            assertEquals(400, invalidEmail.code());
+            assertEquals(Error.INVALID_EMAIL.name(), mapper.readTree(invalidEmail.getBody().string()).get("error").asText());
+
+            Response weakPassword = client.post(UserController.PATH_USER, new UserController.PostCreateUserRequest(
+                    FIRSTNAME, LASTNAME, "password", "weak-password@test.com"
+            ));
+            assertEquals(400, weakPassword.code());
+            assertEquals(Error.WEAK_PASSWORD.name(), mapper.readTree(weakPassword.getBody().string()).get("error").asText());
+
+        });
     }
 
 

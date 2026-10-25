@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Icon from './Icon.vue'
 import { removeItemListMember, shareItemList } from '../api/items.js'
+import { isValidEmail } from '../validation.js'
 
 // Who a list is shared with. The owner adds people by email and removes them;
 // a member can leave the list.
@@ -117,7 +118,7 @@ async function leave() {
         autocomplete="off"
         required
       />
-      <button type="submit" :disabled="busy || !email">{{ t('share.add') }}</button>
+      <button type="submit" :disabled="busy || !isValidEmail(email)">{{ t('share.add') }}</button>
     </form>
 
     <button v-else type="button" class="secondary leave" :disabled="busy" @click="leave">

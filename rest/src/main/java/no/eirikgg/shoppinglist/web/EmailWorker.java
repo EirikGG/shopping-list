@@ -4,7 +4,7 @@ import io.javalin.config.JavalinConfig;
 import no.eirikgg.shoppinglist.datamodel.EmailMessage;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.service.EmailService;
-import no.eirikgg.shoppinglist.service.EmailSenderSmtp;
+import no.eirikgg.shoppinglist.service.EmailSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +26,7 @@ public class EmailWorker {
         this.emailService = emailService;
     }
 
-    public static void setup(JavalinConfig config, Db db, EmailSenderSmtp emailSender) {
+    public static void setup(JavalinConfig config, Db db, EmailSender emailSender) {
         EmailService emailService = new EmailService(db, emailSender);
         EmailWorker emailWorker = new EmailWorker(emailService);
 

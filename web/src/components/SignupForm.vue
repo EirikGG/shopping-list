@@ -1,8 +1,10 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import Icon from './Icon.vue'
 import { createUser, login } from '../api/auth.js'
 import { setSession } from '../session.js'
+import { PASSWORD_RULES, isValidEmail, isValidPassword } from '../validation.js'
 
 const emit = defineEmits(['created'])
 
@@ -13,8 +15,6 @@ const { t } = useI18n()
 const form = ref({
   firstname: '',
   lastname: '',
-  birthdate: '',
-  gender: 'MALE',
   password: '',
   email: ''
 })
@@ -28,6 +28,16 @@ const busy = ref(false)
 // backend rejects the signup. It stays marked until the email is changed.
 const emailTaken = ref(false)
 
+// Shown once the field has been left, so typing is not interrupted.
+const emailTouched = ref(false)
+const emailValid = computed(() => isValidEmail(form.value.email))
+const showEmailInvalid = computed(() => emailTouched.value && form.value.email !== '' && !emailValid.value)
+
+const passwordRules = computed(
+  () => PASSWORD_RULES.map(rule => ({ key: rule.key, met: rule.test(form.value.password) }))
+)
+const passwordValid = computed(() => isValidPassword(form.value.password))
+
 const passwordsMatch = computed(
   () => form.value.password === passwordRepeat.value
 )
@@ -37,7 +47,7 @@ const showPasswordMismatch = computed(
 )
 
 const canSubmit = computed(
-  () => !busy.value && passwordsMatch.value && !emailTaken.value
+  () => !busy.value && emailValid.value && passwordValid.value && passwordsMatch.value && !emailTaken.value
 )
 
 watch(() => form.value.email, () => {
@@ -48,11 +58,18 @@ async function submit() {
   error.value = ''
   busy.value = true
 
+  // The backend trims the email as well; this keeps the login below in step.
+  form.value.email = form.value.email.trim()
+
   try {
     await createUser(form.value)
   } catch (e) {
     if (e.status === 429) {
       error.value = 'errors.tooManyRequests'
+    } else if (e.code === 'INVALID_EMAIL') {
+      error.value = 'signup.emailInvalid'
+    } else if (e.code === 'WEAK_PASSWORD') {
+      error.value = 'signup.passwordWeak'
     } else if (e.code === 'DUPLICATE_USERNAME') {
       error.value = 'signup.duplicateEmail'
       emailTaken.value = true
@@ -89,23 +106,6 @@ async function submit() {
       </div>
     </div>
 
-    <div class="row">
-      <div class="field">
-        <label for="signup-birthdate">{{ t('signup.birthdate') }}</label>
-        <!-- type="date" submits yyyy-MM-dd, which is the format the backend parses. -->
-        <input id="signup-birthdate" v-model="form.birthdate" type="date" required />
-      </div>
-
-      <div class="field">
-        <label for="signup-gender">{{ t('signup.gender') }}</label>
-        <select id="signup-gender" v-model="form.gender">
-          <option value="MALE">{{ t('signup.genderMale') }}</option>
-          <option value="FEMALE">{{ t('signup.genderFemale') }}</option>
-          <option value="OTHER">{{ t('signup.genderOther') }}</option>
-        </select>
-      </div>
-    </div>
-
     <div class="field">
       <label for="signup-email">{{ t('signup.email') }}</label>
       <input
@@ -113,16 +113,21 @@ async function submit() {
         v-model="form.email"
         type="email"
         autocomplete="email"
+        maxlength="254"
         aria-describedby="signup-email-status"
+        :aria-invalid="showEmailInvalid || emailTaken"
         required
+        @blur="emailTouched = true"
       />
       <p
         id="signup-email-status"
         class="hint"
-        :class="{ taken: emailTaken }"
+        :class="{ taken: emailTaken || showEmailInvalid }"
         aria-live="polite"
       >
-        {{ emailTaken ? t('signup.emailTaken') : t('signup.emailHint') }}
+        <template v-if="emailTaken">{{ t('signup.emailTaken') }}</template>
+        <template v-else-if="showEmailInvalid">{{ t('signup.emailInvalid') }}</template>
+        <template v-else>{{ t('signup.emailHint') }}</template>
       </p>
     </div>
 
@@ -133,8 +138,20 @@ async function submit() {
         v-model="form.password"
         type="password"
         autocomplete="new-password"
+        maxlength="128"
+        aria-describedby="signup-password-rules"
         required
       />
+      <!-- Ticks off each rule while typing. -->
+      <ul id="signup-password-rules" class="rules">
+        <li v-for="rule in passwordRules" :key="rule.key" :class="{ met: rule.met }">
+          <Icon :name="rule.met ? 'check' : 'x'" />
+          <span>{{ t(rule.key) }}</span>
+          <span class="visually-hidden">
+            {{ rule.met ? t('signup.passwordRuleMet') : t('signup.passwordRuleNotMet') }}
+          </span>
+        </li>
+      </ul>
     </div>
 
     <div class="field">
@@ -192,6 +209,38 @@ button[type='submit'] {
 
 .hint.taken {
   color: var(--color-error);
+}
+
+.rules {
+  margin: 0.375rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.rules li {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.rules li.met {
+  color: var(--color-success);
+}
+
+.rules :deep(svg) {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .error {

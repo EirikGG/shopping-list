@@ -50,8 +50,6 @@ public class AuthenticationRepository {
                 p.person_id                 person_id,
                 p.firstname                 person_firstname,
                 p.lastname                  person_lastname,
-                p.birthdate                 person_birthdate,
-                p.gender                    person_gender,
                 login.email                 login_email,
                 login.password              login_password
             from
@@ -70,9 +68,7 @@ public class AuthenticationRepository {
                 Person person = new Person(
                     rs.getInt("person_id").orElseThrow(),
                     rs.getString("person_firstname").orElseThrow(),
-                    rs.getString("person_lastname").orElseThrow(),
-                    rs.getLocalDate("person_birthdate").orElseThrow(),
-                    Person.Gender.valueOf(rs.getString("person_gender").orElseThrow())
+                    rs.getString("person_lastname").orElseThrow()
                 );
                 Authorization authorization = new Authorization(
                     rs.getString("login_email").orElseThrow(),

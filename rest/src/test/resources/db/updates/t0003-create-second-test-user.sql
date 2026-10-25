@@ -4,15 +4,11 @@
 insert into person (
     firstname,
     lastname,
-    birthdate,
-    gender,
     created,
     deleted
 ) values (
     'Kari',
     'Nordmann',
-    '1995-03-02',
-    'FEMALE',
     now(),
     '9999-12-31 23:59:59'
 );

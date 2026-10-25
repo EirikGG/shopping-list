@@ -41,8 +41,6 @@ export async function createUser(user) {
   await postJson('/user', {
     firstname: user.firstname,
     lastname: user.lastname,
-    birthdate: user.birthdate,
-    gender: user.gender,
     password: user.password,
     email: user.email
   })

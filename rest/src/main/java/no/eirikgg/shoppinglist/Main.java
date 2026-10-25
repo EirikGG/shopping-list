@@ -13,6 +13,7 @@ import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.db.PostgresDb;
 import no.eirikgg.shoppinglist.web.filter.AuthenticationFilter;
 import no.eirikgg.shoppinglist.web.filter.LogFilter;
+import no.eirikgg.shoppinglist.service.EmailSender;
 import no.eirikgg.shoppinglist.service.EmailSenderSmtp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,9 +36,7 @@ public class Main {
         String appPortProperty = System.getProperty("APP.PORT");
         int appPort = Integer.parseInt(appPortProperty);
 
-        String emailHost = System.getProperty("MAIL.HOST");
-        String emailPort = System.getProperty("MAIL.PORT");
-        EmailSenderSmtp emailSender = new EmailSenderSmtp(emailHost, emailPort);
+        EmailSender emailSender = createEmailSender();
 
         log.info("Completed setup and migration");
         Javalin app = setupJavalinApp(db, emailSender);
@@ -47,7 +46,25 @@ public class Main {
     }
 
 
-    public static Javalin setupJavalinApp(Db db, EmailSenderSmtp emailSender) {
+    // The mail settings come from environment variables rather than -D options:
+    // JAVA_TOOL_OPTIONS is echoed to the log at startup, which would leak the
+    // API key, and a sender like "Name <a@b.com>" has spaces.
+    static EmailSender createEmailSender() {
+        String host = System.getenv("MAIL_HOST");
+        String port = System.getenv("MAIL_PORT");
+        String from = System.getenv("MAIL_FROM");
+        log.info("Sending email over SMTP through {}:{}", host, port);
+        return new EmailSenderSmtp(
+                host,
+                port,
+                System.getenv("MAIL_USERNAME"),
+                System.getenv("MAIL_API_KEY"),
+                null == from || from.isBlank() ? "Shopping list <noreply@example.com>" : from
+        );
+    }
+
+
+    public static Javalin setupJavalinApp(Db db, EmailSender emailSender) {
         Javalin app = Javalin.create(config -> {
 
             config.jsonMapper(new JavalinJackson(Json.MAPPER, false));

@@ -7,6 +7,7 @@ import io.javalin.http.InternalServerErrorResponse;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.errors.EmailAlreadyVerifiedException;
 import no.eirikgg.shoppinglist.errors.Error;
+import no.eirikgg.shoppinglist.errors.InvalidEmailException;
 import no.eirikgg.shoppinglist.errors.InvalidSessionException;
 import no.eirikgg.shoppinglist.errors.EmailNotRegisteredException;
 import no.eirikgg.shoppinglist.errors.NoAccessToResourceException;
@@ -14,6 +15,7 @@ import no.eirikgg.shoppinglist.errors.PublicError;
 import no.eirikgg.shoppinglist.errors.ResourceNotFoundException;
 import no.eirikgg.shoppinglist.errors.UserEmailNotVerifiedException;
 import no.eirikgg.shoppinglist.errors.UsernameAlreadyExistsException;
+import no.eirikgg.shoppinglist.errors.WeakPasswordException;
 import no.eirikgg.shoppinglist.errors.WrongEmailVerificationCodeException;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -32,6 +34,8 @@ public class ExceptionHandlers {
         config.routes.exception(UserEmailNotVerifiedException.class, eh::userEmailNotVerifiedException);
         config.routes.exception(InvalidSessionException.class, eh::invalidSessionException);
         config.routes.exception(WrongEmailVerificationCodeException.class, eh::wrongEmailVerificationCodeException);
+        config.routes.exception(InvalidEmailException.class, eh::invalidEmailException);
+        config.routes.exception(WeakPasswordException.class, eh::weakPasswordException);
         config.routes.exception(NoAccessToResourceException.class, eh::noAccessToResourceException);
         config.routes.exception(ResourceNotFoundException.class, eh::resourceNotFoundException);
         config.routes.exception(Exception.class, eh::exception);
@@ -63,6 +67,16 @@ public class ExceptionHandlers {
 
     private void wrongEmailVerificationCodeException(WrongEmailVerificationCodeException e, Context ctx) {
         creatPublicError(ctx, e, HttpStatus.UNAUTHORIZED, Error.WRONG_EMAIL_VERIFICATION_CODE_EXCEPTION);
+    }
+
+
+    private void invalidEmailException(InvalidEmailException e, Context ctx) {
+        creatPublicError(ctx, e, HttpStatus.BAD_REQUEST, Error.INVALID_EMAIL);
+    }
+
+
+    private void weakPasswordException(WeakPasswordException e, Context ctx) {
+        creatPublicError(ctx, e, HttpStatus.BAD_REQUEST, Error.WEAK_PASSWORD);
     }
 
 

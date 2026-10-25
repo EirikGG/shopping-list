@@ -24,11 +24,6 @@
   "signup": {
     "firstname": "Fornavn",
     "lastname": "Etternavn",
-    "birthdate": "Fødselsdato",
-    "gender": "Kjønn",
-    "genderMale": "Mann",
-    "genderFemale": "Kvinne",
-    "genderOther": "Annet",
     "email": "E-post",
     "emailTaken": "E-posten er allerede registrert.",
     "emailHint": "Du logger inn med denne e-posten.",
@@ -38,7 +33,15 @@
     "submit": "Opprett konto",
     "submitting": "Oppretter konto…",
     "duplicateEmail": "Det finnes allerede en konto med denne e-posten.",
-    "failed": "Kunne ikke opprette kontoen. Prøv igjen."
+    "failed": "Kunne ikke opprette kontoen. Prøv igjen.",
+    "emailInvalid": "Skriv inn en gyldig e-postadresse, som navn@eksempel.no.",
+    "passwordWeak": "Passordet oppfyller ikke kravene.",
+    "passwordRuleLength": "8 til 128 tegn",
+    "passwordRuleLowercase": "En liten bokstav",
+    "passwordRuleUppercase": "En stor bokstav",
+    "passwordRuleDigit": "Et tall",
+    "passwordRuleMet": "(oppfylt)",
+    "passwordRuleNotMet": "(mangler)"
   },
   "verifyEmail": {
     "intro": "Vi har sendt en femsifret kode til {email}. Skriv den inn under for å bekrefte e-postadressen din.",

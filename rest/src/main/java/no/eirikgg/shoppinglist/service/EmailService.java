@@ -21,13 +21,13 @@ public class EmailService {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private Db db;
-    private EmailSenderSmtp emailSender;
+    private EmailSender emailSender;
 
     private UserRepository userRepository = new UserRepository();
     private EmailRepository emailRepository = new EmailRepository();
 
 
-    public EmailService(Db db, EmailSenderSmtp emailSender) {
+    public EmailService(Db db, EmailSender emailSender) {
         this.db = db;
         this.emailSender = emailSender;
     }

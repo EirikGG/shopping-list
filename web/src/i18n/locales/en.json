@@ -24,11 +24,6 @@
   "signup": {
     "firstname": "First name",
     "lastname": "Last name",
-    "birthdate": "Birthdate",
-    "gender": "Gender",
-    "genderMale": "Male",
-    "genderFemale": "Female",
-    "genderOther": "Other",
     "email": "Email",
     "emailTaken": "Email is already registered.",
     "emailHint": "You will log in with this email.",
@@ -38,7 +33,15 @@
     "submit": "Create account",
     "submitting": "Creating account…",
     "duplicateEmail": "An account with that email already exists.",
-    "failed": "Could not create the account. Try again."
+    "failed": "Could not create the account. Try again.",
+    "emailInvalid": "Enter a valid email address, like name@example.com.",
+    "passwordWeak": "The password does not meet the requirements.",
+    "passwordRuleLength": "8 to 128 characters",
+    "passwordRuleLowercase": "A lowercase letter",
+    "passwordRuleUppercase": "An uppercase letter",
+    "passwordRuleDigit": "A number",
+    "passwordRuleMet": "(done)",
+    "passwordRuleNotMet": "(missing)"
   },
   "verifyEmail": {
     "intro": "We sent a 5-digit code to {email}. Enter it below to verify your email address.",

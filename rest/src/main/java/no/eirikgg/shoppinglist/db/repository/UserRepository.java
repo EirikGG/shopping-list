@@ -14,7 +14,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -44,22 +43,16 @@ public class UserRepository {
     public Person createPerson(
             Connection conn,
             String firstname,
-            String lastname,
-            LocalDate birthdate,
-            Person.Gender gender
+            String lastname
     ) throws SQLException {
         LocalDateTime created = LocalDateTime.now();
         int personId = dbUtils.insert(conn, """
             insert into person (
                 firstname, 
                 lastname, 
-                birthdate,
-                gender,
                 created,
                 deleted
             ) values(
-                ?,
-                ?,
                 ?,
                 ?,
                 ?,
@@ -68,8 +61,6 @@ public class UserRepository {
             """,
             firstname,
             lastname,
-            birthdate,
-            Objects.toString(gender),
             created,
             LocalDateTime.of(9999, 12, 31, 23, 59, 59)
         ).orElseThrow(
@@ -80,9 +71,7 @@ public class UserRepository {
             select
                 person_id,
                 firstname, 
-                lastname, 
-                birthdate,
-                gender
+                lastname
             from 
                 person
             where 
@@ -93,9 +82,7 @@ public class UserRepository {
             rs -> new Person(
                 rs.getInt("person_id").orElseThrow(),
                 rs.getString("firstname").orElse(""),
-                rs.getString("lastname").orElse(""),
-                rs.getLocalDate("birthdate").orElse(null),
-                Person.Gender.valueOf(rs.getString("gender").orElse(""))
+                rs.getString("lastname").orElse("")
             )
         );
 
@@ -178,8 +165,6 @@ public class UserRepository {
                 p.person_id                 person_id,
                 p.firstname                 person_firstname,
                 p.lastname                  person_lastname,
-                p.birthdate                 person_birthdate,
-                p.gender                    person_gender,
                 login.person_login_id       person_login_id,
                 login.email                 login_email,
                 login.password              login_password
@@ -196,9 +181,7 @@ public class UserRepository {
                 Person person = new Person(
                     rs.getInt("person_id").orElseThrow(),
                     rs.getString("person_firstname").orElseThrow(),
-                    rs.getString("person_lastname").orElseThrow(),
-                    rs.getLocalDate("person_birthdate").orElseThrow(),
-                    Person.Gender.valueOf(rs.getString("person_gender").orElseThrow())
+                    rs.getString("person_lastname").orElseThrow()
                 );
                 Authorization authorization = new Authorization(
                     rs.getInt("person_login_id").orElseThrow(),

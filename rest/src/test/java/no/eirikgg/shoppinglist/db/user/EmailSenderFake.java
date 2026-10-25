@@ -1,20 +1,15 @@
 package no.eirikgg.shoppinglist.db.user;
 
-import jakarta.mail.MessagingException;
 import no.eirikgg.shoppinglist.datamodel.EmailMessage;
-import no.eirikgg.shoppinglist.service.EmailSenderSmtp;
+import no.eirikgg.shoppinglist.service.EmailSender;
 
-public class EmailSenderFake extends EmailSenderSmtp {
+public class EmailSenderFake implements EmailSender {
 
     private EmailMessage emailMessage;
 
-    public EmailSenderFake() {
-        super("unit-test", "1234");
-    }
-
 
     @Override
-    public void sendEmail(EmailMessage emailMessage) throws MessagingException {
+    public void sendEmail(EmailMessage emailMessage) {
         this.emailMessage = emailMessage;
     }
 

@@ -5,8 +5,6 @@ import no.eirikgg.shoppinglist.datamodel.Person;
 import no.eirikgg.shoppinglist.datamodel.User;
 import no.eirikgg.shoppinglist.service.PasswordService;
 
-import java.time.LocalDate;
-
 public class UserTestDataGenerator {
 
 
@@ -27,6 +25,6 @@ public class UserTestDataGenerator {
     }
 
     private static Person getPersonInformation() {
-        return new Person("Ola", "Normann", LocalDate.of(1994, 05, 14), Person.Gender.MALE);
+        return new Person("Ola", "Normann");
     }
 }
