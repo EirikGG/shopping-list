@@ -1,5 +1,6 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useDocumentVisibility, useIntervalFn } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import Icon from './Icon.vue'
 import ItemList from './ItemList.vue'
@@ -11,6 +12,7 @@ import {
   removeItemListMember,
   renameItemList
 } from '../api/items.js'
+import { writeState } from '../api/request.js'
 
 const { t } = useI18n()
 
@@ -79,8 +81,76 @@ async function load() {
   try {
     lists.value = await getItemLists()
     selectedId.value = lists.value[0]?.id ?? null
+    polling.resume()
   } catch (e) {
     loadError.value = e.status === 429 ? 'errors.tooManyRequests' : 'lists.loadFailed'
+  }
+}
+
+// Others can change shared lists, share a list with this user or take it
+// away, so the lists are fetched again every few seconds while the page is
+// visible, and straight away when it becomes visible again.
+const POLL_MS = 5000
+const polling = useIntervalFn(refresh, POLL_MS, { immediate: false })
+const visibility = useDocumentVisibility()
+
+watch(visibility, state => {
+  if (lists.value === null) {
+    return
+  }
+  if (state === 'visible') {
+    refresh()
+    polling.resume()
+  } else {
+    polling.pause()
+  }
+})
+
+let refreshing = false
+
+async function refresh() {
+  // A change being saved, or one started while fetching, may not be in the
+  // answer yet. Using it would undo that change on screen for a moment, so it
+  // is dropped and the next round catches up.
+  const before = writeState()
+  if (refreshing || before.pending > 0) {
+    return
+  }
+
+  refreshing = true
+  let fresh
+  try {
+    fresh = await getItemLists()
+  } catch {
+    // Offline or a hiccup: keep what is shown and try again next round. A 401
+    // has already logged the user out.
+    return
+  } finally {
+    refreshing = false
+  }
+
+  const after = writeState()
+  if (after.pending > 0 || after.generation !== before.generation) {
+    return
+  }
+  apply(fresh)
+}
+
+function apply(fresh) {
+  // Nothing changed: leave the page alone.
+  if (JSON.stringify(fresh) === JSON.stringify(lists.value)) {
+    return
+  }
+
+  lists.value = fresh
+
+  // The open list was deleted by its owner, or this user was removed from it.
+  if (selectedId.value !== null && !fresh.some(list => list.id === selectedId.value)) {
+    selectedId.value = fresh[0]?.id ?? null
+    showingList.value = false
+  }
+  if (editingId.value !== null && !fresh.some(list => list.id === editingId.value)) {
+    editingId.value = null
   }
 }
 
