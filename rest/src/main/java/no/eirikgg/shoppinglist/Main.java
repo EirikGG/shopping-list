@@ -7,6 +7,7 @@ import no.eirikgg.shoppinglist.web.ExceptionHandlers;
 import no.eirikgg.shoppinglist.web.controller.GeneralController;
 import no.eirikgg.shoppinglist.web.controller.ItemController;
 import no.eirikgg.shoppinglist.web.controller.StoreController;
+import no.eirikgg.shoppinglist.web.filter.ClientIp;
 import no.eirikgg.shoppinglist.web.filter.RateLimiter;
 import no.eirikgg.shoppinglist.web.controller.UserController;
 import no.eirikgg.shoppinglist.db.Db;
@@ -39,7 +40,10 @@ public class Main {
         EmailSender emailSender = createEmailSender();
 
         log.info("Completed setup and migration");
-        Javalin app = setupJavalinApp(db, emailSender);
+        // Set in docker-compose.yml, where the backend is only reached through a proxy.
+        boolean trustProxy = Boolean.parseBoolean(System.getenv("TRUST_PROXY"));
+        log.info("Taking client addresses from {}", trustProxy ? ClientIp.HEADER : "the connection");
+        Javalin app = setupJavalinApp(db, emailSender, trustProxy);
 
         log.info("Configured javalin routes");
         app.start(appPort);
@@ -65,9 +69,16 @@ public class Main {
 
 
     public static Javalin setupJavalinApp(Db db, EmailSender emailSender) {
+        return setupJavalinApp(db, emailSender, false);
+    }
+
+    // trustProxy takes the client address from the proxy's X-Real-IP header.
+    // See ClientIp for when that is safe.
+    public static Javalin setupJavalinApp(Db db, EmailSender emailSender, boolean trustProxy) {
         Javalin app = Javalin.create(config -> {
 
             config.jsonMapper(new JavalinJackson(Json.MAPPER, false));
+            ClientIp.setup(config, trustProxy);
 
             RateLimiter globalRateLimiter = new RateLimiter(50, Duration.ofMinutes(1));
             config.routes.before(globalRateLimiter::check);

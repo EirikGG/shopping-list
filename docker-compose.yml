@@ -48,8 +48,14 @@ services:
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_API_KEY: ${MAIL_API_KEY:-}
       MAIL_FROM: ${MAIL_FROM:-}
+      # Rate limits use the client address the web proxy passes in X-Real-IP.
+      # Safe only because the port below is not reachable from outside.
+      TRUST_PROXY: "true"
+    # Localhost only: browsers reach the backend through the web proxy, and a
+    # direct connection could fake X-Real-IP. Docker publishes ports past the
+    # firewall, so binding to 127.0.0.1 is what keeps it private.
     ports:
-      - "${APP_PORT}:${APP_PORT}"
+      - "127.0.0.1:${APP_PORT}:${APP_PORT}"
     networks:
       - backend
     depends_on:
@@ -61,13 +67,36 @@ services:
       - dev
 
 
+  # The built app served by nginx, which also forwards /api to the backend.
   web:
     build:
       context: web/
       dockerfile: Dockerfile
+      target: prod
+    restart: unless-stopped
     environment:
       WEB_PORT: ${WEB_PORT}
       API_TARGET: http://app:${APP_PORT}
+    ports:
+      - "${WEB_PORT}:${WEB_PORT}"
+    networks:
+      - backend
+    depends_on:
+      - app
+    profiles:
+      - prod
+      - test
+
+  # The Vite dev server, with the source mounted for live reload.
+  web-dev:
+    build:
+      context: web/
+      dockerfile: Dockerfile
+      target: dev
+    environment:
+      WEB_PORT: ${WEB_PORT}
+      API_TARGET: http://app:${APP_PORT}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-}
     ports:
       - "${WEB_PORT}:${WEB_PORT}"
     networks:
@@ -78,8 +107,6 @@ services:
       - ./web/src:/app/src
       - ./web/index.html:/app/index.html
     profiles:
-      - prod
-      - test
       - dev
 
   mailpit:
