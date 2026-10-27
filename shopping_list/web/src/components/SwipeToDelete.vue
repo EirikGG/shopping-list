@@ -219,6 +219,11 @@ function onClickCapture(e) {
 
 .content {
   position: relative;
+}
+
+/* Covers the delete action until the row is swiped. Only then, so a rounded
+   chip that cannot be swiped has no square behind it. */
+.swipe.enabled .content {
   background: var(--color-surface);
 }
 

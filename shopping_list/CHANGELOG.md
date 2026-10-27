@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.2
+
+- Store chips no longer have a square behind them, most visible in the dark
+  theme.
+
 ## 0.3.1
 
 - Choosing stores when adding an item on a phone is quicker: the stores are
