@@ -45,13 +45,18 @@ public class ItemRepository {
         return itemList;
     }
 
+    // Open items first, newest added first; then completed items, last
+    // completed first. Timestamps are fixed-width text, so they sort as text.
     public List<Item> getItemsForItemList(Connection conn, int itemListId) {
         return dbUtils.select(conn, """
-            select item_id, name, completed
+            select item_id, name, created, completed
             from item
             where item_list_id = ?
             and deleted is null
-            order by item_id
+            order by
+                completed is not null,
+                coalesce(completed, created) desc,
+                item_id desc
             """,
             itemListId,
             rs -> {
@@ -59,6 +64,7 @@ public class ItemRepository {
                 return new Item(
                         itemId,
                         rs.getString("name").orElseThrow(),
+                        rs.getLocalDateTime("created").orElseThrow(),
                         rs.getLocalDateTime("completed").orElse(null),
                         getStoresForItemList(conn, itemId)
                 );
@@ -147,7 +153,7 @@ public class ItemRepository {
     // Empty if the item or its list is deleted.
     public Optional<Item> getItem(Connection conn, int itemId) {
         return dbUtils.selectSingle(conn, """
-                select i.item_id, i.name, i.completed
+                select i.item_id, i.name, i.created, i.completed
                 from item as i
                 join item_list as il
                     on il.item_list_id = i.item_list_id
@@ -159,6 +165,7 @@ public class ItemRepository {
                 rs -> new Item(
                         rs.getInt("item_id").orElseThrow(),
                         rs.getString("name").orElseThrow(),
+                        rs.getLocalDateTime("created").orElseThrow(),
                         rs.getLocalDateTime("completed").orElse(null),
                         getStoresForItemList(conn, rs.getInt("item_id").orElseThrow())
                 )

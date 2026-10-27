@@ -116,8 +116,21 @@ const visibleItems = computed(() => {
   )
 })
 
-const openItems = computed(() => visibleItems.value.filter(item => item.completed === null))
-const completedItems = computed(() => visibleItems.value.filter(item => item.completed !== null))
+// Newest first by the given time, and the newest item first when the times
+// are the same. Sorted here as well as by the backend, so an item added or
+// completed here moves to its place straight away.
+function newestFirst(timeOf) {
+  const ms = value => (value ? parseBackendTime(value).getTime() : 0)
+  return (a, b) => ms(timeOf(b)) - ms(timeOf(a)) || b.id - a.id
+}
+
+// What is still to buy by when it was added, what is bought by when.
+const openItems = computed(() =>
+  visibleItems.value.filter(item => item.completed === null).sort(newestFirst(item => item.created))
+)
+const completedItems = computed(() =>
+  visibleItems.value.filter(item => item.completed !== null).sort(newestFirst(item => item.completed))
+)
 const sections = computed(() => [
   { key: 'open', items: openItems.value },
   ...(completedItems.value.length ? [{ key: 'completed', items: completedItems.value }] : [])
@@ -310,12 +323,21 @@ async function submit() {
                       <Icon name="store" />
                       {{ storeNames(item) }}
                     </span>
+                    <!-- When it was bought, or for what is still to buy, when it
+                         was added. -->
                     <time
                       v-if="item.completed"
                       class="completed-at"
                       :datetime="parseBackendTime(item.completed).toISOString()"
                     >
                       {{ t('lists.completedAt', { time: formatTime(parseBackendTime(item.completed), locale) }) }}
+                    </time>
+                    <time
+                      v-else-if="item.created"
+                      class="completed-at"
+                      :datetime="parseBackendTime(item.created).toISOString()"
+                    >
+                      {{ t('lists.addedAt', { time: formatTime(parseBackendTime(item.created), locale) }) }}
                     </time>
                   </span>
                 </button>

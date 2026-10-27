@@ -21,6 +21,7 @@
     "addItemFailed": "Kunne ikke legge til varen. Prøv igjen.",
     "completed": "Fullført ({count})",
     "completedAt": "Fullført {time}",
+    "addedAt": "Lagt til {time}",
     "allCompleted": "Alt på denne listen er gjort.",
     "completeFailed": "Kunne ikke oppdatere varen. Prøv igjen.",
     "noFilteredItems": "Ingen varer for de valgte butikkene."

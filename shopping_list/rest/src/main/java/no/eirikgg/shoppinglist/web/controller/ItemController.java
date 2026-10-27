@@ -78,8 +78,17 @@ public class ItemController {
             int id
     ) {}
     record GetItemResponse(
-            int id, String name, LocalDateTime completed, List<ItemStoreResponse> stores
+            int id, String name, LocalDateTime created, LocalDateTime completed, List<ItemStoreResponse> stores
     ) {}
+    private static GetItemResponse toItemResponse(Item item) {
+        return new GetItemResponse(
+                item.getId().orElseThrow(),
+                item.getName(),
+                item.getCreated(),
+                item.getCompleted().orElse(null),
+                toStoreResponses(item)
+        );
+    }
     private void getItem(Context ctx) throws JsonProcessingException {
         GetItemRequest request = mapper.readValue(ctx.body(), GetItemRequest.class);
         Optional<Item> item = itemService.getItem(request.id());
@@ -87,11 +96,7 @@ public class ItemController {
             ctx.status(HttpStatus.NOT_FOUND);
             return;
         }
-        int itemId = item.orElseThrow().getId().orElseThrow();
-        String name = item.orElseThrow().getName();
-        LocalDateTime completed = item.orElseThrow().getCompleted().orElse(null);
-        GetItemResponse response = new GetItemResponse(itemId, name, completed, toStoreResponses(item.orElseThrow()));
-        ctx.status(HttpStatus.OK).json(response);
+        ctx.status(HttpStatus.OK).json(toItemResponse(item.orElseThrow()));
     }
 
 
@@ -100,7 +105,7 @@ public class ItemController {
             int itemListId, String name, List<Integer> storeIds
     ) {}
     record PostItemResponse(
-            int id, String name, List<ItemStoreResponse> stores
+            int id, String name, LocalDateTime created, List<ItemStoreResponse> stores
     ) {}
     private void saveItem(Context ctx)
             throws JsonProcessingException, ResourceNotFoundException, NoAccessToResourceException {
@@ -110,6 +115,7 @@ public class ItemController {
         PostItemResponse response = new PostItemResponse(
                 item.getId().orElseThrow(),
                 item.getName(),
+                item.getCreated(),
                 toStoreResponses(item)
         );
         ctx.status(HttpStatus.CREATED).json(mapper.writeValueAsString(response));
@@ -128,7 +134,7 @@ public class ItemController {
             int id, String newName, boolean completed
     ) {}
     record PatchItemResponse(
-            int id, String name, LocalDateTime completed, List<ItemStoreResponse> stores
+            int id, String name, LocalDateTime created, LocalDateTime completed, List<ItemStoreResponse> stores
     ) {}
     private void patchItem(Context ctx) throws JsonProcessingException, ResourceNotFoundException {
         PatchItemRequest request = mapper.readValue(ctx.body(), PatchItemRequest.class);
@@ -137,6 +143,7 @@ public class ItemController {
         PatchItemResponse response = new PatchItemResponse(
                 item.getId().orElseThrow(),
                 item.getName(),
+                item.getCreated(),
                 item.getCompleted().orElse(null),
                 toStoreResponses(item)
         );
@@ -185,13 +192,8 @@ public class ItemController {
         List<GetItemListResponse> response = new LinkedList<>();
         for (ItemList itemList : itemLists) {
             List<GetItemResponse> items = itemList.getItems().stream()
-                .map(i -> new GetItemResponse(
-                    i.getId().orElseThrow(),
-                    i.getName(),
-                    i.getCompleted().orElse(null),
-                    toStoreResponses(i)
-                )
-            ).toList();
+                .map(ItemController::toItemResponse)
+                .toList();
 
             response.add(new GetItemListResponse(
                     itemList.getId().orElseThrow(),

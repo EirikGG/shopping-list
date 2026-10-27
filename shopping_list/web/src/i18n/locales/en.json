@@ -21,6 +21,7 @@
     "addItemFailed": "Could not add the item. Try again.",
     "completed": "Completed ({count})",
     "completedAt": "Completed {time}",
+    "addedAt": "Added {time}",
     "allCompleted": "Everything on this list is done.",
     "completeFailed": "Could not update the item. Try again.",
     "noFilteredItems": "No items for the chosen stores."

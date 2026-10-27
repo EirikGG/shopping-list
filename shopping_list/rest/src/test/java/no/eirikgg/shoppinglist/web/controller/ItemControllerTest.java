@@ -23,6 +23,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -79,6 +80,45 @@ class ItemControllerTest {
 
             deleteItem(client, item.id());
             assertNull(getItem(client, item.id()));
+        });
+    }
+
+    // Open items newest added first, then completed items last completed first.
+    @Test
+    void items_areOrderedNewestFirst() {
+        JavalinTest.test(app, testConfig, (server, client) -> {
+            int first = createItem(client, "first").id();
+            Thread.sleep(5);
+            createItem(client, "second");
+            Thread.sleep(5);
+            int third = createItem(client, "third").id();
+            Thread.sleep(5);
+            createItem(client, "fourth");
+
+            // Completed in a different order than they were added.
+            patchItem(client, third, "third", true);
+            Thread.sleep(5);
+            patchItem(client, first, "first", true);
+
+            assertEquals(List.of("fourth", "second", "first", "third"), itemNamesInOrder(client));
+        });
+    }
+
+    // When the item was added, which renaming or completing it does not change.
+    @Test
+    void created_isSetWhenAdded_andKept() {
+        JavalinTest.test(app, testConfig, (server, client) -> {
+            LocalDateTime before = LocalDateTime.now().minusSeconds(1);
+            ItemController.PostItemResponse item = createItem(client, "milk");
+            LocalDateTime after = LocalDateTime.now().plusSeconds(1);
+
+            assertNotNull(item.created());
+            assertTrue(item.created().isAfter(before) && item.created().isBefore(after));
+            assertEquals(item.created(), getItem(client, item.id()).created());
+
+            ItemController.PatchItemResponse patched = patchItem(client, item.id(), "oat milk", true);
+            assertEquals(item.created(), patched.created());
+            assertEquals(item.created(), getItem(client, item.id()).created());
         });
     }
 
@@ -226,6 +266,31 @@ class ItemControllerTest {
         assertEquals(201, response.statusCode());
         log.info("{}", postItemResponse);
         return postItemResponse;
+    }
+
+    // The names of the items on the test list, in the order they are sent.
+    private List<String> itemNamesInOrder(HttpClient client) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM_LIST))
+            .header(IngressFilter.HEADER_USER_ID, TestApp.USER_ID)
+            .GET()
+            .build();
+        HttpResponse<String> response = java.net.http.HttpClient.newHttpClient().send(
+                request, HttpResponse.BodyHandlers.ofString()
+        );
+        assertEquals(200, response.statusCode());
+
+        List<ItemController.GetItemListResponse> lists = mapper.readValue(
+                response.body(),
+                mapper.getTypeFactory().constructCollectionType(List.class, ItemController.GetItemListResponse.class)
+        );
+        return lists.stream()
+                .filter(list -> list.id() == ITEM_LIST_ID)
+                .findFirst()
+                .orElseThrow()
+                .items().stream()
+                .map(ItemController.GetItemResponse::name)
+                .toList();
     }
 
     private ItemController.GetItemResponse getItem(HttpClient client, int itemId)
