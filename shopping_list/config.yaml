@@ -1,8 +1,13 @@
 name: Shopping list
-version: "0.2.0"
+version: "0.2.1"
 slug: shopping_list
 description: Shared shopping lists for the household, in the Home Assistant sidebar
 url: https://github.com/EirikGG/shopping-list
+
+# Built and published by GitHub Actions (.github/workflows/addon.yml). HA
+# fills in {arch} and downloads the tag matching version, instead of
+# building the add-on on the device.
+image: ghcr.io/eirikgg/{arch}-addon-shopping-list
 arch:
   - aarch64
   - amd64

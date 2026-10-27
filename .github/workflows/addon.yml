@@ -1,0 +1,108 @@
+# Tests the add-on, and publishes its images to the GitHub container registry,
+# where Home Assistant downloads them (the image in shopping_list/config.yaml).
+#
+# Images are only published from main, and only for a version that has not
+# been published before: a released version never changes. To release, bump
+# version in shopping_list/config.yaml (and add to CHANGELOG.md).
+
+name: Add-on
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+          cache-dependency-path: shopping_list/rest/pom.xml
+
+      - name: Test the backend
+        working-directory: shopping_list/rest
+        run: mvn -B test
+
+  image:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          # HA's architecture name, and Docker's for the same.
+          - arch: amd64
+            platform: linux/amd64
+          - arch: aarch64
+            platform: linux/arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the add-on version
+        id: addon
+        run: |
+          version=$(yq '.version' shopping_list/config.yaml)
+          # Registry names must be lowercase; the owner is EirikGG.
+          owner=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+          image="ghcr.io/${owner}/${{ matrix.arch }}-addon-shopping-list"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "image=${image}" >> "$GITHUB_OUTPUT"
+          echo "Add-on ${version}: ${image}"
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the GitHub container registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Published only from main, and never over an existing version.
+      - name: Decide whether to publish
+        id: publish
+        run: |
+          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            echo "Not main: building only."
+            echo "push=false" >> "$GITHUB_OUTPUT"
+          elif docker manifest inspect "${{ steps.addon.outputs.image }}:${{ steps.addon.outputs.version }}" > /dev/null 2>&1; then
+            echo "::notice::${{ steps.addon.outputs.version }} is already published. Bump version in shopping_list/config.yaml to release these changes."
+            echo "push=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Publishing ${{ steps.addon.outputs.version }}."
+            echo "push=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: shopping_list
+          platforms: ${{ matrix.platform }}
+          push: ${{ steps.publish.outputs.push == 'true' }}
+          tags: |
+            ${{ steps.addon.outputs.image }}:${{ steps.addon.outputs.version }}
+            ${{ steps.addon.outputs.image }}:latest
+          labels: |
+            io.hass.type=addon
+            io.hass.arch=${{ matrix.arch }}
+            io.hass.version=${{ steps.addon.outputs.version }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.title=Shopping list
+            org.opencontainers.image.version=${{ steps.addon.outputs.version }}
+          # The node and maven stages are the same for both architectures, so
+          # they share one cache.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -1,7 +1,11 @@
-# The add-on image. Home Assistant builds it on the device from this folder,
-# which is why the web app and backend sources live here.
+# The add-on image. GitHub Actions builds it for each architecture and
+# publishes it (see .github/workflows/addon.yml); Home Assistant downloads it.
+#
+# The web app and the jar are the same on every architecture, so they are
+# built once on the machine running the build ($BUILDPLATFORM). Only the last
+# stage is per architecture, and it runs nothing, so no emulation is needed.
 
-FROM node:22-alpine AS web
+FROM --platform=$BUILDPLATFORM node:22-alpine AS web
 WORKDIR /web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
@@ -9,7 +13,7 @@ COPY web/ ./
 RUN npm run build
 
 
-FROM maven:3.9-eclipse-temurin-21 AS rest
+FROM --platform=$BUILDPLATFORM maven:3.9-eclipse-temurin-21 AS rest
 WORKDIR /rest
 COPY rest/pom.xml ./
 RUN mvn -B -q dependency:go-offline

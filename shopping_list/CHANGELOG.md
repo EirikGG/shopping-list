@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1
+
+- Installs and updates from a ready-built image, instead of building on the
+  device. Updates now take seconds rather than minutes.
+
 ## 0.2.0
 
 - Items still to buy show when they were added.

@@ -9,9 +9,23 @@ sidebar through ingress; every HA user sees and edits every list.
 
 ## Install in Home Assistant
 
-Settings > Add-ons > Add-on store > ⋮ > Repositories, add
-`https://github.com/EirikGG/shopping-list`, then install "Shopping list". Home
-Assistant builds the add-on on the device, which takes a few minutes.
+Settings > Apps > App store > ⋮ > Repositories, add
+`https://github.com/EirikGG/shopping-list`, then install "Shopping list".
+
+## Releasing
+
+GitHub Actions (`.github/workflows/addon.yml`) tests every push and pull
+request. On `main` it also builds the add-on for amd64 and aarch64 and
+publishes the images to the GitHub container registry, where Home Assistant
+downloads them.
+
+A version is only published once, so to release:
+
+1. Bump `version` in `shopping_list/config.yaml` and add it to
+   `shopping_list/CHANGELOG.md`.
+2. Push to `main`, and wait for the workflow to finish (a few minutes) before
+   updating in Home Assistant. Until then HA may offer the update but fail to
+   download it.
 
 ## Development
 
