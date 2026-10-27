@@ -3,7 +3,6 @@ import { computed, ref } from 'vue'
 import { useLocalStorage, useMediaQuery } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import Icon from './Icon.vue'
-import ListSharing from './ListSharing.vue'
 import RowEditor from './RowEditor.vue'
 import StorePicker from './StorePicker.vue'
 import SwipeToDelete from './SwipeToDelete.vue'
@@ -17,21 +16,9 @@ const props = defineProps({
 
 // 'back' is only offered on narrow screens, where the list replaces the
 // overview of all lists.
-// 'members-changed' and 'left' come from sharing the list.
-const emit = defineEmits([
-  'item-added',
-  'item-updated',
-  'item-deleted',
-  'back',
-  'members-changed',
-  'left'
-])
+const emit = defineEmits(['item-added', 'item-updated', 'item-deleted', 'back'])
 
 const { locale, t } = useI18n()
-
-// Whether the panel showing who the list is shared with is open.
-const showSharing = ref(false)
-const shared = computed(() => props.list.members.length > 1)
 
 const name = ref('')
 // A message key, so the error follows a language change.
@@ -233,28 +220,7 @@ async function submit() {
 <template>
   <section class="list">
     <div class="scroll">
-      <div class="heading">
-        <h2>{{ list.name }}</h2>
-        <button
-          type="button"
-          class="share"
-          :class="{ active: showSharing, shared }"
-          :aria-expanded="showSharing"
-          :aria-label="t('share.shareList', { name: list.name })"
-          :title="t('share.shareList', { name: list.name })"
-          @click="showSharing = !showSharing"
-        >
-          <Icon name="users" />
-          <span v-if="shared" class="member-count">{{ list.members.length }}</span>
-        </button>
-      </div>
-
-      <ListSharing
-        v-if="showSharing"
-        :list="list"
-        @members-changed="members => emit('members-changed', members)"
-        @left="emit('left')"
-      />
+      <h2>{{ list.name }}</h2>
 
       <div v-if="listStores.length" class="filter" role="group" :aria-label="t('stores.filter')">
         <button
@@ -445,41 +411,6 @@ async function submit() {
 .add {
   order: -1;
   margin-bottom: 1.25rem;
-}
-
-.heading {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  margin: 0 0 1.25rem;
-}
-
-.heading h2 {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-}
-
-.share,
-.share:hover:not(:disabled) {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.45rem;
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-  background: transparent;
-}
-
-.share:hover:not(:disabled),
-.share.active {
-  color: var(--color-text);
-  background: var(--color-surface);
-}
-
-.share.shared {
-  color: var(--color-primary);
 }
 
 h2 {

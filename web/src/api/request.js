@@ -1,5 +1,17 @@
-import { toApiError } from './auth.js'
-import { clearSession, sessionId } from '../session.js'
+export class ApiError extends Error {
+  constructor(message, status, code) {
+    super(message)
+    this.status = status
+    this.code = code
+  }
+}
+
+// The backend returns a PublicError body for known cases and an empty body for
+// the rest, so the parse has to be optional.
+async function toApiError(response) {
+  const error = await response.json().catch(() => null)
+  return new ApiError(response.statusText, response.status, error?.error)
+}
 
 // Changes being saved, and a count of every change started. Polling uses them
 // to drop a result that could undo a change shown before the backend had it.
@@ -10,7 +22,8 @@ export function writeState() {
   return { pending: pendingWrites, generation: writeGeneration }
 }
 
-// Calls the backend as the logged-in user.
+// Calls the backend. Home Assistant has already logged the user in, and its
+// ingress proxy tells the backend who they are.
 export async function request(method, path, body) {
   const isWrite = method !== 'GET'
   if (isWrite) {
@@ -21,19 +34,11 @@ export async function request(method, path, body) {
   try {
     const response = await fetch(`/api${path}`, {
       method,
-      headers: {
-        Authorization: `Bearer ${sessionId.value}`,
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body)
     })
 
     if (!response.ok) {
-      // A 401 here means the session has expired since it was checked, so the
-      // user is sent back to the login form.
-      if (response.status === 401) {
-        clearSession()
-      }
       throw await toApiError(response)
     }
 

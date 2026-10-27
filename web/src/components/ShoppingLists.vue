@@ -9,7 +9,6 @@ import {
   createItemList,
   deleteItemList,
   getItemLists,
-  removeItemListMember,
   renameItemList
 } from '../api/items.js'
 import { writeState } from '../api/request.js'
@@ -47,17 +46,9 @@ async function rename(list, newName) {
   list.name = newName
 }
 
-// The owner deletes the list; a member leaves it. Either way it is gone here.
+// Deleted for everyone, as every user shares every list.
 async function remove(list) {
-  if (list.role === 'OWNER') {
-    await deleteItemList(list.id)
-  } else {
-    await removeItemListMember(list.id, list.members.find(member => member.you).personId)
-  }
-  dropList(list)
-}
-
-function dropList(list) {
+  await deleteItemList(list.id)
   lists.value = lists.value.filter(other => other.id !== list.id)
   if (selectedId.value === list.id) {
     selectedId.value = lists.value[0]?.id ?? null
@@ -87,9 +78,9 @@ async function load() {
   }
 }
 
-// Others can change shared lists, share a list with this user or take it
-// away, so the lists are fetched again every few seconds while the page is
-// visible, and straight away when it becomes visible again.
+// Everyone in the household can change the lists, so they are fetched again
+// every few seconds while the page is visible, and straight away when it
+// becomes visible again.
 const POLL_MS = 5000
 const polling = useIntervalFn(refresh, POLL_MS, { immediate: false })
 const visibility = useDocumentVisibility()
@@ -122,8 +113,7 @@ async function refresh() {
   try {
     fresh = await getItemLists()
   } catch {
-    // Offline or a hiccup: keep what is shown and try again next round. A 401
-    // has already logged the user out.
+    // Offline or a hiccup: keep what is shown and try again next round.
     return
   } finally {
     refreshing = false
@@ -144,7 +134,7 @@ function apply(fresh) {
 
   lists.value = fresh
 
-  // The open list was deleted by its owner, or this user was removed from it.
+  // The open list was deleted by someone else.
   if (selectedId.value !== null && !fresh.some(list => list.id === selectedId.value)) {
     selectedId.value = fresh[0]?.id ?? null
     showingList.value = false
@@ -193,8 +183,7 @@ async function create() {
             :name="list.name"
             :save="newName => rename(list, newName)"
             :remove="() => remove(list)"
-            :confirm-delete="list.role === 'OWNER' ? 'edit.confirmDeleteList' : 'share.confirmLeave'"
-            :remove-label="list.role === 'OWNER' ? 'edit.delete' : 'share.leave'"
+            confirm-delete="edit.confirmDeleteList"
             @done="editingId = null"
           />
           <template v-else>
@@ -204,13 +193,6 @@ async function create() {
               @click="open(list.id)"
             >
               <span class="list-name">{{ list.name }}</span>
-              <Icon
-                v-if="list.members.length > 1"
-                name="users"
-                class="shared-icon"
-                :aria-label="t('share.shared')"
-                role="img"
-              />
               <span class="count">{{ list.items.length }}</span>
             </button>
             <button
@@ -260,8 +242,6 @@ async function create() {
         @item-updated="item => updateItem(selectedList, item)"
         @item-deleted="id => deleteItem(selectedList, id)"
         @back="showingList = false"
-        @members-changed="members => (selectedList.members = members)"
-        @left="dropList(selectedList)"
       />
       <p v-else class="muted">{{ t('lists.selectOrCreate') }}</p>
     </main>
@@ -355,13 +335,6 @@ nav {
 
 .list-name {
   flex: 1;
-}
-
-.shared-icon {
-  flex-shrink: 0;
-  width: 1rem;
-  height: 1rem;
-  opacity: 0.75;
 }
 
 .count {

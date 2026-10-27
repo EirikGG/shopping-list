@@ -9,7 +9,6 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 // Stores belong to a list. Access is checked by the caller, through the list.
 public class StoreRepository {
@@ -17,18 +16,16 @@ public class StoreRepository {
     private DbUtils dbUtils = new DbUtils();
 
     public int createStore(
-            Connection conn, UUID sessionId, int personId, int itemListId, String name
+            Connection conn, int personId, int itemListId, String name
     ) throws SQLException {
         return dbUtils.insert(conn, """
                 insert into store (
-                    session_id,
                     person_id,
                     item_list_id,
                     name,
                     created
-                ) values (?, ?, ?, ?, ?)
+                ) values (?, ?, ?, ?)
                 """,
-                sessionId,
                 personId,
                 itemListId,
                 name,
@@ -106,16 +103,14 @@ public class StoreRepository {
     }
 
     // Mapping an item to a store it already has does nothing.
-    public void mapStoreToItem(Connection conn, UUID sessionId, int storeId, int itemId) throws SQLException {
+    public void mapStoreToItem(Connection conn, int storeId, int itemId) throws SQLException {
         dbUtils.update(conn, """
             insert into item_store_mapping (
-                 session_id,
                  item_id,
                  store_id
-            ) values (?, ?, ?)
+            ) values (?, ?)
             on conflict (item_id, store_id) do nothing
             """,
-            sessionId,
             itemId,
             storeId
         );

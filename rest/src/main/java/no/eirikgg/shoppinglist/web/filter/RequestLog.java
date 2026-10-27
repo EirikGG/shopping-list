@@ -2,17 +2,13 @@ package no.eirikgg.shoppinglist.web.filter;
 
 import io.javalin.config.JavalinConfig;
 import io.javalin.http.Context;
-import no.eirikgg.shoppinglist.datamodel.Session;
+import no.eirikgg.shoppinglist.datamodel.Person;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // One line per request, written once the response is sent, so it has the
-// status and the time taken. For logged-in requests it has the session id and
-// the user's email.
-//
-// The Authorization header is never logged: it holds the login token, and
-// anyone with it could act as the user. The session id is safe to log, as it
-// is useless without the token's signature.
+// status and the time taken. For a Home Assistant user's request it has the
+// user's name and HA id.
 public class RequestLog {
     private static final Logger log = LoggerFactory.getLogger(RequestLog.class);
 
@@ -23,17 +19,17 @@ public class RequestLog {
     }
 
     private static void log(Context ctx, Float executionTimeMs) {
-        Session session = ctx.attribute(AuthenticationFilter.PARAM_SESSION);
+        Person person = ctx.attribute(IngressFilter.PARAM_PERSON);
         long ms = Math.round(executionTimeMs);
 
-        if (null == session) {
+        if (null == person) {
             log.info("[{}] {} {} {} ms", ctx.method(), ctx.path(), ctx.statusCode(), ms);
         }
         else {
-            log.info("[{}] {} {} {} ms - session {} - user {}",
+            log.info("[{}] {} {} {} ms - user {} ({})",
                     ctx.method(), ctx.path(), ctx.statusCode(), ms,
-                    session.getSessionId(),
-                    session.getUser().getAuthorization().getEmail()
+                    person.name(),
+                    person.haUserId()
             );
         }
     }

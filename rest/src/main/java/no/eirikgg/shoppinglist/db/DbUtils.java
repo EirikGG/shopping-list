@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -18,6 +19,24 @@ import java.util.Optional;
 
 public class DbUtils {
     private final Logger log = LoggerFactory.getLogger(getClass());
+
+    // How timestamps are stored, as SQLite has no type for them. Fixed width,
+    // so they sort and compare correctly as text. Read back by RSWrapper.
+    public static final DateTimeFormatter TIMESTAMP_FORMAT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
+
+    private static void bind(PreparedStatement stmt, Object[] params) throws SQLException {
+        for (int i = 0; i < params.length; i++) {
+            Object param = params[i];
+            if (param instanceof Hidden hidden) {
+                param = hidden.getValue();
+            }
+            if (param instanceof LocalDateTime timestamp) {
+                param = TIMESTAMP_FORMAT.format(timestamp);
+            }
+            stmt.setObject(i + 1, param);
+        }
+    }
 
     public void validateSql(String sql) {
         if (sql == null || sql.isBlank()) {
@@ -77,13 +96,7 @@ public class DbUtils {
         try (
                 PreparedStatement stmt = conn.prepareStatement(sql)
         ) {
-            for (int i = 0; i < params.length; i++) {
-                Object param = params[i];
-                if (param instanceof Hidden hidden) {
-                    param = hidden.getValue();
-                }
-                stmt.setObject(i + 1, param);
-            }
+            bind(stmt, params);
 
             List<R> rows = new LinkedList<>();
             try (ResultSet rs = stmt.executeQuery()) {
@@ -132,13 +145,7 @@ public class DbUtils {
         validateSql(sql);
 
         try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            for (int i = 0; i < params.length; i++) {
-                Object param = params[i];
-                if (param instanceof Hidden hidden) {
-                    param = hidden.getValue();
-                }
-                stmt.setObject(i + 1, param);
-            }
+            bind(stmt, params);
 
             int affectedRows = stmt.executeUpdate();
             if (affectedRows != 1) {
@@ -147,8 +154,8 @@ public class DbUtils {
 
             try (ResultSet rs = stmt.getGeneratedKeys()) {
                 Object generatedKey = rs.next() ? rs.getObject(1) : null;
-                if (generatedKey instanceof Integer id) {
-                    return Optional.ofNullable(id);
+                if (generatedKey instanceof Number id) {
+                    return Optional.of(id.intValue());
                 }
                 return Optional.empty();
             }
@@ -165,13 +172,7 @@ public class DbUtils {
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            for (int i = 0; i < params.length; i++) {
-                Object param = params[i];
-                if (param instanceof Hidden hidden) {
-                    param = hidden.getValue();
-                }
-                stmt.setObject(i + 1, param);
-            }
+            bind(stmt, params);
 
             int affectedRows = stmt.executeUpdate();
             return Optional.of(affectedRows);

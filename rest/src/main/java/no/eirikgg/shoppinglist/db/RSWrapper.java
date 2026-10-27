@@ -2,10 +2,8 @@ package no.eirikgg.shoppinglist.db;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
-import java.util.UUID;
 
 public class RSWrapper {
 
@@ -39,34 +37,8 @@ public class RSWrapper {
         }
     }
 
-    public Optional<LocalDate> getLocalDate(String columnName) {
-        try {
-            LocalDate date = resultSet.getObject(columnName, LocalDate.class);
-            return Optional.ofNullable(date);
-        }
-        catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-
+    // Stored as text in DbUtils.TIMESTAMP_FORMAT.
     public Optional<LocalDateTime> getLocalDateTime(String columnName) {
-        try {
-            LocalDateTime datetime = resultSet.getObject(columnName, LocalDateTime.class);
-            return Optional.ofNullable(datetime);
-        }
-        catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public Optional<UUID> getUuid(String columnName) {
-        try {
-            UUID uuid = resultSet.getObject(columnName, UUID.class);
-            return Optional.ofNullable(uuid);
-        }
-        catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        return getString(columnName).map(text -> LocalDateTime.parse(text, DbUtils.TIMESTAMP_FORMAT));
     }
 }

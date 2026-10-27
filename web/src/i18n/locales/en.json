@@ -4,53 +4,7 @@
     "label": "Language"
   },
   "app": {
-    "signedIn": "You are logged in.",
-    "logOut": "Log out",
-    "logInTab": "Log in",
-    "signupTab": "Create account",
-    "accountCreated": "Account for {email} created. Log in to verify your email address.",
-    "checkingSession": "Checking your session…",
-    "checkFailed": "Could not check your session. Try again.",
     "retry": "Try again"
-  },
-  "login": {
-    "email": "Email",
-    "password": "Password",
-    "submit": "Log in",
-    "submitting": "Logging in…",
-    "wrongCredentials": "Wrong email or password.",
-    "failed": "Could not log in. Try again."
-  },
-  "signup": {
-    "firstname": "First name",
-    "lastname": "Last name",
-    "email": "Email",
-    "emailTaken": "Email is already registered.",
-    "emailHint": "You will log in with this email.",
-    "password": "Password",
-    "passwordRepeat": "Repeat password",
-    "passwordMismatch": "Passwords do not match.",
-    "submit": "Create account",
-    "submitting": "Creating account…",
-    "duplicateEmail": "An account with that email already exists.",
-    "failed": "Could not create the account. Try again.",
-    "emailInvalid": "Enter a valid email address, like name@example.com.",
-    "passwordWeak": "The password does not meet the requirements.",
-    "passwordRuleLength": "8 to 128 characters",
-    "passwordRuleLowercase": "A lowercase letter",
-    "passwordRuleUppercase": "An uppercase letter",
-    "passwordRuleDigit": "A number",
-    "passwordRuleMet": "(done)",
-    "passwordRuleNotMet": "(missing)"
-  },
-  "verifyEmail": {
-    "intro": "We sent a 5-digit code to {email}. Enter it below to verify your email address.",
-    "code": "Verification code",
-    "submit": "Verify email",
-    "submitting": "Verifying…",
-    "wrongCode": "That code is not correct. Check the email and try again.",
-    "notRegistered": "No account is registered with this email address.",
-    "failed": "Could not verify the email address right now. Try again later."
   },
   "lists": {
     "selectOrCreate": "Create a list in the menu to get started.",
@@ -85,22 +39,6 @@
     "choose": "Choose store",
     "filter": "Filter by store",
     "showAll": "Show all"
-  },
-  "share": {
-    "title": "Shared with",
-    "shareList": "Share {name}",
-    "shared": "Shared",
-    "email": "Email of the person to share with",
-    "add": "Share",
-    "owner": "Owner",
-    "you": "you",
-    "remove": "Remove {name}",
-    "leave": "Leave list",
-    "confirmLeave": "Leave the list \"{name}\"? You will lose access to it.",
-    "notFound": "No account uses that email.",
-    "shareFailed": "Could not share the list. Try again.",
-    "removeFailed": "Could not remove the person. Try again.",
-    "leaveFailed": "Could not leave the list. Try again."
   },
   "edit": {
     "edit": "Edit",

@@ -2,50 +2,39 @@ package no.eirikgg.shoppinglist;
 
 import io.javalin.Javalin;
 import no.eirikgg.shoppinglist.db.Db;
-import no.eirikgg.shoppinglist.db.DbUtils;
-import no.eirikgg.shoppinglist.service.EmailSender;
-import no.eirikgg.shoppinglist.service.JwtService;
+import no.eirikgg.shoppinglist.web.filter.IngressFilter;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.UUID;
+import java.net.http.HttpRequest;
 
-// Builds the app for tests, and login tokens for the sessions the test data
-// creates (see the t000x SQL files).
+// Builds the app for tests, and requests from the Home Assistant users the
+// ingress proxy would pass on.
 public final class TestApp {
 
-    public static final JwtService JWT = new JwtService("test-only-secret-that-is-long-enough-for-hs256");
+    public static final String USER_ID = "test-ha-user";
+    public static final String USER_NAME = "Test User";
+    public static final String SECOND_USER_ID = "second-test-ha-user";
+    public static final String SECOND_USER_NAME = "Second User";
 
     private TestApp() {}
 
-    public static Javalin create(Db db, EmailSender emailSender) {
-        return create(db, emailSender, false);
+    // Trusts the user headers from any address, as the tests are not behind
+    // Home Assistant.
+    public static Javalin create(Db db) {
+        return create(db, null);
     }
 
-    public static Javalin create(Db db, EmailSender emailSender, boolean trustProxy) {
-        return Main.setupJavalinApp(db, emailSender, JWT, trustProxy);
+    public static Javalin create(Db db, String trustedProxy) {
+        return Main.setupJavalinApp(db, trustedProxy);
     }
 
-    // The Authorization header value for an existing session.
-    public static String bearer(Db db, UUID sessionId) {
-        try (Connection conn = db.getConnection()) {
-            int personId = new DbUtils().selectSingle(conn, """
-                    select login.person_id
-                    from session as s
-                    join person_login as login
-                        on login.person_login_id = s.person_login_id
-                    where s.session_id = ?
-                    """,
-                    sessionId,
-                    rs -> rs.getInt("person_id").orElseThrow()
-            ).orElseThrow(() -> new IllegalStateException("No test session " + sessionId));
+    // A request from the test user.
+    public static HttpRequest.Builder asUser(HttpRequest.Builder builder) {
+        return asUser(builder, USER_ID, USER_NAME);
+    }
 
-            return "Bearer " + JWT.createToken(personId, sessionId, Instant.now().plus(Duration.ofHours(1)));
-        }
-        catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+    public static HttpRequest.Builder asUser(HttpRequest.Builder builder, String haUserId, String displayName) {
+        return builder
+                .header(IngressFilter.HEADER_USER_ID, haUserId)
+                .header(IngressFilter.HEADER_USER_DISPLAY_NAME, displayName);
     }
 }

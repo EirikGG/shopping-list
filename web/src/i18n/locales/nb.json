@@ -4,53 +4,7 @@
     "label": "Språk"
   },
   "app": {
-    "signedIn": "Du er logget inn.",
-    "logOut": "Logg ut",
-    "logInTab": "Logg inn",
-    "signupTab": "Opprett konto",
-    "accountCreated": "Konto for {email} er opprettet. Logg inn for å bekrefte e-postadressen din.",
-    "checkingSession": "Sjekker innloggingen…",
-    "checkFailed": "Kunne ikke sjekke innloggingen. Prøv igjen.",
     "retry": "Prøv igjen"
-  },
-  "login": {
-    "email": "E-post",
-    "password": "Passord",
-    "submit": "Logg inn",
-    "submitting": "Logger inn…",
-    "wrongCredentials": "Feil e-post eller passord.",
-    "failed": "Kunne ikke logge inn. Prøv igjen."
-  },
-  "signup": {
-    "firstname": "Fornavn",
-    "lastname": "Etternavn",
-    "email": "E-post",
-    "emailTaken": "E-posten er allerede registrert.",
-    "emailHint": "Du logger inn med denne e-posten.",
-    "password": "Passord",
-    "passwordRepeat": "Gjenta passord",
-    "passwordMismatch": "Passordene er ikke like.",
-    "submit": "Opprett konto",
-    "submitting": "Oppretter konto…",
-    "duplicateEmail": "Det finnes allerede en konto med denne e-posten.",
-    "failed": "Kunne ikke opprette kontoen. Prøv igjen.",
-    "emailInvalid": "Skriv inn en gyldig e-postadresse, som navn@eksempel.no.",
-    "passwordWeak": "Passordet oppfyller ikke kravene.",
-    "passwordRuleLength": "8 til 128 tegn",
-    "passwordRuleLowercase": "En liten bokstav",
-    "passwordRuleUppercase": "En stor bokstav",
-    "passwordRuleDigit": "Et tall",
-    "passwordRuleMet": "(oppfylt)",
-    "passwordRuleNotMet": "(mangler)"
-  },
-  "verifyEmail": {
-    "intro": "Vi har sendt en femsifret kode til {email}. Skriv den inn under for å bekrefte e-postadressen din.",
-    "code": "Bekreftelseskode",
-    "submit": "Bekreft e-post",
-    "submitting": "Bekrefter…",
-    "wrongCode": "Koden er ikke riktig. Sjekk e-posten og prøv igjen.",
-    "notRegistered": "Ingen konto er registrert med denne e-postadressen.",
-    "failed": "Kunne ikke bekrefte e-postadressen akkurat nå. Prøv igjen senere."
   },
   "lists": {
     "selectOrCreate": "Opprett en liste i menyen for å komme i gang.",
@@ -85,22 +39,6 @@
     "choose": "Velg butikk",
     "filter": "Filtrer på butikk",
     "showAll": "Vis alle"
-  },
-  "share": {
-    "title": "Delt med",
-    "shareList": "Del {name}",
-    "shared": "Delt",
-    "email": "E-post til den du vil dele med",
-    "add": "Del",
-    "owner": "Eier",
-    "you": "deg",
-    "remove": "Fjern {name}",
-    "leave": "Forlat listen",
-    "confirmLeave": "Forlate listen «{name}»? Du mister tilgangen til den.",
-    "notFound": "Ingen konto bruker den e-postadressen.",
-    "shareFailed": "Kunne ikke dele listen. Prøv igjen.",
-    "removeFailed": "Kunne ikke fjerne personen. Prøv igjen.",
-    "leaveFailed": "Kunne ikke forlate listen. Prøv igjen."
   },
   "edit": {
     "edit": "Rediger",

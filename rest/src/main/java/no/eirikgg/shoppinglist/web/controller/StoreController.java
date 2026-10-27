@@ -3,13 +3,13 @@ package no.eirikgg.shoppinglist.web.controller;
 import io.javalin.config.JavalinConfig;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import no.eirikgg.shoppinglist.datamodel.Session;
+import no.eirikgg.shoppinglist.datamodel.Person;
 import no.eirikgg.shoppinglist.datamodel.Store;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.errors.NoAccessToResourceException;
 import no.eirikgg.shoppinglist.errors.ResourceNotFoundException;
 import no.eirikgg.shoppinglist.service.StoreService;
-import no.eirikgg.shoppinglist.web.filter.AuthenticationFilter;
+import no.eirikgg.shoppinglist.web.filter.IngressFilter;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.LocalDateTime;
@@ -40,13 +40,13 @@ public class StoreController {
     }
 
 
-    // A store is created on a list, and shared by everyone on it.
+    // A store is created on a list, and only used on that list.
     record PostStoreRequest(int itemListId, String name) {}
     record PostStoreResponse(int storeId) {}
     private void createStore(Context ctx) throws ResourceNotFoundException {
-        Session session = ctx.attribute(AuthenticationFilter.PARAM_SESSION);
+        Person person = ctx.attribute(IngressFilter.PARAM_PERSON);
         PostStoreRequest request = ctx.bodyAsClass(PostStoreRequest.class);
-        Store store = storeService.createStore(session, request.itemListId(), request.name());
+        Store store = storeService.createStore(person, request.itemListId(), request.name());
         Integer storeId = store.getId().orElseThrow();
         PostStoreResponse responseBody = new PostStoreResponse(storeId);
         ctx.status(HttpStatus.CREATED).json(responseBody);
@@ -56,9 +56,8 @@ public class StoreController {
     record GetStoreRequest(int storeId) {}
     record GetStoreResponse(int storeId, String name, LocalDateTime created) {}
     private void getStore(Context ctx) throws NoAccessToResourceException, ResourceNotFoundException {
-        Session session = ctx.attribute(AuthenticationFilter.PARAM_SESSION);
         GetStoreRequest request = ctx.bodyAsClass(GetStoreRequest.class);
-        Store store = storeService.getStore(session, request.storeId());
+        Store store = storeService.getStore(request.storeId());
 
         ctx.status(HttpStatus.OK).json(new GetStoreResponse(
                 store.getId().orElseThrow(),
@@ -71,9 +70,8 @@ public class StoreController {
     // The stores of a list, sorted by name: GET /store-list?itemListId=1
     public static final String PARAM_ITEM_LIST_ID = "itemListId";
     private void getStoreList(Context ctx) throws ResourceNotFoundException {
-        Session session = ctx.attribute(AuthenticationFilter.PARAM_SESSION);
         int itemListId = ctx.queryParamAsClass(PARAM_ITEM_LIST_ID, Integer.class).get();
-        List<GetStoreResponse> response = storeService.getStores(session, itemListId).stream()
+        List<GetStoreResponse> response = storeService.getStores(itemListId).stream()
                 .map(store -> new GetStoreResponse(
                         store.getId().orElseThrow(),
                         store.getName(),
@@ -87,42 +85,38 @@ public class StoreController {
 
     record PatchStoreRequest(int storeId, String newName) {}
     private void patchStore(Context ctx) throws NoAccessToResourceException, ResourceNotFoundException {
-        Session session = ctx.attribute(AuthenticationFilter.PARAM_SESSION);
         PatchStoreRequest request = ctx.bodyAsClass(PatchStoreRequest.class);
         int storeId = request.storeId();
         String newName = request.newName();
 
-        storeService.patchStore(session, storeId, newName);
+        storeService.patchStore(storeId, newName);
     }
 
 
     record DeleteStoreRequest(int storeId) {}
     private void deleteStore(Context ctx) throws NoAccessToResourceException, ResourceNotFoundException {
-        Session session = ctx.attribute(AuthenticationFilter.PARAM_SESSION);
         DeleteStoreRequest request = ctx.bodyAsClass(DeleteStoreRequest.class);
         int storeId = request.storeId();
 
-        storeService.deleteStore(session, storeId);
+        storeService.deleteStore(storeId);
     }
 
 
 
     record MapStoreAndItemRequest(int storeId, int itemId) {}
     private void mapStoreAndItem(Context ctx) throws NoAccessToResourceException, ResourceNotFoundException {
-        Session session = ctx.attribute(AuthenticationFilter.PARAM_SESSION);
         MapStoreAndItemRequest request = ctx.bodyAsClass(MapStoreAndItemRequest.class);
         int storeId = request.storeId();
         int itemId = request.itemId();
 
-        storeService.mapStoreAndItem(session, storeId, itemId);
+        storeService.mapStoreAndItem(storeId, itemId);
     }
 
 
     record UnmapStoreAndItemRequest(int storeId, int itemId) {}
     private void unmapStoreFromItem(Context ctx) throws ResourceNotFoundException {
-        Session session = ctx.attribute(AuthenticationFilter.PARAM_SESSION);
         UnmapStoreAndItemRequest request = ctx.bodyAsClass(UnmapStoreAndItemRequest.class);
 
-        storeService.unmapStoreFromItem(session, request.storeId(), request.itemId());
+        storeService.unmapStoreFromItem(request.storeId(), request.itemId());
     }
 }

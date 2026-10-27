@@ -3,16 +3,16 @@ package no.eirikgg.shoppinglist.web.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.Javalin;
-import io.javalin.http.Header;
 import io.javalin.testtools.HttpClient;
 import io.javalin.testtools.JavalinTest;
 import io.javalin.testtools.TestConfig;
 import no.eirikgg.shoppinglist.Json;
 import no.eirikgg.shoppinglist.TestApp;
+import no.eirikgg.shoppinglist.web.filter.IngressFilter;
 import no.eirikgg.shoppinglist.db.DbUtils;
-import no.eirikgg.shoppinglist.db.EmbeddedPostgresDb;
+import no.eirikgg.shoppinglist.db.TestDb;
 import no.eirikgg.shoppinglist.db.LiquibaseMigrator;
-import no.eirikgg.shoppinglist.db.user.EmailSenderFake;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +24,6 @@ import java.net.http.HttpResponse;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -34,25 +33,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ItemControllerTest {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private EmbeddedPostgresDb db;
-    private EmailSenderFake fakeEmailSender;
+    private TestDb db;
     private Javalin app;
     private TestConfig testConfig;
 
     private final String ITEM_LIST_NAME = "unit-test-list";
     private final int ITEM_LIST_ID;
-    private final UUID SESSION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
     private final ObjectMapper mapper = Json.MAPPER;
 
     public ItemControllerTest() throws SQLException {
-        db = EmbeddedPostgresDb.createMigratedInstance();
+        db = TestDb.createMigratedInstance();
         LiquibaseMigrator migrator = new LiquibaseMigrator();
-        migrator.migrate(db, "db/updates/t0001-create-test-user-and-login.sql");
-        migrator.migrate(db, "db/updates/t0002-create-item-list-for-test-user.sql");
+        migrator.migrate(db, "db/updates/t0001-create-test-list.sql");
 
-        fakeEmailSender = new EmailSenderFake();
         testConfig = new TestConfig(true, false);
-        app = TestApp.create(db, fakeEmailSender);
+        app = TestApp.create(db);
         DbUtils dbUtils = new DbUtils();
         try (Connection conn = db.getConnection()) {
             ITEM_LIST_ID = dbUtils.selectSingle(conn,
@@ -61,6 +56,11 @@ class ItemControllerTest {
                     rs -> rs.getInt("item_list_id").orElseThrow()
             ).orElseThrow();
         }
+    }
+
+    @AfterEach
+    void closeDb() {
+        db.close();
     }
 
     @Test
@@ -130,7 +130,7 @@ class ItemControllerTest {
     {
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + StoreController.PATH_STORE_ITEM_MAPPING))
-            .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
+            .header(IngressFilter.HEADER_USER_ID, TestApp.USER_ID)
             .method(method, getBodyPublisher(requestBody))
             .build();
 
@@ -145,7 +145,7 @@ class ItemControllerTest {
         StoreController.PostStoreRequest requestBody = new StoreController.PostStoreRequest(ITEM_LIST_ID, storeName);
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + StoreController.PATH_STORE))
-            .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
+            .header(IngressFilter.HEADER_USER_ID, TestApp.USER_ID)
             .POST(getBodyPublisher(requestBody))
             .build();
 
@@ -163,7 +163,7 @@ class ItemControllerTest {
         ItemController.DeleteItemRequest requestBody = new ItemController.DeleteItemRequest(itemId);
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM))
-            .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
+            .header(IngressFilter.HEADER_USER_ID, TestApp.USER_ID)
             .method("DELETE", getBodyPublisher(requestBody))
             .build();
 
@@ -180,7 +180,7 @@ class ItemControllerTest {
         ItemController.PatchItemRequest requestBody = new ItemController.PatchItemRequest(itemId, newName, completed);
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM))
-            .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
+            .header(IngressFilter.HEADER_USER_ID, TestApp.USER_ID)
             .method("PATCH", getBodyPublisher(requestBody))
             .build();
 
@@ -211,7 +211,7 @@ class ItemControllerTest {
         );
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM))
-            .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
+            .header(IngressFilter.HEADER_USER_ID, TestApp.USER_ID)
             .POST(getBodyPublisher(requestBody))
             .build();
 
@@ -234,7 +234,7 @@ class ItemControllerTest {
         ItemController.GetItemRequest requestBody = new ItemController.GetItemRequest(itemId);
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM))
-            .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
+            .header(IngressFilter.HEADER_USER_ID, TestApp.USER_ID)
             .method("GET", getBodyPublisher(requestBody))
             .build();
 

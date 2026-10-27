@@ -1,17 +1,14 @@
 import { request } from './request.js'
 
-// Every list the logged-in user has access to, their own and those shared
-// with them, each with its items:
-// [{ id, name, role, members, items: [{ id, name, completed, stores }] }]
-// role is 'OWNER' or 'MEMBER'. members is
-// [{ personId, firstName, lastName, email, role, you }].
+// Every list, as every Home Assistant user sees all of them, each with its
+// items: [{ id, name, items: [{ id, name, completed, stores }] }]
 // stores is [{ storeId, name }].
 export async function getItemLists() {
   const response = await request('GET', '/item-list')
   return response.json()
 }
 
-// Returns { id, name, role, members }.
+// Returns { id, name }.
 export async function createItemList(name) {
   const response = await request('POST', '/item-list', { name })
   return response.json()
@@ -42,16 +39,4 @@ export async function renameItemList(itemListId, newName) {
 
 export async function deleteItemList(itemListId) {
   await request('DELETE', '/item-list', { itemListId })
-}
-
-// Shares the list with the user who logs in with the email. Only the owner
-// can share. Returns the new member. Fails with 404 if no user has the email.
-export async function shareItemList(itemListId, email) {
-  const response = await request('POST', '/item-list-member', { itemListId, email })
-  return response.json()
-}
-
-// The owner removes a member; a member passes their own personId to leave.
-export async function removeItemListMember(itemListId, personId) {
-  await request('DELETE', '/item-list-member', { itemListId, personId })
 }

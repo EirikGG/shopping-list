@@ -12,6 +12,11 @@ const allowedHosts = (process.env.ALLOWED_HOSTS || '')
   .map(host => host.trim())
   .filter(Boolean)
 
+// In Home Assistant, its ingress proxy tells the backend who the logged-in
+// user is. Here the dev server does that, always as this user.
+const devUserId = process.env.DEV_HA_USER_ID || 'dev-user'
+const devUserName = process.env.DEV_HA_USER_NAME || 'Dev User'
+
 export default defineConfig({
   plugins: [vue()],
   server: {
@@ -23,11 +28,12 @@ export default defineConfig({
         target: apiTarget,
         changeOrigin: true,
         rewrite: path => path.replace(/^\/api/, ''),
-        // The backend rate-limits by this address, as nginx sends it in prod.
-        // Set here so a client cannot supply its own.
+        // Set here, replacing any the browser sent, as HA's proxy does.
         configure: proxy => {
-          proxy.on('proxyReq', (proxyReq, req) => {
-            proxyReq.setHeader('X-Real-IP', req.socket.remoteAddress ?? '')
+          proxy.on('proxyReq', proxyReq => {
+            proxyReq.setHeader('X-Remote-User-Id', devUserId)
+            proxyReq.setHeader('X-Remote-User-Display-Name', devUserName)
+            proxyReq.removeHeader('X-Remote-User-Name')
           })
         }
       }

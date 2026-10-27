@@ -1,9 +1,10 @@
 # Shopping list
 
-Run profiles: 
+A Home Assistant add-on. Home Assistant logs users in and shows the app in its
+sidebar through ingress; every HA user sees and edits every list.
 
-dev: `docker-compose.yml -p shopping-list-dev --profile dev up -d --build`
+Local development, with the Vite dev server standing in for Home Assistant:
 
-test: `docker-compose.yml -p shopping-list-test --profile test up -d --build`
+`docker compose -p shopping-list-dev --profile dev up -d --build`
 
-prod: `docker-compose.yml -p shopping-list-prod --profile prod up -d --build`
+Copy `.env.example` to `.env` first.

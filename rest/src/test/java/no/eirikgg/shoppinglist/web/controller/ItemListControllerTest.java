@@ -9,9 +9,9 @@ import io.javalin.testtools.JavalinTest;
 import io.javalin.testtools.TestConfig;
 import no.eirikgg.shoppinglist.Json;
 import no.eirikgg.shoppinglist.TestApp;
-import no.eirikgg.shoppinglist.db.EmbeddedPostgresDb;
-import no.eirikgg.shoppinglist.db.LiquibaseMigrator;
-import no.eirikgg.shoppinglist.db.user.EmailSenderFake;
+import no.eirikgg.shoppinglist.web.filter.IngressFilter;
+import no.eirikgg.shoppinglist.db.TestDb;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,23 +29,23 @@ import static org.junit.jupiter.api.Assertions.*;
 class ItemListControllerTest {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private EmbeddedPostgresDb db;
-    private EmailSenderFake fakeEmailSender;
+    private TestDb db;
     private Javalin app;
     private TestConfig testConfig;
 
     private final String LIST_NAME = "unit-test-list";
-    private final UUID SESSION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
     private final ObjectMapper mapper = Json.MAPPER;
 
     public ItemListControllerTest() {
-        db = EmbeddedPostgresDb.createMigratedInstance();
-        LiquibaseMigrator migrator = new LiquibaseMigrator();
-        migrator.migrate(db, "db/updates/t0001-create-test-user-and-login.sql");
+        db = TestDb.createMigratedInstance();
 
-        fakeEmailSender = new EmailSenderFake();
         testConfig = new TestConfig(true, false);
-        app = TestApp.create(db, fakeEmailSender);
+        app = TestApp.create(db);
+    }
+
+    @AfterEach
+    void closeDb() {
+        db.close();
     }
 
     @Test
@@ -70,6 +70,62 @@ class ItemListControllerTest {
         });
     }
 
+    // Every Home Assistant user sees and changes every list.
+    @Test
+    void listsAreSharedByAllUsers() {
+        JavalinTest.test(app, testConfig, (server, client) -> {
+            ItemController.PostItemListResponse created = createItemList(client);
+
+            List<ItemController.GetItemListResponse> seenBySecond = mapper.readValue(
+                    sendAsSecondUser(client, "GET", ItemController.PATH_ITEM_LIST, null).body(),
+                    mapper.getTypeFactory().constructCollectionType(
+                            List.class, ItemController.GetItemListResponse.class
+                    )
+            );
+            assertEquals(List.of(created.id()), seenBySecond.stream().map(list -> list.id()).toList());
+
+            HttpResponse<String> addItem = sendAsSecondUser(client, "POST", ItemController.PATH_ITEM,
+                    new ItemController.PostItemRequest(created.id(), "milk", null));
+            assertEquals(201, addItem.statusCode());
+
+            HttpResponse<String> rename = sendAsSecondUser(client, "PATCH", ItemController.PATH_ITEM_LIST,
+                    new ItemController.PatchItemListRequest(created.id(), "renamed"));
+            assertEquals(200, rename.statusCode());
+
+            ItemController.GetItemListResponse seenByFirst = getItemList(client).get(0);
+            assertEquals("renamed", seenByFirst.name());
+            assertEquals(List.of("milk"), seenByFirst.items().stream().map(item -> item.name()).toList());
+
+            HttpResponse<String> delete = sendAsSecondUser(client, "DELETE", ItemController.PATH_ITEM_LIST,
+                    new ItemController.DeleteItemListRequest(created.id()));
+            assertEquals(200, delete.statusCode());
+            assertEquals(List.of(), getItemList(client));
+        });
+    }
+
+    @Test
+    void renamingOrDeletingAMissingList_isNotFound() {
+        JavalinTest.test(app, testConfig, (server, client) -> {
+            assertEquals(404, sendAsSecondUser(client, "PATCH", ItemController.PATH_ITEM_LIST,
+                    new ItemController.PatchItemListRequest(999_999, "renamed")).statusCode());
+            assertEquals(404, sendAsSecondUser(client, "DELETE", ItemController.PATH_ITEM_LIST,
+                    new ItemController.DeleteItemListRequest(999_999)).statusCode());
+        });
+    }
+
+    private HttpResponse<String> sendAsSecondUser(
+            io.javalin.testtools.HttpClient client, String method, String path, Object body
+    ) throws IOException, InterruptedException {
+        HttpRequest.BodyPublisher publisher = null == body
+                ? HttpRequest.BodyPublishers.noBody()
+                : getBodyPublisher(body);
+        HttpRequest request = TestApp.asUser(HttpRequest.newBuilder(), TestApp.SECOND_USER_ID, TestApp.SECOND_USER_NAME)
+                .uri(URI.create(client.getOrigin() + path))
+                .method(method, publisher)
+                .build();
+        return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
 
     private void updateItemList(io.javalin.testtools.HttpClient client, int itemListId, String newName)
             throws IOException, InterruptedException
@@ -79,7 +135,7 @@ class ItemListControllerTest {
         );
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM_LIST))
-                .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
+                .header(IngressFilter.HEADER_USER_ID, TestApp.USER_ID)
                 .header(Header.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                 .method("PATCH", getBodyPublisher(requestBody))
                 .build();
@@ -98,7 +154,7 @@ class ItemListControllerTest {
         );
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM_LIST))
-                .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
+                .header(IngressFilter.HEADER_USER_ID, TestApp.USER_ID)
                 .method("DELETE", getBodyPublisher(requestBody))
                 .build();
 
@@ -114,7 +170,7 @@ class ItemListControllerTest {
         ItemController.PostItemListRequest requestBody = new ItemController.PostItemListRequest(LIST_NAME);
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM_LIST))
-            .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
+            .header(IngressFilter.HEADER_USER_ID, TestApp.USER_ID)
             .POST(getBodyPublisher(requestBody))
             .build();
 
@@ -137,7 +193,7 @@ class ItemListControllerTest {
     {
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM_LIST))
-            .header(Header.AUTHORIZATION, TestApp.bearer(db, SESSION_ID))
+            .header(IngressFilter.HEADER_USER_ID, TestApp.USER_ID)
             .GET()
             .build();
 

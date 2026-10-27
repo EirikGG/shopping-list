@@ -10,21 +10,18 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 public class ItemRepository {
     private DbUtils dbUtils = new DbUtils();
 
-    public int createItemList(Connection conn, UUID sessionId, int personId, String name) throws SQLException {
+    public int createItemList(Connection conn, int personId, String name) throws SQLException {
         return dbUtils.insert(conn, """
             insert into item_list (
-                session_id,
                 person_id,
                 name,
                 created
-            ) values (?,?,?,?)
+            ) values (?,?,?)
             """,
-            sessionId,
             personId,
             name,
             LocalDateTime.now()
@@ -98,23 +95,31 @@ public class ItemRepository {
         );
     }
 
-    // Every list the person has access to, their own and those shared with them.
-    public List<Integer> getItemListForPerson(Connection conn, int personId) {
+    // Every list, as every user sees all of them.
+    public List<Integer> getItemListIds(Connection conn) {
         return dbUtils.select(conn, """
-            select il.item_list_id
-            from item_list_person as ilp
-            join item_list as il
-                on il.item_list_id = ilp.item_list_id
-            where ilp.person_id = ?
-            and il.deleted is null
-            order by il.item_list_id
+            select item_list_id
+            from item_list
+            where deleted is null
+            order by item_list_id
             """,
-            personId,
+            new Object[] {},
             rs -> rs.getInt("item_list_id").orElseThrow()
         );
     }
 
-    // Access is checked by the caller, through ItemListPersonRepository.
+    public boolean itemListExists(Connection conn, int itemListId) {
+        return dbUtils.selectSingle(conn, """
+            select item_list_id
+            from item_list
+            where item_list_id = ?
+            and deleted is null
+            """,
+            itemListId,
+            rs -> rs.getInt("item_list_id").orElseThrow()
+        ).isPresent();
+    }
+
     public int deleteItemList(Connection conn, int itemListId) throws SQLException {
         return dbUtils.update(conn, """
             update item_list
@@ -127,7 +132,6 @@ public class ItemRepository {
         ).orElse(0);
     }
 
-    // Access is checked by the caller, through ItemListPersonRepository.
     public int updateItemListName(Connection conn, int itemListId, String newName) throws SQLException {
         return dbUtils.update(conn, """
                 update item_list
@@ -140,21 +144,18 @@ public class ItemRepository {
         ).orElse(0);
     }
 
-    // Empty unless the person has access to the item's list.
-    public Optional<Item> getItem(Connection conn, Integer personId, int itemId) {
+    // Empty if the item or its list is deleted.
+    public Optional<Item> getItem(Connection conn, int itemId) {
         return dbUtils.selectSingle(conn, """
                 select i.item_id, i.name, i.completed
                 from item as i
-                join item_list_person as ilp
-                    on ilp.item_list_id = i.item_list_id
-                    and ilp.person_id = ?
                 join item_list as il
                     on il.item_list_id = i.item_list_id
                     and il.deleted is null
                 where i.item_id = ?
                 and i.deleted is null
                 """,
-                new Object[] {personId, itemId},
+                itemId,
                 rs -> new Item(
                         rs.getInt("item_id").orElseThrow(),
                         rs.getString("name").orElseThrow(),
@@ -164,57 +165,46 @@ public class ItemRepository {
         );
     }
 
-    public int createItem(Connection conn, UUID sessionId, Integer personId, int itemListId, String name)
+    public int createItem(Connection conn, int personId, int itemListId, String name)
             throws SQLException {
         return dbUtils.insert(conn, """
                 insert into item (
                        item_list_id,
-                       session_id,
                        person_id,
                        name,
                        created
                 )
-                values (?, ?, ?, ?, ?)
+                values (?, ?, ?, ?)
                 """,
                 itemListId,
-                sessionId,
                 personId,
                 name,
                 LocalDateTime.now()
         ).orElseThrow();
     }
 
-    // Only deletes if the person has access to the item's list.
-    public void deleteItem(Connection conn, Integer personId, int itemId) throws SQLException {
+    public void deleteItem(Connection conn, int itemId) throws SQLException {
         dbUtils.update(conn, """
                 update item
                 set deleted = ?
                 where item_id = ?
-                and item_list_id in (
-                    select item_list_id from item_list_person where person_id = ?
-                )
                 """,
                 LocalDateTime.now(),
-                itemId,
-                personId
+                itemId
         );
     }
 
     public void patchItem(
-            Connection conn, Integer personId, int itemId, String newName, LocalDateTime completed
+            Connection conn, int itemId, String newName, LocalDateTime completed
     ) throws SQLException {
         dbUtils.update(conn, """
                 update item
                 set name = ?, completed = ?
                 where item_id = ?
-                and item_list_id in (
-                    select item_list_id from item_list_person where person_id = ?
-                )
                 """,
                 newName,
                 completed,
-                itemId,
-                personId
+                itemId
         );
     }
 

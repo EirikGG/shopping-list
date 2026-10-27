@@ -1,20 +1,13 @@
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import { request } from './request.js'
-import { sessionId } from '../session.js'
 
-// Stores belong to a list and are shared by everyone on it. Loaded stores,
-// per list id: { [listId]: [{ id, name }] }, sorted by name.
+// Stores belong to a list. Loaded stores, per list id:
+// { [listId]: [{ id, name }] }, sorted by name.
 const storesByList = ref({})
 
 // Stores deleted since the lists were loaded. Store ids are unique across
 // lists, so one set does for all.
 export const deletedStoreIds = ref(new Set())
-
-// Another login can be another user, so everything is fetched again.
-watch(sessionId, () => {
-  storesByList.value = {}
-  deletedStoreIds.value = new Set()
-})
 
 function sortByName(list) {
   return [...list].sort((a, b) => a.name.localeCompare(b.name) || a.id - b.id)
@@ -29,16 +22,12 @@ export function storesOf(listId) {
   return storesByList.value[listId] ?? null
 }
 
-// Fetched every time, as others on the list may have added stores. What was
-// loaded before is shown in the meantime.
+// Fetched every time, as others may have added stores. What was loaded
+// before is shown in the meantime.
 export async function loadStores(listId) {
-  const session = sessionId.value
   const response = await request('GET', `/store-list?itemListId=${encodeURIComponent(listId)}`)
   const list = await response.json()
-  // Dropped if the session changed while loading.
-  if (sessionId.value === session) {
-    setStores(listId, list.map(store => ({ id: store.storeId, name: store.name })))
-  }
+  setStores(listId, list.map(store => ({ id: store.storeId, name: store.name })))
 }
 
 // Returns the new store as { id, name }.
