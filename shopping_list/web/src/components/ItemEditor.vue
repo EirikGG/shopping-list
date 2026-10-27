@@ -18,7 +18,9 @@ import { formatTime, parseBackendTime } from '../time.js'
 
 // Everything about one item: its name, stores, links and files. Stores, links
 // and files are saved as soon as they change; the name when Done is pressed.
-// Escape closes without saving a changed name.
+// Escape closes without saving a changed name. It opens with the focus on the
+// close button rather than the name, so a phone does not bring up the
+// keyboard until a field is tapped.
 const props = defineProps({
   item: { type: Object, required: true },
   listId: { type: Number, required: true }
@@ -202,6 +204,7 @@ function formatSize(bytes) {
         class="icon secondary"
         :aria-label="t('item.close')"
         :title="t('item.close')"
+        autofocus
         @click="dialog.close()"
       >
         <Icon name="x" />
@@ -217,7 +220,7 @@ function formatSize(bytes) {
       </p>
 
       <StorePicker
-        keep-heading
+        spacious
         :list-id="listId"
         :model-value="(item.stores ?? []).map(store => store.storeId)"
         @update:model-value="ids => emit('stores-changed', ids)"

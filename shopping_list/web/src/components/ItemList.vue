@@ -411,7 +411,13 @@ async function submit() {
           {{ t('lists.addItem') }}
         </button>
       </form>
-      <StorePicker v-if="picking" v-model="storeIds" :list-id="list.id" @done="nameInput.focus()" />
+      <StorePicker
+        v-if="picking"
+        v-model="storeIds"
+        :list-id="list.id"
+        :compact="narrow"
+        @done="nameInput.focus()"
+      />
     </div>
 
     <ItemEditor

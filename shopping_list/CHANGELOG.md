@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1
+
+- Choosing stores when adding an item on a phone is quicker: the stores are
+  one row of chips to swipe through, with New first. Stores are renamed and
+  deleted in the item editor, which now shows them all.
+- The item editor no longer brings up the keyboard on phones when it opens.
+
 ## 0.3.0
 
 - Items have links and files: add a recipe link, a photo of the product or a

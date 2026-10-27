@@ -20,9 +20,13 @@ const props = defineProps({
   listId: { type: Number, required: true },
   // The ids of the chosen stores.
   modelValue: { type: Array, default: () => [] },
-  // The heading is left out on phones, where the picker sits in the add bar.
-  // An editor with room for it keeps it.
-  keepHeading: { type: Boolean, default: false }
+  // One row of chips that scrolls sideways, with New first, for picking and
+  // adding only. For the add bar on phones, where the keyboard leaves room
+  // for little else. Stores are renamed and deleted in the item editor.
+  compact: { type: Boolean, default: false },
+  // For an editor with room to spare: on phones it keeps the heading, and
+  // shows every store rather than a box that scrolls.
+  spacious: { type: Boolean, default: false }
 })
 
 // 'done' is sent when adding or editing a store has ended, so the parent can
@@ -137,6 +141,20 @@ function stopAdding(refocus = true) {
   }
 }
 
+// In the row of chips, scrolls a store just added or chosen into sight, as it
+// may be far along the row.
+const list = ref(null)
+
+async function showChip(id) {
+  if (!props.compact) {
+    return
+  }
+  await nextTick()
+  list.value
+    ?.querySelector(`[data-store-id="${id}"]`)
+    ?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
+}
+
 async function add() {
   if (!newName.value || busy.value) {
     return
@@ -149,6 +167,7 @@ async function add() {
   if (existing) {
     choose(existing.id)
     stopAdding()
+    showChip(existing.id)
     return
   }
 
@@ -159,6 +178,7 @@ async function add() {
     const store = await createStore(props.listId, newName.value)
     choose(store.id)
     stopAdding()
+    showChip(store.id)
   } catch (e) {
     error.value = e.status === 429 ? 'errors.tooManyRequests' : 'stores.createFailed'
   } finally {
@@ -168,7 +188,7 @@ async function add() {
 </script>
 
 <template>
-  <div class="picker" :class="{ 'keep-heading': keepHeading }" @mousedown="keepFocus">
+  <div class="picker" :class="{ compact, spacious }" @mousedown="keepFocus">
     <p class="heading">{{ t('stores.stores') }}</p>
 
     <div v-if="loadError" class="status">
@@ -179,51 +199,66 @@ async function add() {
     <p v-else-if="stores === null" class="status muted">{{ t('stores.loading') }}</p>
 
     <template v-else>
-      <p v-if="!stores.length && !adding" class="status muted">{{ t('stores.none') }}</p>
+      <p v-if="!stores.length && !adding && !compact" class="status muted">{{ t('stores.none') }}</p>
 
-      <ul class="stores">
-        <li
-          v-for="store in stores"
-          :key="store.id"
-          :class="{ editing: editingId === store.id }"
-        >
-          <RowEditor
-            v-if="editingId === store.id"
-            :name="store.name"
-            :save="newName => renameStore(listId, store.id, newName)"
-            :remove="() => remove(store)"
-            @done="stopEditing"
-          />
-          <SwipeToDelete
-            v-else
-            :enabled="narrow"
-            :remove="() => deleteStore(store.id)"
-            @removed="forget(store)"
-            @failed="swipeFailed"
-          >
-            <div class="store-row" :class="{ selected: isChosen(store) }">
-              <button
-                type="button"
-                class="store"
-                :aria-pressed="isChosen(store)"
-                @click="toggle(store)"
-              >
-                <Icon name="store" />
-                <span class="name">{{ store.name }}</span>
-                <Icon v-if="isChosen(store)" name="check" />
-              </button>
-              <button
-                type="button"
-                class="edit"
-                :aria-label="t('edit.editItem', { name: store.name })"
-                :title="t('edit.edit')"
-                @click="startEditing(store)"
-              >
-                <Icon name="pencil" />
-              </button>
-            </div>
-          </SwipeToDelete>
+      <ul ref="list" class="stores">
+        <!-- First in the row of chips, so it is there without scrolling. -->
+        <li v-if="compact && !adding">
+          <div class="store-row add-store">
+            <button type="button" class="store" @click="startAdding">
+              <Icon name="plus" />
+              <span class="name">{{ t('stores.new') }}</span>
+            </button>
+          </div>
         </li>
+
+        <!-- In the row of chips, the field for a new store takes the whole row. -->
+        <template v-if="!(compact && adding)">
+          <li
+            v-for="store in stores"
+            :key="store.id"
+            :data-store-id="store.id"
+            :class="{ editing: editingId === store.id }"
+          >
+            <RowEditor
+              v-if="editingId === store.id"
+              :name="store.name"
+              :save="newName => renameStore(listId, store.id, newName)"
+              :remove="() => remove(store)"
+              @done="stopEditing"
+            />
+            <SwipeToDelete
+              v-else
+              :enabled="narrow && !compact"
+              :remove="() => deleteStore(store.id)"
+              @removed="forget(store)"
+              @failed="swipeFailed"
+            >
+              <div class="store-row" :class="{ selected: isChosen(store) }">
+                <button
+                  type="button"
+                  class="store"
+                  :aria-pressed="isChosen(store)"
+                  @click="toggle(store)"
+                >
+                  <Icon :name="compact && isChosen(store) ? 'check' : 'store'" />
+                  <span class="name">{{ store.name }}</span>
+                  <Icon v-if="isChosen(store) && !compact" name="check" />
+                </button>
+                <button
+                  v-if="!compact"
+                  type="button"
+                  class="edit"
+                  :aria-label="t('edit.editItem', { name: store.name })"
+                  :title="t('edit.edit')"
+                  @click="startEditing(store)"
+                >
+                  <Icon name="pencil" />
+                </button>
+              </div>
+            </SwipeToDelete>
+          </li>
+        </template>
 
         <li v-if="adding" class="new">
           <input
@@ -256,7 +291,7 @@ async function add() {
             <Icon name="x" />
           </button>
         </li>
-        <li v-else>
+        <li v-else-if="!compact">
           <div class="store-row add-store">
             <button type="button" class="store" @click="startAdding">
               <Icon name="plus" />
@@ -400,15 +435,55 @@ async function add() {
   color: var(--color-error);
 }
 
-/* On narrow screens the stores are rows in a box about three and a half rows
-   tall, so the bar stays low and the cut-off row shows that it scrolls. As
-   with items, a row can be swiped left to delete it. */
+/* The add bar on phones: one row of chips that scrolls sideways, running to
+   the edges of the screen, as the store filter does. */
+.picker.compact .stores {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  margin: 0 -1rem;
+  padding: 0.125rem 1rem;
+  scrollbar-width: none;
+}
+
+.picker.compact .stores::-webkit-scrollbar {
+  display: none;
+}
+
+.picker.compact .stores li {
+  flex-shrink: 0;
+}
+
+/* Large enough to tap with the keyboard open. */
+.picker.compact .store,
+.picker.compact .store:hover:not(:disabled) {
+  min-height: 2.5rem;
+  padding: 0.375rem 0.875rem;
+}
+
+.picker.compact .name {
+  white-space: nowrap;
+}
+
+.picker.compact .new {
+  flex: 1;
+}
+
+.picker.compact .new input {
+  flex: 1;
+  width: auto;
+  min-height: 2.5rem;
+}
+
+/* On narrow screens the stores are otherwise rows in a box about three and a
+   half rows tall, so the bar stays low and the cut-off row shows that it
+   scrolls. As with items, a row can be swiped left to delete it. */
 @media (max-width: 640px) {
-  .picker:not(.keep-heading) .heading {
+  .picker:not(.spacious) .heading {
     display: none;
   }
 
-  .stores {
+  .picker:not(.compact) .stores {
     flex-direction: column;
     flex-wrap: nowrap;
     gap: 0;
@@ -420,55 +495,60 @@ async function add() {
     border-radius: var(--radius);
   }
 
-  .stores li {
+  /* An editor has the room to show them all. */
+  .picker.spacious .stores {
+    max-height: none;
+  }
+
+  .picker:not(.compact) .stores li {
     flex-shrink: 0;
   }
 
-  .stores li + li {
+  .picker:not(.compact) .stores li + li {
     border-top: 1px solid var(--color-border);
   }
 
-  .stores li.editing {
+  .picker:not(.compact) .stores li.editing {
     flex-basis: auto;
     padding: 0.375rem 0.5rem 0.375rem 1rem;
   }
 
-  .store-row,
-  .store-row:hover {
+  .picker:not(.compact) .store-row,
+  .picker:not(.compact) .store-row:hover {
     min-height: 2.75rem;
     border: none;
     border-radius: 0;
   }
 
-  .store,
-  .store:hover:not(:disabled) {
+  .picker:not(.compact) .store,
+  .picker:not(.compact) .store:hover:not(:disabled) {
     flex: 1;
     gap: 0.75rem;
     align-self: stretch;
     padding: 0.375rem 1rem;
   }
 
-  .store :deep(svg),
-  .edit :deep(svg) {
+  .picker:not(.compact) .store :deep(svg),
+  .picker:not(.compact) .edit :deep(svg) {
     width: 1.125rem;
     height: 1.125rem;
   }
 
-  .edit,
-  .edit:hover:not(:disabled) {
+  .picker:not(.compact) .edit,
+  .picker:not(.compact) .edit:hover:not(:disabled) {
     padding: 0.45rem 0.75rem;
   }
 
-  .name {
+  .picker:not(.compact) .name {
     flex: 1;
   }
 
-  .new {
+  .picker:not(.compact) .new {
     min-height: 2.75rem;
     padding: 0.25rem 0.5rem 0.25rem 1rem;
   }
 
-  .new input {
+  .picker:not(.compact) .new input {
     flex: 1;
     width: auto;
   }

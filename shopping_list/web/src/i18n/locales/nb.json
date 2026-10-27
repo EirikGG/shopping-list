@@ -32,6 +32,7 @@
     "loadFailed": "Kunne ikke hente butikkene dine.",
     "none": "Ingen butikker ennå.",
     "newStore": "Ny butikk",
+    "new": "Ny",
     "storeName": "Butikknavn",
     "create": "Legg til butikk",
     "createFailed": "Kunne ikke legge til butikken. Prøv igjen.",

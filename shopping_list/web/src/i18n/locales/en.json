@@ -32,6 +32,7 @@
     "loadFailed": "Could not load your stores.",
     "none": "No stores yet.",
     "newStore": "New store",
+    "new": "New",
     "storeName": "Store name",
     "create": "Add store",
     "createFailed": "Could not add the store. Try again.",
