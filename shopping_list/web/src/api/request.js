@@ -32,7 +32,9 @@ export async function request(method, path, body) {
   }
 
   try {
-    const response = await fetch(`/api${path}`, {
+    // Relative, without a leading slash: Home Assistant serves the app under
+    // /api/hassio_ingress/<token>/, and the API is below that.
+    const response = await fetch(`api${path}`, {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body)

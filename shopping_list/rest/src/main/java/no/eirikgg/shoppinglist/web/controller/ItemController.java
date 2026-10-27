@@ -26,8 +26,8 @@ import java.util.Optional;
 public class ItemController {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    public static final String PATH_ITEM_LIST = "/item-list";
-    public static final String PATH_ITEM = "/item";
+    public static final String PATH_ITEM_LIST = "/api/item-list";
+    public static final String PATH_ITEM = "/api/item";
 
 
     private ObjectMapper mapper = Json.MAPPER;

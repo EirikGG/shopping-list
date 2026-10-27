@@ -3,6 +3,7 @@ package no.eirikgg.shoppinglist;
 import io.javalin.Javalin;
 import io.javalin.json.JavalinJackson;
 import no.eirikgg.shoppinglist.web.ExceptionHandlers;
+import no.eirikgg.shoppinglist.web.WebApp;
 import no.eirikgg.shoppinglist.web.controller.GeneralController;
 import no.eirikgg.shoppinglist.web.controller.ItemController;
 import no.eirikgg.shoppinglist.web.controller.StoreController;
@@ -24,14 +25,19 @@ public class Main {
 
     // The add-on's /data folder, which HA keeps across updates and backs up.
     private static final String DEFAULT_DB_FILE = "/data/shoppinglist.db";
+    // The port HA's ingress proxy connects to unless the add-on says otherwise.
+    private static final String DEFAULT_APP_PORT = "8099";
 
     public static void main(String[] args) {
         log.info("Starting application...");
         Path dbFile = Path.of(System.getProperty("DB.FILE", DEFAULT_DB_FILE));
         log.info("Using the database in {}", dbFile.toAbsolutePath());
         Db db = SqliteDb.openMigrated(dbFile);
-        String appPortProperty = System.getProperty("APP.PORT");
-        int appPort = Integer.parseInt(appPortProperty);
+        int appPort = Integer.parseInt(System.getProperty("APP.PORT", DEFAULT_APP_PORT));
+        // The built web app. Not set in development, where Vite serves it.
+        String webDirProperty = System.getProperty("WEB.DIR");
+        Path webDir = null == webDirProperty || webDirProperty.isBlank() ? null : Path.of(webDirProperty);
+        log.info(null == webDir ? "Serving only the API" : "Serving the web app from {}", webDir);
 
         log.info("Completed setup and migration");
         String trustedProxy = trustedProxy(System.getenv("INGRESS_PROXY"));
@@ -41,7 +47,7 @@ public class Main {
         else {
             log.info("Trusting Home Assistant user headers from {}", trustedProxy);
         }
-        Javalin app = setupJavalinApp(db, trustedProxy);
+        Javalin app = setupJavalinApp(db, trustedProxy, webDir);
 
         log.info("Configured javalin routes");
         app.start(appPort);
@@ -56,12 +62,22 @@ public class Main {
     }
 
 
-    // trustedProxy is the only address the Home Assistant user headers are
-    // accepted from. null accepts them from anyone; see IngressFilter.
+    // Just the API, as in development and the tests.
     public static Javalin setupJavalinApp(Db db, String trustedProxy) {
+        return setupJavalinApp(db, trustedProxy, null);
+    }
+
+    // trustedProxy is the only address the Home Assistant user headers are
+    // accepted from. null accepts them from anyone; see IngressFilter. The API
+    // is under /api; webDir, if set, is the built web app, served from /.
+    public static Javalin setupJavalinApp(Db db, String trustedProxy, Path webDir) {
         Javalin app = Javalin.create(config -> {
 
             config.jsonMapper(new JavalinJackson(Json.MAPPER, false));
+
+            if (null != webDir) {
+                WebApp.setup(config, webDir);
+            }
 
             RequestLog.setup(config);
             IngressFilter.setup(config, db, trustedProxy);

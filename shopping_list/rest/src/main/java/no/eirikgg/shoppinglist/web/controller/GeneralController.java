@@ -11,8 +11,8 @@ import java.util.Map;
 
 public class GeneralController {
 
-    public static final String PATH_PING = "/ping";
-    public static final String PATH_NOOP = "/noop";
+    public static final String PATH_PING = "/api/ping";
+    public static final String PATH_NOOP = "/api/noop";
 
 
     private Db db;

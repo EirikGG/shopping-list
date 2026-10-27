@@ -1,0 +1,5 @@
+# Lets Home Assistant install the add-ons in this repository: Settings > Add-ons
+# > Add-on store > ⋮ > Repositories, then add the GitHub URL.
+name: EirikGG's add-ons
+url: https://github.com/EirikGG/shopping-list
+maintainer: EirikGG

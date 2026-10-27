@@ -17,9 +17,9 @@ import java.util.List;
 
 public class StoreController {
 
-    public static final String PATH_STORE = "/store";
-    public static final String PATH_STORE_LIST = "/store-list";
-    public static final String PATH_STORE_ITEM_MAPPING = "/store-item-mapping";
+    public static final String PATH_STORE = "/api/store";
+    public static final String PATH_STORE_LIST = "/api/store-list";
+    public static final String PATH_STORE_ITEM_MAPPING = "/api/store-item-mapping";
 
     private StoreService storeService;
 

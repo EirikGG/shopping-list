@@ -1,0 +1,21 @@
+name: Shopping list
+version: "0.1.0"
+slug: shopping_list
+description: Shared shopping lists for the household, in the Home Assistant sidebar
+url: https://github.com/EirikGG/shopping-list
+arch:
+  - aarch64
+  - amd64
+startup: application
+boot: auto
+
+# Shown in the sidebar through ingress: HA logs the user in and passes them on.
+# No ports are published, so the app is only reachable through HA.
+ingress: true
+ingress_port: 8099
+panel_icon: mdi:cart-outline
+panel_title: Shopping list
+
+# The database is a SQLite file in /data. A backup copied while it is being
+# written to could be inconsistent, so the add-on is stopped for the backup.
+backup: cold

@@ -19,6 +19,9 @@ const devUserName = process.env.DEV_HA_USER_NAME || 'Dev User'
 
 export default defineConfig({
   plugins: [vue()],
+  // Relative links in the built app, as Home Assistant serves it under
+  // /api/hassio_ingress/<token>/ rather than at the root.
+  base: './',
   server: {
     host: '0.0.0.0',
     port: Number(process.env.WEB_PORT) || 5173,
@@ -27,7 +30,6 @@ export default defineConfig({
       '/api': {
         target: apiTarget,
         changeOrigin: true,
-        rewrite: path => path.replace(/^\/api/, ''),
         // Set here, replacing any the browser sent, as HA's proxy does.
         configure: proxy => {
           proxy.on('proxyReq', proxyReq => {
