@@ -19,7 +19,10 @@ import {
 const props = defineProps({
   listId: { type: Number, required: true },
   // The ids of the chosen stores.
-  modelValue: { type: Array, default: () => [] }
+  modelValue: { type: Array, default: () => [] },
+  // The heading is left out on phones, where the picker sits in the add bar.
+  // An editor with room for it keeps it.
+  keepHeading: { type: Boolean, default: false }
 })
 
 // 'done' is sent when adding or editing a store has ended, so the parent can
@@ -165,7 +168,7 @@ async function add() {
 </script>
 
 <template>
-  <div class="picker" @mousedown="keepFocus">
+  <div class="picker" :class="{ 'keep-heading': keepHeading }" @mousedown="keepFocus">
     <p class="heading">{{ t('stores.stores') }}</p>
 
     <div v-if="loadError" class="status">
@@ -401,7 +404,7 @@ async function add() {
    tall, so the bar stays low and the cut-off row shows that it scrolls. As
    with items, a row can be swiped left to delete it. */
 @media (max-width: 640px) {
-  .heading {
+  .picker:not(.keep-heading) .heading {
     display: none;
   }
 

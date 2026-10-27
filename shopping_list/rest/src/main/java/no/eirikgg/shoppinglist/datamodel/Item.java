@@ -13,6 +13,8 @@ public class Item extends DbIdentity {
     private LocalDateTime created;
     private LocalDateTime completed;
     private List<Store> stores;
+    private final List<ItemLink> links = new LinkedList<>();
+    private final List<Attachment> attachments = new LinkedList<>();
 
     public Item(Integer id, String name, LocalDateTime created, LocalDateTime completed, List<Store> stores) {
         super(id);
@@ -35,6 +37,14 @@ public class Item extends DbIdentity {
             stores = new LinkedList<>();
         }
         return stores;
+    }
+
+    public List<ItemLink> getLinks() {
+        return links;
+    }
+
+    public List<Attachment> getAttachments() {
+        return attachments;
     }
 
     public Optional<LocalDateTime> getCompleted() {

@@ -7,7 +7,9 @@ import io.javalin.config.RoutesConfig;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import no.eirikgg.shoppinglist.Json;
+import no.eirikgg.shoppinglist.datamodel.Attachment;
 import no.eirikgg.shoppinglist.datamodel.Item;
+import no.eirikgg.shoppinglist.datamodel.ItemLink;
 import no.eirikgg.shoppinglist.datamodel.ItemList;
 import no.eirikgg.shoppinglist.datamodel.Person;
 import no.eirikgg.shoppinglist.db.Db;
@@ -74,11 +76,37 @@ public class ItemController {
     }
 
 
+    // title is null if none was given.
+    record ItemLinkResponse(
+            int id, String url, String title
+    ) {}
+    static ItemLinkResponse toLinkResponse(ItemLink link) {
+        return new ItemLinkResponse(link.id(), link.url(), link.title());
+    }
+    private static List<ItemLinkResponse> toLinkResponses(Item item) {
+        return item.getLinks().stream().map(ItemController::toLinkResponse).toList();
+    }
+
+    // The file is at AttachmentController.PATH_ATTACHMENT_FILE.
+    record AttachmentResponse(
+            int id, String fileName, String contentType, long size
+    ) {}
+    static AttachmentResponse toAttachmentResponse(Attachment attachment) {
+        return new AttachmentResponse(
+                attachment.id(), attachment.fileName(), attachment.contentType(), attachment.size()
+        );
+    }
+    private static List<AttachmentResponse> toAttachmentResponses(Item item) {
+        return item.getAttachments().stream().map(ItemController::toAttachmentResponse).toList();
+    }
+
+
     record GetItemRequest(
             int id
     ) {}
     record GetItemResponse(
-            int id, String name, LocalDateTime created, LocalDateTime completed, List<ItemStoreResponse> stores
+            int id, String name, LocalDateTime created, LocalDateTime completed, List<ItemStoreResponse> stores,
+            List<ItemLinkResponse> links, List<AttachmentResponse> attachments
     ) {}
     private static GetItemResponse toItemResponse(Item item) {
         return new GetItemResponse(
@@ -86,7 +114,9 @@ public class ItemController {
                 item.getName(),
                 item.getCreated(),
                 item.getCompleted().orElse(null),
-                toStoreResponses(item)
+                toStoreResponses(item),
+                toLinkResponses(item),
+                toAttachmentResponses(item)
         );
     }
     private void getItem(Context ctx) throws JsonProcessingException {
@@ -134,7 +164,8 @@ public class ItemController {
             int id, String newName, boolean completed
     ) {}
     record PatchItemResponse(
-            int id, String name, LocalDateTime created, LocalDateTime completed, List<ItemStoreResponse> stores
+            int id, String name, LocalDateTime created, LocalDateTime completed, List<ItemStoreResponse> stores,
+            List<ItemLinkResponse> links, List<AttachmentResponse> attachments
     ) {}
     private void patchItem(Context ctx) throws JsonProcessingException, ResourceNotFoundException {
         PatchItemRequest request = mapper.readValue(ctx.body(), PatchItemRequest.class);
@@ -145,7 +176,9 @@ public class ItemController {
                 item.getName(),
                 item.getCreated(),
                 item.getCompleted().orElse(null),
-                toStoreResponses(item)
+                toStoreResponses(item),
+                toLinkResponses(item),
+                toAttachmentResponses(item)
         );
         ctx.status(HttpStatus.OK).json(response);
     }

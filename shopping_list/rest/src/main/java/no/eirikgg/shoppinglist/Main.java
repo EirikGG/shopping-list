@@ -4,6 +4,9 @@ import io.javalin.Javalin;
 import io.javalin.json.JavalinJackson;
 import no.eirikgg.shoppinglist.web.ExceptionHandlers;
 import no.eirikgg.shoppinglist.web.WebApp;
+import no.eirikgg.shoppinglist.web.controller.AttachmentController;
+import no.eirikgg.shoppinglist.web.controller.ItemLinkController;
+import no.eirikgg.shoppinglist.service.AttachmentService;
 import no.eirikgg.shoppinglist.web.controller.GeneralController;
 import no.eirikgg.shoppinglist.web.controller.ItemController;
 import no.eirikgg.shoppinglist.web.controller.StoreController;
@@ -25,6 +28,7 @@ public class Main {
 
     // The add-on's /data folder, which HA keeps across updates and backs up.
     private static final String DEFAULT_DB_FILE = "/data/shoppinglist.db";
+    private static final String DEFAULT_FILES_DIR = "/data/files";
     // The port HA's ingress proxy connects to unless the add-on says otherwise.
     private static final String DEFAULT_APP_PORT = "8099";
 
@@ -38,6 +42,9 @@ public class Main {
         String webDirProperty = System.getProperty("WEB.DIR");
         Path webDir = null == webDirProperty || webDirProperty.isBlank() ? null : Path.of(webDirProperty);
         log.info(null == webDir ? "Serving only the API" : "Serving the web app from {}", webDir);
+        Path filesDir = Path.of(System.getProperty("FILES.DIR", DEFAULT_FILES_DIR));
+        log.info("Keeping uploaded files in {}", filesDir.toAbsolutePath());
+        new AttachmentService(db, filesDir).removeUnusedFiles();
 
         log.info("Completed setup and migration");
         String trustedProxy = trustedProxy(System.getenv("INGRESS_PROXY"));
@@ -47,7 +54,7 @@ public class Main {
         else {
             log.info("Trusting Home Assistant user headers from {}", trustedProxy);
         }
-        Javalin app = setupJavalinApp(db, trustedProxy, webDir);
+        Javalin app = setupJavalinApp(db, trustedProxy, webDir, filesDir);
 
         log.info("Configured javalin routes");
         app.start(appPort);
@@ -61,16 +68,11 @@ public class Main {
         return TRUST_ANY_PROXY.equalsIgnoreCase(setting.trim()) ? null : setting.trim();
     }
 
-
-    // Just the API, as in development and the tests.
-    public static Javalin setupJavalinApp(Db db, String trustedProxy) {
-        return setupJavalinApp(db, trustedProxy, null);
-    }
-
     // trustedProxy is the only address the Home Assistant user headers are
     // accepted from. null accepts them from anyone; see IngressFilter. The API
     // is under /api; webDir, if set, is the built web app, served from /.
-    public static Javalin setupJavalinApp(Db db, String trustedProxy, Path webDir) {
+    // filesDir is where uploaded files are kept.
+    public static Javalin setupJavalinApp(Db db, String trustedProxy, Path webDir, Path filesDir) {
         Javalin app = Javalin.create(config -> {
 
             config.jsonMapper(new JavalinJackson(Json.MAPPER, false));
@@ -85,6 +87,8 @@ public class Main {
             GeneralController.setup(config, db);
             ItemController.setup(config, db);
             StoreController.setup(config, db);
+            ItemLinkController.setup(config, db);
+            AttachmentController.setup(config, db, filesDir);
 
             ExceptionHandlers.setup(config, db);
 

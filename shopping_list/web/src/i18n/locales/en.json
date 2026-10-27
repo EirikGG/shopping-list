@@ -41,6 +41,28 @@
     "filter": "Filter by store",
     "showAll": "Show all"
   },
+  "item": {
+    "close": "Close",
+    "done": "Done",
+    "delete": "Delete item",
+    "confirmDelete": "Delete \"{name}\", with its links and files?",
+    "links": "Links",
+    "linkUrl": "Link, e.g. example.com/recipe",
+    "linkTitle": "Title (optional)",
+    "addLink": "Add link",
+    "removeLink": "Remove link {name}",
+    "invalidLink": "That is not a web address. Use one starting with http:// or https://.",
+    "addLinkFailed": "Could not add the link. Try again.",
+    "linkCount": "{count} link | {count} links",
+    "files": "Files and images",
+    "addFiles": "Add files or images",
+    "uploading": "Uploading {name}…",
+    "removeFile": "Delete file {name}",
+    "confirmDeleteFile": "Delete \"{name}\"?",
+    "fileTooLarge": "{name} is too large. Files can be up to {max}.",
+    "uploadFailed": "Could not upload {name}. Try again.",
+    "fileCount": "{count} file | {count} files"
+  },
   "edit": {
     "edit": "Edit",
     "editList": "Edit list {name}",

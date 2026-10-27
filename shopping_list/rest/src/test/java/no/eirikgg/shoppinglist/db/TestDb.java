@@ -35,6 +35,11 @@ public final class TestDb implements Db, AutoCloseable {
         return db.getFile();
     }
 
+    // For uploaded files, deleted with the database.
+    public Path getFilesFolder() {
+        return folder.resolve("files");
+    }
+
     @Override
     public Connection getConnection() throws SQLException {
         return db.getConnection();

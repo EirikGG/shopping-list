@@ -23,7 +23,8 @@ export function writeState() {
 }
 
 // Calls the backend. Home Assistant has already logged the user in, and its
-// ingress proxy tells the backend who they are.
+// ingress proxy tells the backend who they are. body is sent as JSON, or as
+// it is if it is FormData, as for an upload.
 export async function request(method, path, body) {
   const isWrite = method !== 'GET'
   if (isWrite) {
@@ -34,10 +35,12 @@ export async function request(method, path, body) {
   try {
     // Relative, without a leading slash: Home Assistant serves the app under
     // /api/hassio_ingress/<token>/, and the API is below that.
+    // The browser sets the type of FormData itself, with its boundary.
+    const form = body instanceof FormData
     const response = await fetch(`api${path}`, {
       method,
-      headers: { 'Content-Type': 'application/json' },
-      body: body === undefined ? undefined : JSON.stringify(body)
+      headers: form ? {} : { 'Content-Type': 'application/json' },
+      body: body === undefined || form ? body : JSON.stringify(body)
     })
 
     if (!response.ok) {

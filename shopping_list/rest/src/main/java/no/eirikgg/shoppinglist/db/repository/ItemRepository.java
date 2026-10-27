@@ -4,6 +4,7 @@ import no.eirikgg.shoppinglist.datamodel.Item;
 import no.eirikgg.shoppinglist.datamodel.ItemList;
 import no.eirikgg.shoppinglist.datamodel.Store;
 import no.eirikgg.shoppinglist.db.DbUtils;
+import no.eirikgg.shoppinglist.db.RSWrapper;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -13,6 +14,8 @@ import java.util.Optional;
 
 public class ItemRepository {
     private DbUtils dbUtils = new DbUtils();
+    private ItemLinkRepository itemLinkRepository = new ItemLinkRepository();
+    private AttachmentRepository attachmentRepository = new AttachmentRepository();
 
     public int createItemList(Connection conn, int personId, String name) throws SQLException {
         return dbUtils.insert(conn, """
@@ -59,17 +62,24 @@ public class ItemRepository {
                 item_id desc
             """,
             itemListId,
-            rs -> {
-                Integer itemId = rs.getInt("item_id").orElseThrow();
-                return new Item(
-                        itemId,
-                        rs.getString("name").orElseThrow(),
-                        rs.getLocalDateTime("created").orElseThrow(),
-                        rs.getLocalDateTime("completed").orElse(null),
-                        getStoresForItemList(conn, itemId)
-                );
-            }
+            rs -> toItem(conn, rs)
         );
+    }
+
+    // Reads item_id, name, created and completed, and adds the item's stores,
+    // links and files.
+    private Item toItem(Connection conn, RSWrapper rs) {
+        int itemId = rs.getInt("item_id").orElseThrow();
+        Item item = new Item(
+                itemId,
+                rs.getString("name").orElseThrow(),
+                rs.getLocalDateTime("created").orElseThrow(),
+                rs.getLocalDateTime("completed").orElse(null),
+                getStoresForItemList(conn, itemId)
+        );
+        item.getLinks().addAll(itemLinkRepository.getLinksForItem(conn, itemId));
+        item.getAttachments().addAll(attachmentRepository.getAttachmentsForItem(conn, itemId));
+        return item;
     }
 
     private List<Store> getStoresForItemList(Connection conn, Integer itemId) {
@@ -162,13 +172,7 @@ public class ItemRepository {
                 and i.deleted is null
                 """,
                 itemId,
-                rs -> new Item(
-                        rs.getInt("item_id").orElseThrow(),
-                        rs.getString("name").orElseThrow(),
-                        rs.getLocalDateTime("created").orElseThrow(),
-                        rs.getLocalDateTime("completed").orElse(null),
-                        getStoresForItemList(conn, rs.getInt("item_id").orElseThrow())
-                )
+                rs -> toItem(conn, rs)
         );
     }
 

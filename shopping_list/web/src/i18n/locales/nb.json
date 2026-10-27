@@ -41,6 +41,28 @@
     "filter": "Filtrer på butikk",
     "showAll": "Vis alle"
   },
+  "item": {
+    "close": "Lukk",
+    "done": "Ferdig",
+    "delete": "Slett vare",
+    "confirmDelete": "Slette «{name}», med lenker og filer?",
+    "links": "Lenker",
+    "linkUrl": "Lenke, f.eks. example.com/oppskrift",
+    "linkTitle": "Tittel (valgfritt)",
+    "addLink": "Legg til lenke",
+    "removeLink": "Fjern lenken {name}",
+    "invalidLink": "Det er ikke en nettadresse. Bruk en som begynner med http:// eller https://.",
+    "addLinkFailed": "Kunne ikke legge til lenken. Prøv igjen.",
+    "linkCount": "{count} lenke | {count} lenker",
+    "files": "Filer og bilder",
+    "addFiles": "Legg til filer eller bilder",
+    "uploading": "Laster opp {name}…",
+    "removeFile": "Slett filen {name}",
+    "confirmDeleteFile": "Slette «{name}»?",
+    "fileTooLarge": "{name} er for stor. Filer kan være opptil {max}.",
+    "uploadFailed": "Kunne ikke laste opp {name}. Prøv igjen.",
+    "fileCount": "{count} fil | {count} filer"
+  },
   "edit": {
     "edit": "Rediger",
     "editList": "Rediger listen {name}",

@@ -6,6 +6,7 @@ import io.javalin.http.HttpStatus;
 import io.javalin.http.InternalServerErrorResponse;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.errors.Error;
+import no.eirikgg.shoppinglist.errors.InvalidInputException;
 import no.eirikgg.shoppinglist.errors.NoAccessToResourceException;
 import no.eirikgg.shoppinglist.errors.PublicError;
 import no.eirikgg.shoppinglist.errors.ResourceNotFoundException;
@@ -21,7 +22,15 @@ public class ExceptionHandlers {
         ExceptionHandlers eh = new ExceptionHandlers();
         config.routes.exception(NoAccessToResourceException.class, eh::noAccessToResourceException);
         config.routes.exception(ResourceNotFoundException.class, eh::resourceNotFoundException);
+        config.routes.exception(InvalidInputException.class, eh::invalidInputException);
         config.routes.exception(Exception.class, eh::exception);
+    }
+
+    private void invalidInputException(InvalidInputException e, Context ctx) {
+        HttpStatus status = Error.FILE_TOO_LARGE == e.getError()
+                ? HttpStatus.CONTENT_TOO_LARGE
+                : HttpStatus.BAD_REQUEST;
+        creatPublicError(ctx, e, status, e.getError());
     }
 
 

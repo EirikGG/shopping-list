@@ -38,7 +38,7 @@ class WebAppTest {
         Files.writeString(webDir.resolve("index.html"), "<html>the app</html>");
         Files.createDirectories(webDir.resolve("assets"));
         Files.writeString(webDir.resolve("assets").resolve("index-abc123.js"), "console.log('app')");
-        return Main.setupJavalinApp(db, null, webDir);
+        return Main.setupJavalinApp(db, null, webDir, db.getFilesFolder());
     }
 
     @Test

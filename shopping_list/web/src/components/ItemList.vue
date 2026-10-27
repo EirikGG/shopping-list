@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { useLocalStorage, useMediaQuery } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import Icon from './Icon.vue'
-import RowEditor from './RowEditor.vue'
+import ItemEditor from './ItemEditor.vue'
 import StorePicker from './StorePicker.vue'
 import SwipeToDelete from './SwipeToDelete.vue'
 import { createItem, deleteItem, updateItem } from '../api/items.js'
@@ -24,8 +24,11 @@ const name = ref('')
 // A message key, so the error follows a language change.
 const error = ref('')
 const busy = ref(false)
-// The item being renamed or deleted, if any. One at a time.
+// The item open in the editor, if any. Looked up by id, so the editor shows
+// the latest the list has, also after a refresh. Closes if someone else
+// deletes the item.
 const editingId = ref(null)
+const editingItem = computed(() => props.list.items.find(item => item.id === editingId.value) ?? null)
 // Matches the breakpoint in the styles below.
 const narrow = useMediaQuery('(max-width: 640px)')
 
@@ -139,10 +142,6 @@ const sections = computed(() => [
 // Items with a completion still being saved, so a double tap is not sent twice.
 const toggling = ref(new Set())
 
-async function rename(item, newName) {
-  emit('item-updated', await updateItem(item.id, newName, item.completed !== null))
-}
-
 // Shown straight away, and put back if saving fails. The timestamp is a
 // stand-in until the backend returns its own.
 async function toggleCompleted(item) {
@@ -196,11 +195,6 @@ async function changeStores(item, ids) {
     emit('item-updated', { ...item, stores: previous })
     error.value = e.status === 429 ? 'errors.tooManyRequests' : 'lists.completeFailed'
   }
-}
-
-async function remove(item) {
-  await deleteItem(item.id)
-  emit('item-deleted', item.id)
 }
 
 function swipeFailed(e) {
@@ -283,23 +277,9 @@ async function submit() {
           <li
             v-for="item in section.items"
             :key="item.id"
-            :class="{ completed: item.completed, editing: editingId === item.id }"
+            :class="{ completed: item.completed }"
           >
-            <template v-if="editingId === item.id">
-              <RowEditor
-                :name="item.name"
-                :save="newName => rename(item, newName)"
-                :remove="() => remove(item)"
-                @done="editingId = null"
-              />
-              <StorePicker
-                :list-id="list.id"
-                :model-value="(item.stores ?? []).map(store => store.storeId)"
-                @update:model-value="ids => changeStores(item, ids)"
-              />
-            </template>
             <SwipeToDelete
-              v-else
               :enabled="narrow"
               :remove="() => deleteItem(item.id)"
               @removed="emit('item-deleted', item.id)"
@@ -322,6 +302,22 @@ async function submit() {
                     <span v-if="storeNames(item)" class="item-store">
                       <Icon name="store" />
                       {{ storeNames(item) }}
+                    </span>
+                    <span v-if="item.links?.length || item.attachments?.length" class="item-extras">
+                      <span
+                        v-if="item.links?.length"
+                        :title="t('item.linkCount', item.links.length)"
+                      >
+                        <Icon name="link" />
+                        {{ item.links.length }}
+                      </span>
+                      <span
+                        v-if="item.attachments?.length"
+                        :title="t('item.fileCount', item.attachments.length)"
+                      >
+                        <Icon name="paperclip" />
+                        {{ item.attachments.length }}
+                      </span>
                     </span>
                     <!-- When it was bought, or for what is still to buy, when it
                          was added. -->
@@ -417,6 +413,17 @@ async function submit() {
       </form>
       <StorePicker v-if="picking" v-model="storeIds" :list-id="list.id" @done="nameInput.focus()" />
     </div>
+
+    <ItemEditor
+      v-if="editingItem"
+      :key="editingItem.id"
+      :item="editingItem"
+      :list-id="list.id"
+      @item-updated="item => emit('item-updated', item)"
+      @stores-changed="ids => changeStores(editingItem, ids)"
+      @item-deleted="id => emit('item-deleted', id)"
+      @close="editingId = null"
+    />
   </section>
 </template>
 
@@ -471,24 +478,12 @@ h2 {
 }
 
 /* The padding is on the row inside the li, so a swipe moves all of it. */
-.item-row,
-.items li.editing {
+.item-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   min-height: 3rem;
-  padding: 0.375rem 0.5rem 0.375rem 1rem;
-}
-
-.item-row {
-  padding-left: 0.25rem;
-}
-
-/* The store picker goes under the name field while an item is edited. */
-.items li.editing {
-  flex-direction: column;
-  align-items: stretch;
-  padding-bottom: 0.75rem;
+  padding: 0.375rem 0.5rem 0.375rem 0.25rem;
 }
 
 /* The circle and the name are one button, so tapping anywhere on the item
@@ -580,18 +575,27 @@ h2 {
 }
 
 .completed-at,
-.item-store {
+.item-store,
+.item-extras {
   font-size: 0.8125rem;
   color: var(--color-text-muted);
 }
 
-.item-store {
+.item-store,
+.item-extras,
+.item-extras > span {
   display: flex;
   align-items: center;
   gap: 0.25rem;
 }
 
-.item-store :deep(svg) {
+/* How many links and files the item has, opened with the pencil. */
+.item-extras {
+  gap: 0.625rem;
+}
+
+.item-store :deep(svg),
+.item-extras :deep(svg) {
   width: 0.875rem;
   height: 0.875rem;
   flex-shrink: 0;
