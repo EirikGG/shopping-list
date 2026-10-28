@@ -17,6 +17,7 @@ import no.eirikgg.shoppinglist.errors.InvalidInputException;
 import no.eirikgg.shoppinglist.errors.NoAccessToResourceException;
 import no.eirikgg.shoppinglist.errors.ResourceNotFoundException;
 import no.eirikgg.shoppinglist.service.ItemService;
+import no.eirikgg.shoppinglist.service.ListChanges;
 import no.eirikgg.shoppinglist.web.filter.IngressFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,12 +38,12 @@ public class ItemController {
 
     private ItemService itemService;
 
-    public ItemController(Db db) {
-        itemService = new ItemService(db);
+    public ItemController(Db db, ListChanges changes) {
+        itemService = new ItemService(db, changes);
     }
 
-    public static void setup(JavalinConfig config, Db db) {
-        ItemController ic = new ItemController(db);
+    public static void setup(JavalinConfig config, Db db, ListChanges changes) {
+        ItemController ic = new ItemController(db, changes);
         RoutesConfig routes = config.routes;
 
 
@@ -132,18 +133,21 @@ public class ItemController {
     }
 
 
-    // storeIds is optional.
+    // storeIds is optional, and amount is 1 if left out.
     record PostItemRequest(
-            int itemListId, String name, List<Integer> storeIds
+            int itemListId, String name, List<Integer> storeIds, Integer amount
     ) {}
     record PostItemResponse(
             int id, String name, int amount, LocalDateTime created, List<ItemStoreResponse> stores
     ) {}
     private void saveItem(Context ctx)
-            throws JsonProcessingException, ResourceNotFoundException, NoAccessToResourceException {
+            throws JsonProcessingException, ResourceNotFoundException, NoAccessToResourceException,
+                   InvalidInputException {
         Person person = ctx.attribute(IngressFilter.PARAM_PERSON);
         PostItemRequest request = ctx.bodyAsClass(PostItemRequest.class);
-        Item item = itemService.createItem(person, request.itemListId(), request.name(), request.storeIds());
+        Item item = itemService.createItem(
+                person, request.itemListId(), request.name(), request.amount(), request.storeIds()
+        );
         PostItemResponse response = new PostItemResponse(
                 item.getId().orElseThrow(),
                 item.getName(),
@@ -159,7 +163,7 @@ public class ItemController {
     ) {}
     private void deleteItem(Context ctx) throws JsonProcessingException {
         DeleteItemRequest request = mapper.readValue(ctx.body(), DeleteItemRequest.class);
-        itemService.deleteItem(request.id());
+        itemService.deleteItem(ctx.attribute(IngressFilter.PARAM_PERSON), request.id());
     }
 
 
@@ -175,7 +179,9 @@ public class ItemController {
             throws JsonProcessingException, ResourceNotFoundException, InvalidInputException {
         PatchItemRequest request = mapper.readValue(ctx.body(), PatchItemRequest.class);
         LocalDateTime completedTime = request.completed ? LocalDateTime.now() : null;
-        Item item = itemService.patchItem(request.id(), request.newName(), request.amount(), completedTime);
+        Item item = itemService.patchItem(
+                ctx.attribute(IngressFilter.PARAM_PERSON), request.id(), request.newName(), request.amount(), completedTime
+        );
         PatchItemResponse response = new PatchItemResponse(
                 item.getId().orElseThrow(),
                 item.getName(),

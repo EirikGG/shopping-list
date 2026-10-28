@@ -20,11 +20,18 @@ public class StoreService {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private Db db;
+    private ListChanges changes;
     private StoreRepository storeRepository = new StoreRepository();
     private ItemRepository itemRepository = new ItemRepository();
 
     public StoreService(Db db) {
+        this(db, ListChanges.NONE);
+    }
+
+    // Giving an item a store, or taking one away, is passed on to changes.
+    public StoreService(Db db, ListChanges changes) {
         this.db = db;
+        this.changes = changes;
     }
 
     public Store createStore(Person person, int itemListId, String name) throws ResourceNotFoundException {
@@ -65,6 +72,8 @@ public class StoreService {
         try (Connection conn = db.getConnection()) {
             existingStore(conn, storeId);
             storeRepository.updateStore(conn, storeId, newName);
+            // The items show the new name.
+            changes.listsChanged();
         }
         catch (SQLException e) {
             throw new RuntimeException(e);
@@ -75,6 +84,7 @@ public class StoreService {
         try (Connection conn = db.getConnection()) {
             existingStore(conn, storeId);
             storeRepository.deleteStore(conn, storeId);
+            changes.listsChanged();
         }
         catch (SQLException e) {
             throw new RuntimeException(e);
@@ -82,7 +92,7 @@ public class StoreService {
     }
 
     // The store must be on the same list as the item.
-    public void mapStoreAndItem(int storeId, int itemId)
+    public void mapStoreAndItem(Person person, int storeId, int itemId)
             throws ResourceNotFoundException, NoAccessToResourceException {
         try (Connection conn = db.getConnection()) {
             Store store = existingStore(conn, storeId);
@@ -91,21 +101,31 @@ public class StoreService {
                 throw new NoAccessToResourceException("Store is not on the item's list");
             }
 
-            storeRepository.mapStoreToItem(conn, storeId, itemId);
+            if (storeRepository.mapStoreToItem(conn, storeId, itemId)) {
+                itemStoresChanged(conn, person, itemListId, itemId);
+            }
         }
         catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public void unmapStoreFromItem(int storeId, int itemId) throws ResourceNotFoundException {
+    public void unmapStoreFromItem(Person person, int storeId, int itemId) throws ResourceNotFoundException {
         try (Connection conn = db.getConnection()) {
-            itemListIdOfItem(conn, itemId);
-            storeRepository.unmapStoreFromItem(conn, storeId, itemId);
+            int itemListId = itemListIdOfItem(conn, itemId);
+            if (storeRepository.unmapStoreFromItem(conn, storeId, itemId)) {
+                itemStoresChanged(conn, person, itemListId, itemId);
+            }
         }
         catch (SQLException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void itemStoresChanged(Connection conn, Person person, int itemListId, int itemId) {
+        itemRepository.getItem(conn, itemId).ifPresent(
+                item -> changes.itemChanged(ListChanges.ItemEvent.ITEM_CHANGED, itemListId, item, person)
+        );
     }
 
     // A store on a deleted list is reported as not found.

@@ -2,6 +2,10 @@ package no.eirikgg.shoppinglist;
 
 import io.javalin.Javalin;
 import io.javalin.json.JavalinJackson;
+import no.eirikgg.shoppinglist.mqtt.MqttBridge;
+import no.eirikgg.shoppinglist.mqtt.MqttSettings;
+import no.eirikgg.shoppinglist.mqtt.PahoTransport;
+import no.eirikgg.shoppinglist.service.ListChanges;
 import no.eirikgg.shoppinglist.web.ExceptionHandlers;
 import no.eirikgg.shoppinglist.web.WebApp;
 import no.eirikgg.shoppinglist.web.controller.AttachmentController;
@@ -54,7 +58,18 @@ public class Main {
         else {
             log.info("Trusting Home Assistant user headers from {}", trustedProxy);
         }
-        Javalin app = setupJavalinApp(db, trustedProxy, webDir, filesDir);
+        // Passes changes on to Home Assistant, if it has an MQTT broker.
+        MqttBridge mqtt = MqttSettings.find()
+                .map(settings -> new MqttBridge(db, new PahoTransport(settings, MqttBridge.AVAILABILITY_TOPIC)))
+                .orElse(null);
+        ListChanges changes = null == mqtt ? ListChanges.NONE : mqtt;
+        Javalin app = setupJavalinApp(db, trustedProxy, webDir, filesDir, changes);
+        if (null != mqtt) {
+            // HA stops the add-on with SIGTERM, which runs this, so the
+            // entities show as unavailable rather than keep their last state.
+            Runtime.getRuntime().addShutdownHook(new Thread(mqtt::close, "mqtt-shutdown"));
+            mqtt.start();
+        }
 
         log.info("Configured javalin routes");
         app.start(appPort);
@@ -73,6 +88,13 @@ public class Main {
     // is under /api; webDir, if set, is the built web app, served from /.
     // filesDir is where uploaded files are kept.
     public static Javalin setupJavalinApp(Db db, String trustedProxy, Path webDir, Path filesDir) {
+        return setupJavalinApp(db, trustedProxy, webDir, filesDir, ListChanges.NONE);
+    }
+
+    // changes is told about every change made through the API.
+    public static Javalin setupJavalinApp(
+            Db db, String trustedProxy, Path webDir, Path filesDir, ListChanges changes
+    ) {
         Javalin app = Javalin.create(config -> {
 
             config.jsonMapper(new JavalinJackson(Json.MAPPER, false));
@@ -85,8 +107,8 @@ public class Main {
             IngressFilter.setup(config, db, trustedProxy);
 
             GeneralController.setup(config, db);
-            ItemController.setup(config, db);
-            StoreController.setup(config, db);
+            ItemController.setup(config, db, changes);
+            StoreController.setup(config, db, changes);
             ItemLinkController.setup(config, db);
             AttachmentController.setup(config, db, filesDir);
 

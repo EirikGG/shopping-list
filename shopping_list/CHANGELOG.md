@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0
+
+- With an MQTT broker in Home Assistant, every list shows up as a device with
+  an Open items sensor, a Changes event entity for automations, and an Add
+  item text field. Automations can add, complete, reopen and delete items
+  through MQTT. See the documentation tab.
+
 ## 0.4.1
 
 - Every Home Assistant user gets Shopping list in the sidebar, not only

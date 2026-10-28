@@ -290,7 +290,7 @@ class ItemControllerTest {
             throws IOException, InterruptedException
     {
         ItemController.PostItemRequest requestBody = new ItemController.PostItemRequest(
-                ITEM_LIST_ID, itemName, storeIds
+                ITEM_LIST_ID, itemName, storeIds, null
         );
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM))

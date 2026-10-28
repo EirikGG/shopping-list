@@ -9,6 +9,7 @@ import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.errors.NoAccessToResourceException;
 import no.eirikgg.shoppinglist.errors.ResourceNotFoundException;
 import no.eirikgg.shoppinglist.service.StoreService;
+import no.eirikgg.shoppinglist.service.ListChanges;
 import no.eirikgg.shoppinglist.web.filter.IngressFilter;
 import org.jetbrains.annotations.NotNull;
 
@@ -23,12 +24,12 @@ public class StoreController {
 
     private StoreService storeService;
 
-    public StoreController(Db db) {
-        this.storeService = new StoreService(db);
+    public StoreController(Db db, ListChanges changes) {
+        this.storeService = new StoreService(db, changes);
     }
 
-    public static void setup(JavalinConfig config, Db db) {
-        StoreController sc = new StoreController(db);
+    public static void setup(JavalinConfig config, Db db, ListChanges changes) {
+        StoreController sc = new StoreController(db, changes);
         config.routes.post(PATH_STORE, sc::createStore);
         config.routes.get(PATH_STORE, sc::getStore);
         config.routes.patch(PATH_STORE, sc::patchStore);
@@ -109,7 +110,7 @@ public class StoreController {
         int storeId = request.storeId();
         int itemId = request.itemId();
 
-        storeService.mapStoreAndItem(storeId, itemId);
+        storeService.mapStoreAndItem(ctx.attribute(IngressFilter.PARAM_PERSON), storeId, itemId);
     }
 
 
@@ -117,6 +118,6 @@ public class StoreController {
     private void unmapStoreFromItem(Context ctx) throws ResourceNotFoundException {
         UnmapStoreAndItemRequest request = ctx.bodyAsClass(UnmapStoreAndItemRequest.class);
 
-        storeService.unmapStoreFromItem(request.storeId(), request.itemId());
+        storeService.unmapStoreFromItem(ctx.attribute(IngressFilter.PARAM_PERSON), request.storeId(), request.itemId());
     }
 }

@@ -85,7 +85,7 @@ class ItemListControllerTest {
             assertEquals(List.of(created.id()), seenBySecond.stream().map(list -> list.id()).toList());
 
             HttpResponse<String> addItem = sendAsSecondUser(client, "POST", ItemController.PATH_ITEM,
-                    new ItemController.PostItemRequest(created.id(), "milk", null));
+                    new ItemController.PostItemRequest(created.id(), "milk", null, null));
             assertEquals(201, addItem.statusCode());
 
             HttpResponse<String> rename = sendAsSecondUser(client, "PATCH", ItemController.PATH_ITEM_LIST,

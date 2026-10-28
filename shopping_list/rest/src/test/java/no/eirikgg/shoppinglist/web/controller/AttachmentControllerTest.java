@@ -210,7 +210,7 @@ class AttachmentControllerTest {
         HttpRequest request = TestApp.asUser(HttpRequest.newBuilder())
                 .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM))
                 .POST(HttpRequest.BodyPublishers.ofString(
-                        mapper.writeValueAsString(new ItemController.PostItemRequest(itemListId, name, null))
+                        mapper.writeValueAsString(new ItemController.PostItemRequest(itemListId, name, null, null))
                 ))
                 .build();
         HttpResponse<String> response = java.net.http.HttpClient.newHttpClient()

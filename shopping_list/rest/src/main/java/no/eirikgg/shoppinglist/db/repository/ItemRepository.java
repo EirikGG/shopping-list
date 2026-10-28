@@ -125,6 +125,18 @@ public class ItemRepository {
         );
     }
 
+    public List<Integer> getDeletedItemListIds(Connection conn) {
+        return dbUtils.select(conn, """
+            select item_list_id
+            from item_list
+            where deleted is not null
+            order by item_list_id
+            """,
+            new Object[] {},
+            rs -> rs.getInt("item_list_id").orElseThrow()
+        );
+    }
+
     public boolean itemListExists(Connection conn, int itemListId) {
         return dbUtils.selectSingle(conn, """
             select item_list_id
@@ -177,20 +189,22 @@ public class ItemRepository {
         );
     }
 
-    public int createItem(Connection conn, int personId, int itemListId, String name)
+    public int createItem(Connection conn, int personId, int itemListId, String name, int amount)
             throws SQLException {
         return dbUtils.insert(conn, """
                 insert into item (
                        item_list_id,
                        person_id,
                        name,
+                       amount,
                        created
                 )
-                values (?, ?, ?, ?)
+                values (?, ?, ?, ?, ?)
                 """,
                 itemListId,
                 personId,
                 name,
+                amount,
                 LocalDateTime.now()
         ).orElseThrow();
     }

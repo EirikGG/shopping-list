@@ -11,31 +11,44 @@ import no.eirikgg.shoppinglist.errors.Error;
 import no.eirikgg.shoppinglist.errors.InvalidInputException;
 import no.eirikgg.shoppinglist.errors.NoAccessToResourceException;
 import no.eirikgg.shoppinglist.errors.ResourceNotFoundException;
+import no.eirikgg.shoppinglist.service.ListChanges.ItemEvent;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 // Every Home Assistant user sees and changes every list, as one household. The
-// person is only recorded as who created a list or an item.
+// person is only recorded as who created a list or an item. Every change is
+// passed on to changes once it is saved.
 public class ItemService {
+    public static final int MAX_AMOUNT = 999;
+
     private Db db;
+    private ListChanges changes;
 
     private ItemRepository itemRepository = new ItemRepository();
     private StoreRepository storeRepository = new StoreRepository();
 
     public ItemService(Db db) {
+        this(db, ListChanges.NONE);
+    }
+
+    public ItemService(Db db, ListChanges changes) {
         this.db = db;
+        this.changes = changes;
     }
 
     public ItemList createItemList(Person person, String name) {
         try (Connection conn = db.getConnection()) {
             int itemListId = itemRepository.createItemList(conn, person.id(), name);
-            return itemRepository.getItemList(conn, itemListId).orElseThrow(
+            ItemList itemList = itemRepository.getItemList(conn, itemListId).orElseThrow(
                     () -> new RuntimeException("Cant find item list with id " + itemListId)
             );
+            changes.listsChanged();
+            return itemList;
         }
         catch (SQLException e) {
             throw new RuntimeException(e);
@@ -55,11 +68,31 @@ public class ItemService {
         }
     }
 
+    public Optional<ItemList> getItemList(int itemListId) {
+        try (Connection conn = db.getConnection()) {
+            return itemRepository.getItemList(conn, itemListId);
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // Lists that were deleted, so what was published about them can be removed.
+    public List<Integer> getDeletedItemListIds() {
+        try (Connection conn = db.getConnection()) {
+            return itemRepository.getDeletedItemListIds(conn);
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public void deleteItemList(int itemListId) throws ResourceNotFoundException {
         try (Connection conn = db.getConnection()) {
             if (0 == itemRepository.deleteItemList(conn, itemListId)) {
                 throw new ResourceNotFoundException("Item list not found");
             }
+            changes.listsChanged();
         }
         catch (SQLException e) {
             throw new RuntimeException(e);
@@ -71,6 +104,7 @@ public class ItemService {
             if (0 == itemRepository.updateItemListName(conn, itemListId, newName)) {
                 throw new ResourceNotFoundException("Item list not found");
             }
+            changes.listsChanged();
         }
         catch (SQLException e) {
             throw new RuntimeException(e);
@@ -86,10 +120,12 @@ public class ItemService {
         }
     }
 
-    // storeIds may be null or empty. The item is connected to the stores in the
-    // same transaction, so an item is never created without its stores.
-    public Item createItem(Person person, int itemListId, String name, List<Integer> storeIds)
-            throws ResourceNotFoundException, NoAccessToResourceException {
+    // storeIds may be null or empty, and amount null for 1. The item is
+    // connected to the stores in the same transaction, so an item is never
+    // created without its stores.
+    public Item createItem(Person person, int itemListId, String name, Integer amount, List<Integer> storeIds)
+            throws ResourceNotFoundException, NoAccessToResourceException, InvalidInputException {
+        int newAmount = null == amount ? 1 : validAmount(amount);
         try (Connection conn = db.getConnection()) {
             if (!itemRepository.itemListExists(conn, itemListId)) {
                 throw new ResourceNotFoundException("Item list not found");
@@ -106,52 +142,79 @@ public class ItemService {
                 }
             }
 
+            Item item;
             try {
                 conn.setAutoCommit(false);
-                int itemId = itemRepository.createItem(conn, person.id(), itemListId, name);
+                int itemId = itemRepository.createItem(conn, person.id(), itemListId, name, newAmount);
                 for (int storeId : stores) {
                     storeRepository.mapStoreToItem(conn, storeId, itemId);
                 }
                 conn.commit();
-                return itemRepository.getItem(conn, itemId).orElseThrow();
+                item = itemRepository.getItem(conn, itemId).orElseThrow();
             }
             catch (Exception e) {
                 conn.rollback();
                 throw e;
             }
+            changes.itemChanged(ItemEvent.ITEM_ADDED, itemListId, item, person);
+            return item;
         }
         catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public void deleteItem(int itemId) {
+    // Deleting an item that is already gone changes nothing.
+    public void deleteItem(Person person, int itemId) {
         try (Connection conn = db.getConnection()) {
+            Optional<Item> item = itemRepository.getItem(conn, itemId);
+            Optional<Integer> itemListId = itemRepository.getItemListIdOfItem(conn, itemId);
             itemRepository.deleteItem(conn, itemId);
+            if (item.isPresent() && itemListId.isPresent()) {
+                changes.itemChanged(ItemEvent.ITEM_DELETED, itemListId.get(), item.get(), person);
+            }
         }
         catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static final int MAX_AMOUNT = 999;
-
-    // amount may be null, which keeps the item's amount.
-    public Item patchItem(int itemId, String newName, Integer amount, LocalDateTime completed)
+    // amount may be null, which keeps the item's amount. Completing an item
+    // and changing it in the same call is passed on as both.
+    public Item patchItem(Person person, int itemId, String newName, Integer amount, LocalDateTime completed)
             throws ResourceNotFoundException, InvalidInputException {
-        if (null != amount && (amount < 1 || amount > MAX_AMOUNT)) {
-            throw new InvalidInputException(Error.INVALID_AMOUNT, "Amount must be from 1 to " + MAX_AMOUNT);
+        if (null != amount) {
+            validAmount(amount);
         }
         try (Connection conn = db.getConnection()) {
-            Item item = itemRepository.getItem(conn, itemId).orElseThrow(
+            Item before = itemRepository.getItem(conn, itemId).orElseThrow(
                     () -> new ResourceNotFoundException("Item not found")
             );
-            int newAmount = null == amount ? item.getAmount() : amount;
+            int itemListId = itemRepository.getItemListIdOfItem(conn, itemId).orElseThrow();
+            int newAmount = null == amount ? before.getAmount() : amount;
             itemRepository.patchItem(conn, itemId, newName, newAmount, completed);
-            return itemRepository.getItem(conn, itemId).orElseThrow();
+            Item after = itemRepository.getItem(conn, itemId).orElseThrow();
+
+            if (before.getCompleted().isEmpty() && after.getCompleted().isPresent()) {
+                changes.itemChanged(ItemEvent.ITEM_COMPLETED, itemListId, after, person);
+            }
+            else if (before.getCompleted().isPresent() && after.getCompleted().isEmpty()) {
+                changes.itemChanged(ItemEvent.ITEM_REOPENED, itemListId, after, person);
+            }
+            if (!Objects.equals(before.getName(), after.getName()) || before.getAmount() != after.getAmount()) {
+                changes.itemChanged(ItemEvent.ITEM_CHANGED, itemListId, after, person);
+            }
+            return after;
         }
         catch (SQLException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static int validAmount(int amount) throws InvalidInputException {
+        if (amount < 1 || amount > MAX_AMOUNT) {
+            throw new InvalidInputException(Error.INVALID_AMOUNT, "Amount must be from 1 to " + MAX_AMOUNT);
+        }
+        return amount;
     }
 }

@@ -102,9 +102,10 @@ public class StoreRepository {
         );
     }
 
-    // Mapping an item to a store it already has does nothing.
-    public void mapStoreToItem(Connection conn, int storeId, int itemId) throws SQLException {
-        dbUtils.update(conn, """
+    // Mapping an item to a store it already has does nothing. True if the
+    // item got the store.
+    public boolean mapStoreToItem(Connection conn, int storeId, int itemId) throws SQLException {
+        return dbUtils.update(conn, """
             insert into item_store_mapping (
                  item_id,
                  store_id
@@ -113,17 +114,18 @@ public class StoreRepository {
             """,
             itemId,
             storeId
-        );
+        ).orElse(0) > 0;
     }
 
-    public void unmapStoreFromItem(Connection conn, int storeId, int itemId) throws SQLException {
-        dbUtils.update(conn, """
+    // True if the item had the store.
+    public boolean unmapStoreFromItem(Connection conn, int storeId, int itemId) throws SQLException {
+        return dbUtils.update(conn, """
             delete from item_store_mapping
             where store_id = ?
             and item_id = ?
             """,
             storeId,
             itemId
-        );
+        ).orElse(0) > 0;
     }
 }

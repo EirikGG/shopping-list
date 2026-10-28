@@ -1,5 +1,5 @@
 name: Shopping list
-version: "0.4.1"
+version: "0.5.0"
 slug: shopping_list
 description: Shared shopping lists for the household, in the Home Assistant sidebar
 url: https://github.com/EirikGG/shopping-list
@@ -22,6 +22,11 @@ panel_icon: mdi:cart-outline
 panel_title: Shopping list
 # Every user in the household uses the lists, not only admins.
 panel_admin: false
+
+# Uses Home Assistant's MQTT broker if it has one (usually the Mosquitto
+# add-on), to show the lists as entities. Runs without it otherwise.
+services:
+  - mqtt:want
 
 # The database is a SQLite file in /data. A backup copied while it is being
 # written to could be inconsistent, so the add-on is stopped for the backup.
