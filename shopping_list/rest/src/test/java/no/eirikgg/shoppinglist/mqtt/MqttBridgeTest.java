@@ -92,6 +92,7 @@ class MqttBridgeTest {
         assertEquals("Milk", added.path("item").asText());
         assertEquals("unit-test-list", added.path("list").asText());
         assertEquals("Kari", added.path("by").asText());
+        assertEquals("ha-user", added.path("by_user_id").asText());
         assertFalse(transport.last(MqttBridge.eventTopic(listId)).retained());
 
         app.patchItem(user, milkId, "Milk", null, LocalDateTime.now());
@@ -137,6 +138,7 @@ class MqttBridgeTest {
         JsonNode added = transport.lastJson(MqttBridge.eventTopic(listId));
         assertEquals("item_added", added.path("event_type").asText());
         assertEquals("Home Assistant", added.path("by").asText());
+        assertTrue(added.path("by_user_id").isNull());
         assertEquals("", transport.last(MqttBridge.addStateTopic(listId)).payload());
     }
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1
+
+- The Changes events have `by_user_id`, the Home Assistant user who made the
+  change, which matches `user_id` on person entities. It is empty for changes
+  made through MQTT.
+
 ## 0.5.0
 
 - With an MQTT broker in Home Assistant, every list shows up as a device with

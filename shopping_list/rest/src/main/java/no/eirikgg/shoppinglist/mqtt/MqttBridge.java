@@ -264,6 +264,9 @@ public class MqttBridge implements ListChanges, MqttTransport.Listener {
         payload.put("stores", storeNames(item));
         payload.put("completed", item.getCompleted().isPresent());
         payload.put("by", null == by ? null : by.name());
+        // The Home Assistant user, as on person entities' user_id. null for
+        // changes made through MQTT.
+        payload.put("by_user_id", null == by || MQTT_PERSON_ID.equals(by.haUserId()) ? null : by.haUserId());
         return payload;
     }
 

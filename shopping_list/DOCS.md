@@ -35,7 +35,8 @@ then shows up as a device under Settings > Devices & services > MQTT, with:
 - **Changes** (event): fires on `item_added`, `item_completed`,
   `item_reopened`, `item_changed` (name, amount or stores) and
   `item_deleted`. The attributes have the item, its amount and stores, and who
-  made the change.
+  made the change: `by` is their name, and `by_user_id` their Home Assistant
+  user, the same as `user_id` on their person entity.
 - **Add item** (text): what you type in it is added to the list.
 
 Without a broker the add-on works as before; the log says so when it starts.
