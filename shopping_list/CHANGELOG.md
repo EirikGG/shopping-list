@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1
+
+- Every Home Assistant user gets Shopping list in the sidebar, not only
+  admins.
+
 ## 0.4.0
 
 - Items have an amount, set with − and + in the item editor. An amount above
