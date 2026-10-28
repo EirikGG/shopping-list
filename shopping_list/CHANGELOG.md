@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0
+
+- Items have an amount, set with − and + in the item editor. An amount above
+  1 is shown before the name, like "2 × Milk".
+- The count beside each list is now what is left out of the total, like 3/5.
+
 ## 0.3.2
 
 - Store chips no longer have a square behind them, most visible in the dark
