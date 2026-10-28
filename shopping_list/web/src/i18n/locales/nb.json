@@ -41,7 +41,8 @@
     "close": "Lukk",
     "choose": "Velg butikk",
     "filter": "Filtrer på butikk",
-    "showAll": "Vis alle"
+    "showAll": "Vis alle",
+    "noStore": "Uten butikk"
   },
   "item": {
     "close": "Lukk",

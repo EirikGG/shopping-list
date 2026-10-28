@@ -97,9 +97,22 @@ const listStores = computed(() => {
   return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name) || a.id - b.id)
 })
 
+// Kept in the filter beside the store names for the items without a store. A
+// store name can not be this, as it starts with a character no one types.
+const NO_STORE = '\u0000no-store'
+
+function hasNoStore(item) {
+  return !(item.stores ?? []).some(store => storeName(props.list.id, store))
+}
+
+// Only offered when some items have a store and some do not.
+const offerNoStore = computed(() => listStores.value.length > 0 && props.list.items.some(hasNoStore))
+
 // Stores filtered on that this list does not use are ignored.
-const activeFilter = computed(
-  () => storeFilter.value.filter(name => listStores.value.some(store => store.name === name))
+const activeFilter = computed(() =>
+  storeFilter.value.filter(name =>
+    name === NO_STORE ? offerNoStore.value : listStores.value.some(store => store.name === name)
+  )
 )
 
 // Filters on stores this list does not have are kept for the other lists.
@@ -109,13 +122,17 @@ function toggleFilter(name) {
     : [...storeFilter.value, name]
 }
 
-// An item is shown if it has any of the filtered stores.
+// An item is shown if it has any of the filtered stores, or no store at all
+// when that is chosen.
 const visibleItems = computed(() => {
   if (!activeFilter.value.length) {
     return props.list.items
   }
+  const noStore = activeFilter.value.includes(NO_STORE)
   return props.list.items.filter(
-    item => item.stores?.some(store => activeFilter.value.includes(storeName(props.list.id, store)))
+    item =>
+      (noStore && hasNoStore(item)) ||
+      item.stores?.some(store => activeFilter.value.includes(storeName(props.list.id, store)))
   )
 })
 
@@ -241,6 +258,16 @@ async function submit() {
         >
           <Icon name="store" />
           {{ store.name }}
+        </button>
+        <button
+          v-if="offerNoStore"
+          type="button"
+          class="filter-chip no-store"
+          :class="{ active: activeFilter.includes(NO_STORE) }"
+          :aria-pressed="activeFilter.includes(NO_STORE)"
+          @click="toggleFilter(NO_STORE)"
+        >
+          {{ t('stores.noStore') }}
         </button>
         <button
           v-if="activeFilter.length"
@@ -724,6 +751,11 @@ h2 {
   color: var(--color-on-primary);
   background: var(--color-primary);
   border-color: var(--color-primary);
+}
+
+/* Not a store, so it has no store icon and a dashed edge. */
+.filter-chip.no-store:not(.active) {
+  border-style: dashed;
 }
 
 .filter-chip.show-all,

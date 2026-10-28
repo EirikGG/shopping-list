@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.2
+
+- The store filter has a "No store" chip, for the items without a store. It
+  can be combined with stores, like the other chips.
+
 ## 0.5.1
 
 - The Changes events have `by_user_id`, the Home Assistant user who made the

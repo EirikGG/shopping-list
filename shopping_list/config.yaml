@@ -1,5 +1,5 @@
 name: Shopping list
-version: "0.5.1"
+version: "0.5.2"
 slug: shopping_list
 description: Shared shopping lists for the household, in the Home Assistant sidebar
 url: https://github.com/EirikGG/shopping-list

@@ -41,7 +41,8 @@
     "close": "Close",
     "choose": "Choose store",
     "filter": "Filter by store",
-    "showAll": "Show all"
+    "showAll": "Show all",
+    "noStore": "No store"
   },
   "item": {
     "close": "Close",
