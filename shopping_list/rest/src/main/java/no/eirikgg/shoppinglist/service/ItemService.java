@@ -3,10 +3,10 @@ package no.eirikgg.shoppinglist.service;
 import no.eirikgg.shoppinglist.datamodel.Item;
 import no.eirikgg.shoppinglist.datamodel.ItemList;
 import no.eirikgg.shoppinglist.datamodel.Person;
-import no.eirikgg.shoppinglist.datamodel.Store;
+import no.eirikgg.shoppinglist.datamodel.Label;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.db.repository.ItemRepository;
-import no.eirikgg.shoppinglist.db.repository.StoreRepository;
+import no.eirikgg.shoppinglist.db.repository.LabelRepository;
 import no.eirikgg.shoppinglist.errors.Error;
 import no.eirikgg.shoppinglist.errors.InvalidInputException;
 import no.eirikgg.shoppinglist.errors.NoAccessToResourceException;
@@ -30,7 +30,7 @@ public class ItemService {
     private ListChanges changes;
 
     private ItemRepository itemRepository = new ItemRepository();
-    private StoreRepository storeRepository = new StoreRepository();
+    private LabelRepository labelRepository = new LabelRepository();
 
     public ItemService(Db db) {
         this(db, ListChanges.NONE);
@@ -120,10 +120,10 @@ public class ItemService {
         }
     }
 
-    // storeIds may be null or empty, and amount null for 1. The item is
-    // connected to the stores in the same transaction, so an item is never
-    // created without its stores.
-    public Item createItem(Person person, int itemListId, String name, Integer amount, List<Integer> storeIds)
+    // labelIds may be null or empty, and amount null for 1. The item is
+    // connected to the labels in the same transaction, so an item is never
+    // created without its labels.
+    public Item createItem(Person person, int itemListId, String name, Integer amount, List<Integer> labelIds)
             throws ResourceNotFoundException, NoAccessToResourceException, InvalidInputException {
         int newAmount = null == amount ? 1 : validAmount(amount);
         try (Connection conn = db.getConnection()) {
@@ -131,14 +131,14 @@ public class ItemService {
                 throw new ResourceNotFoundException("Item list not found");
             }
 
-            List<Integer> stores = null == storeIds ? List.of() : storeIds;
-            for (int storeId : stores) {
-                Store store = storeRepository.getStore(conn, storeId).orElseThrow(
-                        () -> new ResourceNotFoundException("Store not found")
+            List<Integer> labels = null == labelIds ? List.of() : labelIds;
+            for (int labelId : labels) {
+                Label label = labelRepository.getLabel(conn, labelId).orElseThrow(
+                        () -> new ResourceNotFoundException("Label not found")
                 );
-                // Only the list's own stores.
-                if (store.getItemListId() != itemListId) {
-                    throw new NoAccessToResourceException("Store is not on this list");
+                // Only the list's own labels.
+                if (label.getItemListId() != itemListId) {
+                    throw new NoAccessToResourceException("Label is not on this list");
                 }
             }
 
@@ -146,8 +146,8 @@ public class ItemService {
             try {
                 conn.setAutoCommit(false);
                 int itemId = itemRepository.createItem(conn, person.id(), itemListId, name, newAmount);
-                for (int storeId : stores) {
-                    storeRepository.mapStoreToItem(conn, storeId, itemId);
+                for (int labelId : labels) {
+                    labelRepository.mapLabelToItem(conn, labelId, itemId);
                 }
                 conn.commit();
                 item = itemRepository.getItem(conn, itemId).orElseThrow();

@@ -31,10 +31,10 @@ with the MQTT integration set up, the add-on finds it by itself. Every list
 then shows up as a device under Settings > Devices & services > MQTT, with:
 
 - **Open items** (sensor): how many items are left. Its attributes have the
-  total, and the open items with their amount and stores.
+  total, and the open items with their amount and labels.
 - **Changes** (event): fires on `item_added`, `item_completed`,
-  `item_reopened`, `item_changed` (name, amount or stores) and
-  `item_deleted`. The attributes have the item, its amount and stores, and who
+  `item_reopened`, `item_changed` (name, amount or labels) and
+  `item_deleted`. The attributes have the item, its amount and labels, and who
   made the change: `by` is their name, and `by_user_id` their Home Assistant
   user, the same as `user_id` on their person entity.
 - **Add item** (text): what you type in it is added to the list.
@@ -80,13 +80,14 @@ actions:
   - action: mqtt.publish
     data:
       topic: shopping_list/list/1/command
-      payload: '{"action": "add", "name": "Milk", "amount": 2, "stores": ["Rema"]}'
+      payload: '{"action": "add", "name": "Milk", "amount": 2, "labels": ["Rema"]}'
 ```
 
 The actions are `add`, `complete`, `reopen` and `delete`. `amount` and
-`stores` are optional, and only for `add`; stores the list does not have are
-left out. The other actions take the item's `name`, matched without regard
-to case, or its `item_id`. `complete` takes the newest open item of that
+`labels` are optional, and only for `add`; labels the list does not have are
+left out. `stores`, from before labels were called that, works too. The
+other actions take the item's `name`, matched without regard to case, or its
+`item_id`. `complete` takes the newest open item of that
 name, and `reopen` the last one completed. Changes made this way show
 "Home Assistant" as who made them.
 

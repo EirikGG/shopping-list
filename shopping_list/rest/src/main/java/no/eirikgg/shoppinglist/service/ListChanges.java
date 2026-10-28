@@ -13,7 +13,7 @@ public interface ListChanges {
         ITEM_ADDED("item_added"),
         ITEM_COMPLETED("item_completed"),
         ITEM_REOPENED("item_reopened"),
-        // A new name, amount or stores.
+        // A new name, amount or labels.
         ITEM_CHANGED("item_changed"),
         ITEM_DELETED("item_deleted");
 
@@ -32,7 +32,7 @@ public interface ListChanges {
     // who made the change.
     void itemChanged(ItemEvent event, int itemListId, Item item, Person by);
 
-    // A list was created, renamed or deleted, or a store renamed or deleted.
+    // A list was created, renamed or deleted, or a label renamed or deleted.
     void listsChanged();
 
     // For when nothing listens, as in most tests.

@@ -13,7 +13,7 @@ import no.eirikgg.shoppinglist.web.controller.ItemLinkController;
 import no.eirikgg.shoppinglist.service.AttachmentService;
 import no.eirikgg.shoppinglist.web.controller.GeneralController;
 import no.eirikgg.shoppinglist.web.controller.ItemController;
-import no.eirikgg.shoppinglist.web.controller.StoreController;
+import no.eirikgg.shoppinglist.web.controller.LabelController;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.db.SqliteDb;
 import no.eirikgg.shoppinglist.web.filter.IngressFilter;
@@ -108,7 +108,7 @@ public class Main {
 
             GeneralController.setup(config, db);
             ItemController.setup(config, db, changes);
-            StoreController.setup(config, db, changes);
+            LabelController.setup(config, db, changes);
             ItemLinkController.setup(config, db);
             AttachmentController.setup(config, db, filesDir);
 

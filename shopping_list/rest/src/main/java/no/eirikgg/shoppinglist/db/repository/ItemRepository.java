@@ -2,7 +2,7 @@ package no.eirikgg.shoppinglist.db.repository;
 
 import no.eirikgg.shoppinglist.datamodel.Item;
 import no.eirikgg.shoppinglist.datamodel.ItemList;
-import no.eirikgg.shoppinglist.datamodel.Store;
+import no.eirikgg.shoppinglist.datamodel.Label;
 import no.eirikgg.shoppinglist.db.DbUtils;
 import no.eirikgg.shoppinglist.db.RSWrapper;
 
@@ -66,7 +66,7 @@ public class ItemRepository {
         );
     }
 
-    // Reads item_id, name, amount, created and completed, and adds the item's stores,
+    // Reads item_id, name, amount, created and completed, and adds the item's labels,
     // links and files.
     private Item toItem(Connection conn, RSWrapper rs) {
         int itemId = rs.getInt("item_id").orElseThrow();
@@ -76,30 +76,30 @@ public class ItemRepository {
                 rs.getInt("amount").orElseThrow(),
                 rs.getLocalDateTime("created").orElseThrow(),
                 rs.getLocalDateTime("completed").orElse(null),
-                getStoresForItemList(conn, itemId)
+                getLabelsForItemList(conn, itemId)
         );
         item.getLinks().addAll(itemLinkRepository.getLinksForItem(conn, itemId));
         item.getAttachments().addAll(attachmentRepository.getAttachmentsForItem(conn, itemId));
         return item;
     }
 
-    private List<Store> getStoresForItemList(Connection conn, Integer itemId) {
+    private List<Label> getLabelsForItemList(Connection conn, Integer itemId) {
         return dbUtils.select(conn, """
                 select 
-                    mapping.store_id
+                    mapping.label_id
                     , s.person_id
                     , s.item_list_id
                     , s.name
                     , s.created
-                from item_store_mapping as mapping
-                join store as s 
-                    on s.store_id = mapping.store_id 
+                from item_label_mapping as mapping
+                join label as s 
+                    on s.label_id = mapping.label_id 
                 where mapping.item_id = ?
                 and s.deleted is null
-                order by lower(s.name), s.store_id
+                order by lower(s.name), s.label_id
                 """,
                 itemId,
-                StoreRepository::toStore
+                LabelRepository::toLabel
         );
     }
 

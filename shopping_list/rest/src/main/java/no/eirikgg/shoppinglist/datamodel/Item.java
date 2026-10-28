@@ -13,17 +13,17 @@ public class Item extends DbIdentity {
     private int amount;
     private LocalDateTime created;
     private LocalDateTime completed;
-    private List<Store> stores;
+    private List<Label> labels;
     private final List<ItemLink> links = new LinkedList<>();
     private final List<Attachment> attachments = new LinkedList<>();
 
-    public Item(Integer id, String name, int amount, LocalDateTime created, LocalDateTime completed, List<Store> stores) {
+    public Item(Integer id, String name, int amount, LocalDateTime created, LocalDateTime completed, List<Label> labels) {
         super(id);
         this.name = name;
         this.amount = amount;
         this.created = created;
         this.completed = completed;
-        this.stores = stores;
+        this.labels = labels;
     }
 
     public String getName() {
@@ -38,11 +38,11 @@ public class Item extends DbIdentity {
         return created;
     }
 
-    public List<Store> getStores() {
-        if (null == stores) {
-            stores = new LinkedList<>();
+    public List<Label> getLabels() {
+        if (null == labels) {
+            labels = new LinkedList<>();
         }
-        return stores;
+        return labels;
     }
 
     public List<ItemLink> getLinks() {

@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-class StoreControllerTest {
+class LabelControllerTest {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private TestDb db;
@@ -38,10 +38,10 @@ class StoreControllerTest {
     private TestConfig testConfig;
 
     private final ObjectMapper mapper = Json.MAPPER;
-    // Stores belong to a list; this is the list from t0001.
+    // Labels belong to a list; this is the list from t0001.
     private final int ITEM_LIST_ID;
 
-    public StoreControllerTest() throws SQLException {
+    public LabelControllerTest() throws SQLException {
         db = TestDb.createMigratedInstance();
         LiquibaseMigrator migrator = new LiquibaseMigrator();
         migrator.migrate(db, "db/updates/t0001-create-test-list.sql");
@@ -63,50 +63,50 @@ class StoreControllerTest {
     }
 
     @Test
-    void createStore_patchIt_andDeleteIt() {
+    void createLabel_patchIt_andDeleteIt() {
         JavalinTest.test(app, testConfig, (server, client) -> {
-            String storeName = "test-store1";
-            StoreController.PostStoreResponse store = createStore(client, storeName);
-            StoreController.GetStoreResponse getResponse = getStore(client, store.storeId());
+            String labelName = "test-label1";
+            LabelController.PostLabelResponse label = createLabel(client, labelName);
+            LabelController.GetLabelResponse getResponse = getLabel(client, label.labelId());
             assertNotNull(getResponse);
-            assertEquals(store.storeId(), getResponse.storeId());
-            assertEquals(storeName, getResponse.name());
+            assertEquals(label.labelId(), getResponse.labelId());
+            assertEquals(labelName, getResponse.name());
             assertNotNull(getResponse.created());
 
-            String storeName2 = "test-store2";
-            patchStore(client, store.storeId(), storeName2);
-            StoreController.GetStoreResponse patchedResponse = getStore(client, store.storeId());
+            String labelName2 = "test-label2";
+            patchLabel(client, label.labelId(), labelName2);
+            LabelController.GetLabelResponse patchedResponse = getLabel(client, label.labelId());
             assertNotNull(patchedResponse);
-            assertEquals(storeName2, patchedResponse.name());
+            assertEquals(labelName2, patchedResponse.name());
 
-            deleteStore(client, store.storeId());
-            assertNull(getStore(client, store.storeId()));
+            deleteLabel(client, label.labelId());
+            assertNull(getLabel(client, label.labelId()));
         });
     }
 
     @Test
-    void getStoreList_returnsActiveStoresSortedByName() {
+    void getLabelList_returnsActiveLabelsSortedByName() {
         JavalinTest.test(app, testConfig, (server, client) -> {
-            createStore(client, "list-store-b");
-            createStore(client, "list-store-a");
-            StoreController.PostStoreResponse deleted = createStore(client, "list-store-deleted");
-            deleteStore(client, deleted.storeId());
+            createLabel(client, "list-label-b");
+            createLabel(client, "list-label-a");
+            LabelController.PostLabelResponse deleted = createLabel(client, "list-label-deleted");
+            deleteLabel(client, deleted.labelId());
 
-            List<String> names = getStoreList(client).stream()
-                    .map(StoreController.GetStoreResponse::name)
-                    .filter(name -> name.startsWith("list-store-"))
+            List<String> names = getLabelList(client).stream()
+                    .map(LabelController.GetLabelResponse::name)
+                    .filter(name -> name.startsWith("list-label-"))
                     .toList();
 
-            assertEquals(List.of("list-store-a", "list-store-b"), names);
+            assertEquals(List.of("list-label-a", "list-label-b"), names);
         });
     }
 
-    private List<StoreController.GetStoreResponse> getStoreList(HttpClient client)
+    private List<LabelController.GetLabelResponse> getLabelList(HttpClient client)
             throws IOException, InterruptedException
     {
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(client.getOrigin() + StoreController.PATH_STORE_LIST
-                    + "?" + StoreController.PARAM_ITEM_LIST_ID + "=" + ITEM_LIST_ID))
+            .uri(URI.create(client.getOrigin() + LabelController.PATH_LABEL_LIST
+                    + "?" + LabelController.PARAM_ITEM_LIST_ID + "=" + ITEM_LIST_ID))
             .header(IngressFilter.HEADER_USER_ID, TestApp.USER_ID)
             .GET()
             .build();
@@ -119,10 +119,10 @@ class StoreControllerTest {
         return mapper.readValue(response.body(), new TypeReference<>() {});
     }
 
-    private void deleteStore(HttpClient client, int storeId) throws IOException, InterruptedException {
-        StoreController.DeleteStoreRequest requestBody = new StoreController.DeleteStoreRequest(storeId);
+    private void deleteLabel(HttpClient client, int labelId) throws IOException, InterruptedException {
+        LabelController.DeleteLabelRequest requestBody = new LabelController.DeleteLabelRequest(labelId);
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(client.getOrigin() + StoreController.PATH_STORE))
+            .uri(URI.create(client.getOrigin() + LabelController.PATH_LABEL))
             .header(IngressFilter.HEADER_USER_ID, TestApp.USER_ID)
             .method("DELETE", getBodyPublisher(requestBody))
             .build();
@@ -134,12 +134,12 @@ class StoreControllerTest {
         assertEquals(200, response.statusCode());
     }
 
-    private void patchStore(HttpClient client, int storeId, String newName)
+    private void patchLabel(HttpClient client, int labelId, String newName)
             throws IOException, InterruptedException
     {
-        StoreController.PatchStoreRequest requestBody = new StoreController.PatchStoreRequest(storeId, newName);
+        LabelController.PatchLabelRequest requestBody = new LabelController.PatchLabelRequest(labelId, newName);
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(client.getOrigin() + StoreController.PATH_STORE))
+            .uri(URI.create(client.getOrigin() + LabelController.PATH_LABEL))
             .header(IngressFilter.HEADER_USER_ID, TestApp.USER_ID)
             .method("PATCH", getBodyPublisher(requestBody))
             .build();
@@ -151,12 +151,12 @@ class StoreControllerTest {
         assertEquals(200, response.statusCode());
     }
 
-    private StoreController.PostStoreResponse createStore(HttpClient client, String storeName)
+    private LabelController.PostLabelResponse createLabel(HttpClient client, String labelName)
             throws IOException, InterruptedException
     {
-        StoreController.PostStoreRequest requestBody = new StoreController.PostStoreRequest(ITEM_LIST_ID, storeName);
+        LabelController.PostLabelRequest requestBody = new LabelController.PostLabelRequest(ITEM_LIST_ID, labelName);
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(client.getOrigin() + StoreController.PATH_STORE))
+            .uri(URI.create(client.getOrigin() + LabelController.PATH_LABEL))
             .header(IngressFilter.HEADER_USER_ID, TestApp.USER_ID)
             .POST(getBodyPublisher(requestBody))
             .build();
@@ -167,20 +167,20 @@ class StoreControllerTest {
 
         assertEquals(201, response.statusCode());
 
-        StoreController.PostStoreResponse postStoreResponse = mapper.readValue(
-                response.body(), StoreController.PostStoreResponse.class
+        LabelController.PostLabelResponse postLabelResponse = mapper.readValue(
+                response.body(), LabelController.PostLabelResponse.class
         );
 
-        log.info("{}", postStoreResponse);
-        return postStoreResponse;
+        log.info("{}", postLabelResponse);
+        return postLabelResponse;
     }
 
-    private StoreController.GetStoreResponse getStore(HttpClient client, int storeId)
+    private LabelController.GetLabelResponse getLabel(HttpClient client, int labelId)
             throws IOException, InterruptedException
     {
-        StoreController.GetStoreRequest requestBody = new StoreController.GetStoreRequest(storeId);
+        LabelController.GetLabelRequest requestBody = new LabelController.GetLabelRequest(labelId);
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(client.getOrigin() + StoreController.PATH_STORE))
+            .uri(URI.create(client.getOrigin() + LabelController.PATH_LABEL))
             .header(IngressFilter.HEADER_USER_ID, TestApp.USER_ID)
             .method("GET", getBodyPublisher(requestBody))
             .build();
@@ -194,12 +194,12 @@ class StoreControllerTest {
             return null;
         }
 
-        StoreController.GetStoreResponse getStoreResponse = mapper.readValue(
-                response.body(), StoreController.GetStoreResponse.class
+        LabelController.GetLabelResponse getLabelResponse = mapper.readValue(
+                response.body(), LabelController.GetLabelResponse.class
         );
 
-        log.info("{}", getStoreResponse);
-        return getStoreResponse;
+        log.info("{}", getLabelResponse);
+        return getLabelResponse;
     }
 
     private HttpRequest.BodyPublisher getBodyPublisher(Object requestObject) throws JsonProcessingException {

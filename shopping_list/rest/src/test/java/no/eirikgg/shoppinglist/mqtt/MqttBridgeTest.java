@@ -9,7 +9,7 @@ import no.eirikgg.shoppinglist.db.LiquibaseMigrator;
 import no.eirikgg.shoppinglist.db.TestDb;
 import no.eirikgg.shoppinglist.service.ItemService;
 import no.eirikgg.shoppinglist.service.PersonService;
-import no.eirikgg.shoppinglist.service.StoreService;
+import no.eirikgg.shoppinglist.service.LabelService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,7 +29,7 @@ class MqttBridgeTest {
     private MqttBridge bridge;
     // Changes made in the app, which tell the bridge as the API does.
     private ItemService app;
-    private StoreService appStores;
+    private LabelService appLabels;
     private Person user;
     private int listId;
 
@@ -40,7 +40,7 @@ class MqttBridgeTest {
         transport = new FakeTransport();
         bridge = new MqttBridge(db, transport, Runnable::run);
         app = new ItemService(db, bridge);
-        appStores = new StoreService(db, bridge);
+        appLabels = new LabelService(db, bridge);
         user = new PersonService(db).getOrCreate("ha-user", "Kari");
         listId = app.getItemLists().getFirst().getId().orElseThrow();
         bridge.start();
@@ -110,15 +110,15 @@ class MqttBridgeTest {
         assertEquals("Oat milk", changed.path("item").asText());
         assertEquals(3, changed.path("amount").asInt());
 
-        int storeId = appStores.createStore(user, listId, "Rema").getId().orElseThrow();
+        int labelId = appLabels.createLabel(user, listId, "Rema").getId().orElseThrow();
         transport.clear();
-        appStores.mapStoreAndItem(user, storeId, milkId);
-        JsonNode withStore = transport.lastJson(MqttBridge.eventTopic(listId));
-        assertEquals("item_changed", withStore.path("event_type").asText());
-        assertEquals("Rema", withStore.path("stores").get(0).asText());
-        // Giving it the same store again changes nothing.
+        appLabels.mapLabelAndItem(user, labelId, milkId);
+        JsonNode withLabel = transport.lastJson(MqttBridge.eventTopic(listId));
+        assertEquals("item_changed", withLabel.path("event_type").asText());
+        assertEquals("Rema", withLabel.path("labels").get(0).asText());
+        // Giving it the same label again changes nothing.
         transport.clear();
-        appStores.mapStoreAndItem(user, storeId, milkId);
+        appLabels.mapLabelAndItem(user, labelId, milkId);
         assertTrue(transport.published.isEmpty());
 
         app.deleteItem(user, milkId);
@@ -144,16 +144,16 @@ class MqttBridgeTest {
 
     @Test
     void commands_addCompleteReopenAndDelete() throws Exception {
-        appStores.createStore(user, listId, "Rema");
+        appLabels.createLabel(user, listId, "Rema");
         String commands = MqttBridge.commandTopic(listId);
 
         transport.listener.messageArrived(commands,
-                "{\"action\": \"add\", \"name\": \"Eggs\", \"amount\": 12, \"stores\": [\"rema\", \"Kiwi\"]}");
+                "{\"action\": \"add\", \"name\": \"Eggs\", \"amount\": 12, \"labels\": [\"rema\", \"Kiwi\"]}");
         Item eggs = items().getFirst();
         assertEquals("Eggs", eggs.getName());
         assertEquals(12, eggs.getAmount());
-        // Kiwi is not one of the list's stores, so it is left out.
-        assertEquals(List.of("Rema"), eggs.getStores().stream().map(store -> store.getName()).toList());
+        // Kiwi is not one of the list's labels, so it is left out.
+        assertEquals(List.of("Rema"), eggs.getLabels().stream().map(label -> label.getName()).toList());
 
         transport.listener.messageArrived(commands, "{\"action\": \"complete\", \"name\": \"eggs\"}");
         assertTrue(items().getFirst().getCompleted().isPresent());
@@ -166,6 +166,17 @@ class MqttBridgeTest {
                 "{\"action\": \"delete\", \"item_id\": " + eggs.getId().orElseThrow() + "}");
         assertTrue(items().isEmpty());
         assertEquals("item_deleted", transport.lastJson(MqttBridge.eventTopic(listId)).path("event_type").asText());
+    }
+
+    // Automations written before labels were called stores keep working.
+    @Test
+    void add_takesStoresAsLabels() throws Exception {
+        appLabels.createLabel(user, listId, "Rema");
+
+        transport.listener.messageArrived(MqttBridge.commandTopic(listId),
+                "{\"action\": \"add\", \"name\": \"Eggs\", \"stores\": [\"Rema\"]}");
+
+        assertEquals(List.of("Rema"), items().getFirst().getLabels().stream().map(label -> label.getName()).toList());
     }
 
     // Completing picks the newest open item of that name, not a bought one.
@@ -195,10 +206,10 @@ class MqttBridgeTest {
 
     @Test
     void renamingAndDeletingLists_updatesHomeAssistant() throws Exception {
-        ItemList second = app.createItemList(user, "Hardware store");
+        ItemList second = app.createItemList(user, "Hardware label");
         int secondId = second.getId().orElseThrow();
         String secondSensor = "homeassistant/sensor/shopping_list_" + secondId + "/open_items/config";
-        assertEquals("Hardware store", transport.lastJson(secondSensor).path("device").path("name").asText());
+        assertEquals("Hardware label", transport.lastJson(secondSensor).path("device").path("name").asText());
 
         app.updateItemList(secondId, "Tools");
         assertEquals("Tools", transport.lastJson(secondSensor).path("device").path("name").asText());

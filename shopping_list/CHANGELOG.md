@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.0
+
+- Stores are now called labels (etiketter), with a tag icon, so they also
+  suit lists that are not for shopping, like a Christmas list. Your stores
+  are kept as labels, with their items.
+- MQTT: events and the Open items sensor say `labels` instead of `stores`.
+  Update automations that read `stores`. Commands still take `stores`.
+- The API uses `/api/label`, `/api/label-list` and `/api/label-item-mapping`,
+  with `labelId` and `labelIds`.
+
 ## 0.5.2
 
 - The store filter has a "No store" chip, for the items without a store. It

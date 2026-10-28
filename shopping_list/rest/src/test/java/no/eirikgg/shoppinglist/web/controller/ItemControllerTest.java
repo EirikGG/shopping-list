@@ -154,53 +154,53 @@ class ItemControllerTest {
     }
 
     @Test
-    void createItem_withStores() {
+    void createItem_withLabels() {
         JavalinTest.test(app, testConfig, (server, client) -> {
-            int storeAId = createStore(client, "item-test-store-a");
-            int storeBId = createStore(client, "item-test-store-b");
+            int labelAId = createLabel(client, "item-test-label-a");
+            int labelBId = createLabel(client, "item-test-label-b");
 
             ItemController.PostItemResponse item = createItem(
-                    client, "test-item-with-stores", List.of(storeBId, storeAId)
+                    client, "test-item-with-labels", List.of(labelBId, labelAId)
             );
-            assertEquals(List.of(storeAId, storeBId), storeIds(item.stores()));
-            assertEquals("item-test-store-a", item.stores().getFirst().name());
+            assertEquals(List.of(labelAId, labelBId), labelIds(item.labels()));
+            assertEquals("item-test-label-a", item.labels().getFirst().name());
 
             ItemController.GetItemResponse getResponse = getItem(client, item.id());
-            assertEquals(List.of(storeAId, storeBId), storeIds(getResponse.stores()));
+            assertEquals(List.of(labelAId, labelBId), labelIds(getResponse.labels()));
 
-            ItemController.PostItemResponse itemWithoutStore = createItem(client, "test-item-without-store");
-            assertTrue(itemWithoutStore.stores().isEmpty());
+            ItemController.PostItemResponse itemWithoutLabel = createItem(client, "test-item-without-label");
+            assertTrue(itemWithoutLabel.labels().isEmpty());
         });
     }
 
     @Test
-    void addAndRemoveStoresOfItem() {
+    void addAndRemoveLabelsOfItem() {
         JavalinTest.test(app, testConfig, (server, client) -> {
-            int firstStoreId = createStore(client, "first-store");
-            int secondStoreId = createStore(client, "second-store");
+            int firstLabelId = createLabel(client, "first-label");
+            int secondLabelId = createLabel(client, "second-label");
             ItemController.PostItemResponse item = createItem(
-                    client, "item-changing-store", List.of(firstStoreId)
+                    client, "item-changing-label", List.of(firstLabelId)
             );
 
-            sendMapping(client, "POST", new StoreController.MapStoreAndItemRequest(secondStoreId, item.id()));
-            // Adding a store the item already has changes nothing.
-            sendMapping(client, "POST", new StoreController.MapStoreAndItemRequest(secondStoreId, item.id()));
-            assertEquals(List.of(firstStoreId, secondStoreId), storeIds(getItem(client, item.id()).stores()));
+            sendMapping(client, "POST", new LabelController.MapLabelAndItemRequest(secondLabelId, item.id()));
+            // Adding a label the item already has changes nothing.
+            sendMapping(client, "POST", new LabelController.MapLabelAndItemRequest(secondLabelId, item.id()));
+            assertEquals(List.of(firstLabelId, secondLabelId), labelIds(getItem(client, item.id()).labels()));
 
-            sendMapping(client, "DELETE", new StoreController.UnmapStoreAndItemRequest(firstStoreId, item.id()));
-            assertEquals(List.of(secondStoreId), storeIds(getItem(client, item.id()).stores()));
+            sendMapping(client, "DELETE", new LabelController.UnmapLabelAndItemRequest(firstLabelId, item.id()));
+            assertEquals(List.of(secondLabelId), labelIds(getItem(client, item.id()).labels()));
         });
     }
 
-    private static List<Integer> storeIds(List<ItemController.ItemStoreResponse> stores) {
-        return stores.stream().map(ItemController.ItemStoreResponse::storeId).toList();
+    private static List<Integer> labelIds(List<ItemController.ItemLabelResponse> labels) {
+        return labels.stream().map(ItemController.ItemLabelResponse::labelId).toList();
     }
 
     private void sendMapping(HttpClient client, String method, Object requestBody)
             throws IOException, InterruptedException
     {
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(client.getOrigin() + StoreController.PATH_STORE_ITEM_MAPPING))
+            .uri(URI.create(client.getOrigin() + LabelController.PATH_LABEL_ITEM_MAPPING))
             .header(IngressFilter.HEADER_USER_ID, TestApp.USER_ID)
             .method(method, getBodyPublisher(requestBody))
             .build();
@@ -212,10 +212,10 @@ class ItemControllerTest {
         assertEquals(200, response.statusCode());
     }
 
-    private int createStore(HttpClient client, String storeName) throws IOException, InterruptedException {
-        StoreController.PostStoreRequest requestBody = new StoreController.PostStoreRequest(ITEM_LIST_ID, storeName);
+    private int createLabel(HttpClient client, String labelName) throws IOException, InterruptedException {
+        LabelController.PostLabelRequest requestBody = new LabelController.PostLabelRequest(ITEM_LIST_ID, labelName);
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(client.getOrigin() + StoreController.PATH_STORE))
+            .uri(URI.create(client.getOrigin() + LabelController.PATH_LABEL))
             .header(IngressFilter.HEADER_USER_ID, TestApp.USER_ID)
             .POST(getBodyPublisher(requestBody))
             .build();
@@ -225,7 +225,7 @@ class ItemControllerTest {
         );
 
         assertEquals(201, response.statusCode());
-        return mapper.readValue(response.body(), StoreController.PostStoreResponse.class).storeId();
+        return mapper.readValue(response.body(), LabelController.PostLabelResponse.class).labelId();
     }
 
     private void deleteItem(
@@ -286,11 +286,11 @@ class ItemControllerTest {
         return createItem(client, itemName, null);
     }
 
-    private ItemController.PostItemResponse createItem(HttpClient client, String itemName, List<Integer> storeIds)
+    private ItemController.PostItemResponse createItem(HttpClient client, String itemName, List<Integer> labelIds)
             throws IOException, InterruptedException
     {
         ItemController.PostItemRequest requestBody = new ItemController.PostItemRequest(
-                ITEM_LIST_ID, itemName, storeIds, null
+                ITEM_LIST_ID, itemName, labelIds, null
         );
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM))

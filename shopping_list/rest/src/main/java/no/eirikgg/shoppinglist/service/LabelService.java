@@ -1,10 +1,10 @@
 package no.eirikgg.shoppinglist.service;
 
 import no.eirikgg.shoppinglist.datamodel.Person;
-import no.eirikgg.shoppinglist.datamodel.Store;
+import no.eirikgg.shoppinglist.datamodel.Label;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.db.repository.ItemRepository;
-import no.eirikgg.shoppinglist.db.repository.StoreRepository;
+import no.eirikgg.shoppinglist.db.repository.LabelRepository;
 import no.eirikgg.shoppinglist.errors.NoAccessToResourceException;
 import no.eirikgg.shoppinglist.errors.ResourceNotFoundException;
 import org.slf4j.Logger;
@@ -14,33 +14,33 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 
-// Stores belong to a list, and can only be used on that list's items. Like the
+// Labels belong to a list, and can only be used on that list's items. Like the
 // lists themselves, every user can see and change them.
-public class StoreService {
+public class LabelService {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private Db db;
     private ListChanges changes;
-    private StoreRepository storeRepository = new StoreRepository();
+    private LabelRepository labelRepository = new LabelRepository();
     private ItemRepository itemRepository = new ItemRepository();
 
-    public StoreService(Db db) {
+    public LabelService(Db db) {
         this(db, ListChanges.NONE);
     }
 
-    // Giving an item a store, or taking one away, is passed on to changes.
-    public StoreService(Db db, ListChanges changes) {
+    // Giving an item a label, or taking one away, is passed on to changes.
+    public LabelService(Db db, ListChanges changes) {
         this.db = db;
         this.changes = changes;
     }
 
-    public Store createStore(Person person, int itemListId, String name) throws ResourceNotFoundException {
+    public Label createLabel(Person person, int itemListId, String name) throws ResourceNotFoundException {
         try (Connection conn = db.getConnection()) {
             requireList(conn, itemListId);
 
-            int storeId = storeRepository.createStore(conn, person.id(), itemListId, name);
-            return storeRepository.getStore(conn, storeId).orElseThrow(
-                    () -> new RuntimeException("Failed to create store")
+            int labelId = labelRepository.createLabel(conn, person.id(), itemListId, name);
+            return labelRepository.getLabel(conn, labelId).orElseThrow(
+                    () -> new RuntimeException("Failed to create label")
             );
         }
         catch (SQLException e) {
@@ -48,30 +48,30 @@ public class StoreService {
         }
     }
 
-    public Store getStore(int storeId) throws ResourceNotFoundException {
+    public Label getLabel(int labelId) throws ResourceNotFoundException {
         try (Connection conn = db.getConnection()) {
-            return existingStore(conn, storeId);
+            return existingLabel(conn, labelId);
         }
         catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    // The stores of a list, sorted by name.
-    public List<Store> getStores(int itemListId) throws ResourceNotFoundException {
+    // The labels of a list, sorted by name.
+    public List<Label> getLabels(int itemListId) throws ResourceNotFoundException {
         try (Connection conn = db.getConnection()) {
             requireList(conn, itemListId);
-            return storeRepository.getStoresForList(conn, itemListId);
+            return labelRepository.getLabelsForList(conn, itemListId);
         }
         catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public void patchStore(int storeId, String newName) throws ResourceNotFoundException {
+    public void patchLabel(int labelId, String newName) throws ResourceNotFoundException {
         try (Connection conn = db.getConnection()) {
-            existingStore(conn, storeId);
-            storeRepository.updateStore(conn, storeId, newName);
+            existingLabel(conn, labelId);
+            labelRepository.updateLabel(conn, labelId, newName);
             // The items show the new name.
             changes.listsChanged();
         }
@@ -80,10 +80,10 @@ public class StoreService {
         }
     }
 
-    public void deleteStore(int storeId) throws ResourceNotFoundException {
+    public void deleteLabel(int labelId) throws ResourceNotFoundException {
         try (Connection conn = db.getConnection()) {
-            existingStore(conn, storeId);
-            storeRepository.deleteStore(conn, storeId);
+            existingLabel(conn, labelId);
+            labelRepository.deleteLabel(conn, labelId);
             changes.listsChanged();
         }
         catch (SQLException e) {
@@ -91,18 +91,18 @@ public class StoreService {
         }
     }
 
-    // The store must be on the same list as the item.
-    public void mapStoreAndItem(Person person, int storeId, int itemId)
+    // The label must be on the same list as the item.
+    public void mapLabelAndItem(Person person, int labelId, int itemId)
             throws ResourceNotFoundException, NoAccessToResourceException {
         try (Connection conn = db.getConnection()) {
-            Store store = existingStore(conn, storeId);
+            Label label = existingLabel(conn, labelId);
             int itemListId = itemListIdOfItem(conn, itemId);
-            if (store.getItemListId() != itemListId) {
-                throw new NoAccessToResourceException("Store is not on the item's list");
+            if (label.getItemListId() != itemListId) {
+                throw new NoAccessToResourceException("Label is not on the item's list");
             }
 
-            if (storeRepository.mapStoreToItem(conn, storeId, itemId)) {
-                itemStoresChanged(conn, person, itemListId, itemId);
+            if (labelRepository.mapLabelToItem(conn, labelId, itemId)) {
+                itemLabelsChanged(conn, person, itemListId, itemId);
             }
         }
         catch (SQLException e) {
@@ -110,11 +110,11 @@ public class StoreService {
         }
     }
 
-    public void unmapStoreFromItem(Person person, int storeId, int itemId) throws ResourceNotFoundException {
+    public void unmapLabelFromItem(Person person, int labelId, int itemId) throws ResourceNotFoundException {
         try (Connection conn = db.getConnection()) {
             int itemListId = itemListIdOfItem(conn, itemId);
-            if (storeRepository.unmapStoreFromItem(conn, storeId, itemId)) {
-                itemStoresChanged(conn, person, itemListId, itemId);
+            if (labelRepository.unmapLabelFromItem(conn, labelId, itemId)) {
+                itemLabelsChanged(conn, person, itemListId, itemId);
             }
         }
         catch (SQLException e) {
@@ -122,19 +122,19 @@ public class StoreService {
         }
     }
 
-    private void itemStoresChanged(Connection conn, Person person, int itemListId, int itemId) {
+    private void itemLabelsChanged(Connection conn, Person person, int itemListId, int itemId) {
         itemRepository.getItem(conn, itemId).ifPresent(
                 item -> changes.itemChanged(ListChanges.ItemEvent.ITEM_CHANGED, itemListId, item, person)
         );
     }
 
-    // A store on a deleted list is reported as not found.
-    private Store existingStore(Connection conn, int storeId) throws ResourceNotFoundException {
-        Store store = storeRepository.getStore(conn, storeId).orElseThrow(
-                () -> new ResourceNotFoundException("Store not found")
+    // A label on a deleted list is reported as not found.
+    private Label existingLabel(Connection conn, int labelId) throws ResourceNotFoundException {
+        Label label = labelRepository.getLabel(conn, labelId).orElseThrow(
+                () -> new ResourceNotFoundException("Label not found")
         );
-        requireList(conn, store.getItemListId());
-        return store;
+        requireList(conn, label.getItemListId());
+        return label;
     }
 
     private int itemListIdOfItem(Connection conn, int itemId) throws ResourceNotFoundException {

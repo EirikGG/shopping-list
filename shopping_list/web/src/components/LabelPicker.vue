@@ -6,36 +6,36 @@ import Icon from './Icon.vue'
 import RowEditor from './RowEditor.vue'
 import SwipeToDelete from './SwipeToDelete.vue'
 import {
-  createStore,
-  deleteStore,
-  forgetStore,
-  loadStores,
-  renameStore,
-  storesOf
-} from '../api/stores.js'
+  createLabel,
+  deleteLabel,
+  forgetLabel,
+  loadLabels,
+  renameLabel,
+  labelsOf
+} from '../api/labels.js'
 
-// Picks the stores for an item, and adds, renames and deletes stores. The
-// stores belong to the list, so everyone on it sees the same ones.
+// Picks the labels for an item, and adds, renames and deletes labels. The
+// labels belong to the list, so everyone on it sees the same ones.
 const props = defineProps({
   listId: { type: Number, required: true },
-  // The ids of the chosen stores.
+  // The ids of the chosen labels.
   modelValue: { type: Array, default: () => [] },
   // One row of chips that scrolls sideways, with New first, for picking and
   // adding only. For the add bar on phones, where the keyboard leaves room
-  // for little else. Stores are renamed and deleted in the item editor.
+  // for little else. Labels are renamed and deleted in the item editor.
   compact: { type: Boolean, default: false },
   // For an editor with room to spare: on phones it keeps the heading, and
-  // shows every store rather than a box that scrolls.
+  // shows every label rather than a box that scrolls.
   spacious: { type: Boolean, default: false }
 })
 
-// 'done' is sent when adding or editing a store has ended, so the parent can
+// 'done' is sent when adding or editing a label has ended, so the parent can
 // give the item field its focus back.
 const emit = defineEmits(['update:modelValue', 'done'])
 
 const { t } = useI18n()
 
-const stores = computed(() => storesOf(props.listId))
+const labels = computed(() => labelsOf(props.listId))
 
 // Matches the breakpoint in the styles below.
 const narrow = useMediaQuery('(max-width: 640px)')
@@ -49,7 +49,7 @@ const newName = ref('')
 const busy = ref(false)
 const newInput = ref(null)
 
-// The store being renamed or deleted, if any. One at a time.
+// The label being renamed or deleted, if any. One at a time.
 const editingId = ref(null)
 
 onMounted(load)
@@ -57,9 +57,9 @@ onMounted(load)
 async function load() {
   loadError.value = ''
   try {
-    await loadStores(props.listId)
+    await loadLabels(props.listId)
   } catch (e) {
-    loadError.value = e.status === 429 ? 'errors.tooManyRequests' : 'stores.loadFailed'
+    loadError.value = e.status === 429 ? 'errors.tooManyRequests' : 'labels.loadFailed'
   }
 }
 
@@ -72,8 +72,8 @@ function keepFocus(event) {
   }
 }
 
-function isChosen(store) {
-  return props.modelValue.includes(store.id)
+function isChosen(label) {
+  return props.modelValue.includes(label.id)
 }
 
 function choose(id) {
@@ -82,18 +82,18 @@ function choose(id) {
   }
 }
 
-function toggle(store) {
-  if (isChosen(store)) {
-    emit('update:modelValue', props.modelValue.filter(id => id !== store.id))
+function toggle(label) {
+  if (isChosen(label)) {
+    emit('update:modelValue', props.modelValue.filter(id => id !== label.id))
   } else {
-    choose(store.id)
+    choose(label.id)
   }
 }
 
-function startEditing(store) {
+function startEditing(label) {
   stopAdding(false)
   error.value = ''
-  editingId.value = store.id
+  editingId.value = label.id
 }
 
 function stopEditing() {
@@ -101,20 +101,20 @@ function stopEditing() {
   emit('done')
 }
 
-// Deleting a store also unchooses it.
-function forget(store) {
-  if (isChosen(store)) {
-    emit('update:modelValue', props.modelValue.filter(id => id !== store.id))
+// Deleting a label also unchooses it.
+function forget(label) {
+  if (isChosen(label)) {
+    emit('update:modelValue', props.modelValue.filter(id => id !== label.id))
   }
-  forgetStore(props.listId, store.id)
+  forgetLabel(props.listId, label.id)
 }
 
 // The editing ends before the row goes, so the focus is handed back to the
 // item field while the editor still has it. Otherwise the picker closes.
-async function remove(store) {
-  await deleteStore(store.id)
+async function remove(label) {
+  await deleteLabel(label.id)
   stopEditing()
-  forget(store)
+  forget(label)
 }
 
 function swipeFailed(e) {
@@ -141,7 +141,7 @@ function stopAdding(refocus = true) {
   }
 }
 
-// In the row of chips, scrolls a store just added or chosen into sight, as it
+// In the row of chips, scrolls a label just added or chosen into sight, as it
 // may be far along the row.
 const list = ref(null)
 
@@ -151,7 +151,7 @@ async function showChip(id) {
   }
   await nextTick()
   list.value
-    ?.querySelector(`[data-store-id="${id}"]`)
+    ?.querySelector(`[data-label-id="${id}"]`)
     ?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
 }
 
@@ -160,9 +160,9 @@ async function add() {
     return
   }
 
-  // A store with that name already exists, so it is chosen instead.
-  const existing = stores.value?.find(
-    store => store.name.toLowerCase() === newName.value.toLowerCase()
+  // A label with that name already exists, so it is chosen instead.
+  const existing = labels.value?.find(
+    label => label.name.toLowerCase() === newName.value.toLowerCase()
   )
   if (existing) {
     choose(existing.id)
@@ -175,12 +175,12 @@ async function add() {
   busy.value = true
 
   try {
-    const store = await createStore(props.listId, newName.value)
-    choose(store.id)
+    const label = await createLabel(props.listId, newName.value)
+    choose(label.id)
     stopAdding()
-    showChip(store.id)
+    showChip(label.id)
   } catch (e) {
-    error.value = e.status === 429 ? 'errors.tooManyRequests' : 'stores.createFailed'
+    error.value = e.status === 429 ? 'errors.tooManyRequests' : 'labels.createFailed'
   } finally {
     busy.value = false
   }
@@ -189,69 +189,69 @@ async function add() {
 
 <template>
   <div class="picker" :class="{ compact, spacious }" @mousedown="keepFocus">
-    <p class="heading">{{ t('stores.stores') }}</p>
+    <p class="heading">{{ t('labels.labels') }}</p>
 
     <div v-if="loadError" class="status">
       <p class="error" aria-live="polite">{{ t(loadError) }}</p>
       <button type="button" class="secondary" @click="load">{{ t('app.retry') }}</button>
     </div>
 
-    <p v-else-if="stores === null" class="status muted">{{ t('stores.loading') }}</p>
+    <p v-else-if="labels === null" class="status muted">{{ t('labels.loading') }}</p>
 
     <template v-else>
-      <p v-if="!stores.length && !adding && !compact" class="status muted">{{ t('stores.none') }}</p>
+      <p v-if="!labels.length && !adding && !compact" class="status muted">{{ t('labels.none') }}</p>
 
-      <ul ref="list" class="stores">
+      <ul ref="list" class="labels">
         <!-- First in the row of chips, so it is there without scrolling. -->
         <li v-if="compact && !adding">
-          <div class="store-row add-store">
-            <button type="button" class="store" @click="startAdding">
+          <div class="label-row add-label">
+            <button type="button" class="label" @click="startAdding">
               <Icon name="plus" />
-              <span class="name">{{ t('stores.new') }}</span>
+              <span class="name">{{ t('labels.new') }}</span>
             </button>
           </div>
         </li>
 
-        <!-- In the row of chips, the field for a new store takes the whole row. -->
+        <!-- In the row of chips, the field for a new label takes the whole row. -->
         <template v-if="!(compact && adding)">
           <li
-            v-for="store in stores"
-            :key="store.id"
-            :data-store-id="store.id"
-            :class="{ editing: editingId === store.id }"
+            v-for="label in labels"
+            :key="label.id"
+            :data-label-id="label.id"
+            :class="{ editing: editingId === label.id }"
           >
             <RowEditor
-              v-if="editingId === store.id"
-              :name="store.name"
-              :save="newName => renameStore(listId, store.id, newName)"
-              :remove="() => remove(store)"
+              v-if="editingId === label.id"
+              :name="label.name"
+              :save="newName => renameLabel(listId, label.id, newName)"
+              :remove="() => remove(label)"
               @done="stopEditing"
             />
             <SwipeToDelete
               v-else
               :enabled="narrow && !compact"
-              :remove="() => deleteStore(store.id)"
-              @removed="forget(store)"
+              :remove="() => deleteLabel(label.id)"
+              @removed="forget(label)"
               @failed="swipeFailed"
             >
-              <div class="store-row" :class="{ selected: isChosen(store) }">
+              <div class="label-row" :class="{ selected: isChosen(label) }">
                 <button
                   type="button"
-                  class="store"
-                  :aria-pressed="isChosen(store)"
-                  @click="toggle(store)"
+                  class="label"
+                  :aria-pressed="isChosen(label)"
+                  @click="toggle(label)"
                 >
-                  <Icon :name="compact && isChosen(store) ? 'check' : 'store'" />
-                  <span class="name">{{ store.name }}</span>
-                  <Icon v-if="isChosen(store) && !compact" name="check" />
+                  <Icon :name="compact && isChosen(label) ? 'check' : 'label'" />
+                  <span class="name">{{ label.name }}</span>
+                  <Icon v-if="isChosen(label) && !compact" name="check" />
                 </button>
                 <button
                   v-if="!compact"
                   type="button"
                   class="edit"
-                  :aria-label="t('edit.editItem', { name: store.name })"
+                  :aria-label="t('edit.editItem', { name: label.name })"
                   :title="t('edit.edit')"
-                  @click="startEditing(store)"
+                  @click="startEditing(label)"
                 >
                   <Icon name="pencil" />
                 </button>
@@ -264,8 +264,8 @@ async function add() {
           <input
             ref="newInput"
             v-model.trim="newName"
-            :aria-label="t('stores.storeName')"
-            :placeholder="t('stores.storeName')"
+            :aria-label="t('labels.labelName')"
+            :placeholder="t('labels.labelName')"
             maxlength="256"
             @keydown.enter.prevent="add"
             @keydown.esc.stop.prevent="stopAdding()"
@@ -273,8 +273,8 @@ async function add() {
           <button
             type="button"
             class="icon"
-            :aria-label="t('stores.create')"
-            :title="t('stores.create')"
+            :aria-label="t('labels.create')"
+            :title="t('labels.create')"
             :disabled="busy || !newName"
             @click="add"
           >
@@ -292,10 +292,10 @@ async function add() {
           </button>
         </li>
         <li v-else-if="!compact">
-          <div class="store-row add-store">
-            <button type="button" class="store" @click="startAdding">
+          <div class="label-row add-label">
+            <button type="button" class="label" @click="startAdding">
               <Icon name="plus" />
-              <span class="name">{{ t('stores.newStore') }}</span>
+              <span class="name">{{ t('labels.newLabel') }}</span>
             </button>
           </div>
         </li>
@@ -307,7 +307,7 @@ async function add() {
 </template>
 
 <style scoped>
-/* On wide screens the stores are chips that wrap onto more rows. */
+/* On wide screens the labels are chips that wrap onto more rows. */
 .heading {
   margin: 0 0 0.5rem;
   font-size: 0.8125rem;
@@ -330,7 +330,7 @@ async function add() {
   color: var(--color-text-muted);
 }
 
-.stores {
+.labels {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
@@ -340,11 +340,11 @@ async function add() {
 }
 
 /* The editor takes a whole line, as it is wider than a chip. */
-.stores li.editing {
+.labels li.editing {
   flex-basis: 100%;
 }
 
-.store-row {
+.label-row {
   display: flex;
   align-items: center;
   color: var(--color-text);
@@ -353,23 +353,23 @@ async function add() {
   border-radius: 999px;
 }
 
-.store-row:hover {
+.label-row:hover {
   border-color: var(--color-primary);
 }
 
-.store-row.selected {
+.label-row.selected {
   color: var(--color-on-primary);
   background: var(--color-primary);
   border-color: var(--color-primary);
 }
 
-.store-row.add-store {
+.label-row.add-label {
   color: var(--color-primary);
   border-style: dashed;
 }
 
-.store,
-.store:hover:not(:disabled) {
+.label,
+.label:hover:not(:disabled) {
   display: flex;
   align-items: center;
   gap: 0.375rem;
@@ -380,11 +380,11 @@ async function add() {
   border: none;
 }
 
-.store-row:has(.edit) .store {
+.label-row:has(.edit) .label {
   padding-right: 0.25rem;
 }
 
-.store :deep(svg),
+.label :deep(svg),
 .edit :deep(svg) {
   width: 1rem;
   height: 1rem;
@@ -436,8 +436,8 @@ async function add() {
 }
 
 /* The add bar on phones: one row of chips that scrolls sideways, running to
-   the edges of the screen, as the store filter does. */
-.picker.compact .stores {
+   the edges of the screen, as the label filter does. */
+.picker.compact .labels {
   flex-wrap: nowrap;
   overflow-x: auto;
   overscroll-behavior-x: contain;
@@ -446,17 +446,17 @@ async function add() {
   scrollbar-width: none;
 }
 
-.picker.compact .stores::-webkit-scrollbar {
+.picker.compact .labels::-webkit-scrollbar {
   display: none;
 }
 
-.picker.compact .stores li {
+.picker.compact .labels li {
   flex-shrink: 0;
 }
 
 /* Large enough to tap with the keyboard open. */
-.picker.compact .store,
-.picker.compact .store:hover:not(:disabled) {
+.picker.compact .label,
+.picker.compact .label:hover:not(:disabled) {
   min-height: 2.5rem;
   padding: 0.375rem 0.875rem;
 }
@@ -475,7 +475,7 @@ async function add() {
   min-height: 2.5rem;
 }
 
-/* On narrow screens the stores are otherwise rows in a box about three and a
+/* On narrow screens the labels are otherwise rows in a box about three and a
    half rows tall, so the bar stays low and the cut-off row shows that it
    scrolls. As with items, a row can be swiped left to delete it. */
 @media (max-width: 640px) {
@@ -483,7 +483,7 @@ async function add() {
     display: none;
   }
 
-  .picker:not(.compact) .stores {
+  .picker:not(.compact) .labels {
     flex-direction: column;
     flex-wrap: nowrap;
     gap: 0;
@@ -496,39 +496,39 @@ async function add() {
   }
 
   /* An editor has the room to show them all. */
-  .picker.spacious .stores {
+  .picker.spacious .labels {
     max-height: none;
   }
 
-  .picker:not(.compact) .stores li {
+  .picker:not(.compact) .labels li {
     flex-shrink: 0;
   }
 
-  .picker:not(.compact) .stores li + li {
+  .picker:not(.compact) .labels li + li {
     border-top: 1px solid var(--color-border);
   }
 
-  .picker:not(.compact) .stores li.editing {
+  .picker:not(.compact) .labels li.editing {
     flex-basis: auto;
     padding: 0.375rem 0.5rem 0.375rem 1rem;
   }
 
-  .picker:not(.compact) .store-row,
-  .picker:not(.compact) .store-row:hover {
+  .picker:not(.compact) .label-row,
+  .picker:not(.compact) .label-row:hover {
     min-height: 2.75rem;
     border: none;
     border-radius: 0;
   }
 
-  .picker:not(.compact) .store,
-  .picker:not(.compact) .store:hover:not(:disabled) {
+  .picker:not(.compact) .label,
+  .picker:not(.compact) .label:hover:not(:disabled) {
     flex: 1;
     gap: 0.75rem;
     align-self: stretch;
     padding: 0.375rem 1rem;
   }
 
-  .picker:not(.compact) .store :deep(svg),
+  .picker:not(.compact) .label :deep(svg),
   .picker:not(.compact) .edit :deep(svg) {
     width: 1.125rem;
     height: 1.125rem;

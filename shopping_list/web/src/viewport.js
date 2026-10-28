@@ -1,6 +1,6 @@
 // On phones the keyboard covers the bottom of the page, and iOS does not
 // shrink 100dvh for it. The app shell takes its height from here instead, so
-// the add item form and the store picker stay above the keyboard.
+// the add item form and the label picker stay above the keyboard.
 const viewport = window.visualViewport
 
 function update() {

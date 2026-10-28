@@ -4,10 +4,10 @@ import { useLocalStorage, useMediaQuery } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import Icon from './Icon.vue'
 import ItemEditor from './ItemEditor.vue'
-import StorePicker from './StorePicker.vue'
+import LabelPicker from './LabelPicker.vue'
 import SwipeToDelete from './SwipeToDelete.vue'
 import { createItem, deleteItem, updateItem } from '../api/items.js'
-import { addItemStore, removeItemStore, storeName, storesOf } from '../api/stores.js'
+import { addItemLabel, removeItemLabel, labelName, labelsOf } from '../api/labels.js'
 import { formatTime, parseBackendTime } from '../time.js'
 
 const props = defineProps({
@@ -34,17 +34,17 @@ const narrow = useMediaQuery('(max-width: 640px)')
 
 const addBar = ref(null)
 const nameInput = ref(null)
-// The stores the next item is added to. Kept after adding, so several items
-// for the same stores can be added in a row.
-const storeIds = ref([])
-// Leaves out stores deleted since they were chosen.
-// The list's stores, once the picker has loaded them.
-const knownStores = computed(() => storesOf(props.list.id))
-const selectedStores = computed(
-  () => knownStores.value?.filter(store => storeIds.value.includes(store.id)) ?? []
+// The labels the next item is added to. Kept after adding, so several items
+// for the same labels can be added in a row.
+const labelIds = ref([])
+// Leaves out labels deleted since they were chosen.
+// The list's labels, once the picker has loaded them.
+const knownLabels = computed(() => labelsOf(props.list.id))
+const selectedLabels = computed(
+  () => knownLabels.value?.filter(label => labelIds.value.includes(label.id)) ?? []
 )
 
-// The store picker opens when the item field gets focus, and stays open while
+// The label picker opens when the item field gets focus, and stays open while
 // anything in the add bar has it.
 const picking = ref(false)
 
@@ -59,8 +59,8 @@ function closePicker() {
   nameInput.value.blur()
 }
 
-function storeNames(item) {
-  return (item.stores ?? []).map(store => storeName(props.list.id, store)).filter(Boolean).join(', ')
+function labelNames(item) {
+  return (item.labels ?? []).map(label => labelName(props.list.id, label)).filter(Boolean).join(', ')
 }
 
 // The back button closes the picker first, if it is open.
@@ -76,63 +76,64 @@ function onBack() {
 // collapsed. Whether it is collapsed is remembered for every list.
 const showCompleted = useLocalStorage('shoppinglist.show-completed', true)
 
-// The list can be narrowed to the items of some stores. The choice is kept
-// across lists and visits, as it follows the store you are in. It holds store
-// names, as each list has its own stores: "Rema" in one list is not the same
-// store as "Rema" in another, but it is the same shop.
-const storeFilter = useLocalStorage('shoppinglist.store-filter-names', [])
+// The list can be narrowed to the items of some labels. The choice is kept
+// across lists and visits, as it often follows where you are, like the shop
+// you are in. It holds label names, as each list has its own labels: "Rema"
+// in one list is not the same label as "Rema" in another, but means the same.
+// The key is from when labels were called stores, so the choice is kept.
+const labelFilter = useLocalStorage('shoppinglist.store-filter-names', [])
 
-// The stores used by items in this list, sorted by name, leaving out deleted
+// The labels used by items in this list, sorted by name, leaving out deleted
 // ones.
-const listStores = computed(() => {
+const listLabels = computed(() => {
   const byId = new Map()
   for (const item of props.list.items) {
-    for (const itemStore of item.stores ?? []) {
-      const name = storeName(props.list.id, itemStore)
+    for (const itemLabel of item.labels ?? []) {
+      const name = labelName(props.list.id, itemLabel)
       if (name) {
-        byId.set(itemStore.storeId, { id: itemStore.storeId, name })
+        byId.set(itemLabel.labelId, { id: itemLabel.labelId, name })
       }
     }
   }
   return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name) || a.id - b.id)
 })
 
-// Kept in the filter beside the store names for the items without a store. A
-// store name can not be this, as it starts with a character no one types.
-const NO_STORE = '\u0000no-store'
+// Kept in the filter beside the label names for the items without a label. A
+// label name can not be this, as it starts with a character no one types.
+const NO_LABEL = '\u0000no-label'
 
-function hasNoStore(item) {
-  return !(item.stores ?? []).some(store => storeName(props.list.id, store))
+function hasNoLabel(item) {
+  return !(item.labels ?? []).some(label => labelName(props.list.id, label))
 }
 
-// Only offered when some items have a store and some do not.
-const offerNoStore = computed(() => listStores.value.length > 0 && props.list.items.some(hasNoStore))
+// Only offered when some items have a label and some do not.
+const offerNoLabel = computed(() => listLabels.value.length > 0 && props.list.items.some(hasNoLabel))
 
-// Stores filtered on that this list does not use are ignored.
+// Labels filtered on that this list does not use are ignored.
 const activeFilter = computed(() =>
-  storeFilter.value.filter(name =>
-    name === NO_STORE ? offerNoStore.value : listStores.value.some(store => store.name === name)
+  labelFilter.value.filter(name =>
+    name === NO_LABEL ? offerNoLabel.value : listLabels.value.some(label => label.name === name)
   )
 )
 
-// Filters on stores this list does not have are kept for the other lists.
+// Filters on labels this list does not have are kept for the other lists.
 function toggleFilter(name) {
-  storeFilter.value = storeFilter.value.includes(name)
-    ? storeFilter.value.filter(other => other !== name)
-    : [...storeFilter.value, name]
+  labelFilter.value = labelFilter.value.includes(name)
+    ? labelFilter.value.filter(other => other !== name)
+    : [...labelFilter.value, name]
 }
 
-// An item is shown if it has any of the filtered stores, or no store at all
+// An item is shown if it has any of the filtered labels, or no label at all
 // when that is chosen.
 const visibleItems = computed(() => {
   if (!activeFilter.value.length) {
     return props.list.items
   }
-  const noStore = activeFilter.value.includes(NO_STORE)
+  const noLabel = activeFilter.value.includes(NO_LABEL)
   return props.list.items.filter(
     item =>
-      (noStore && hasNoStore(item)) ||
-      item.stores?.some(store => activeFilter.value.includes(storeName(props.list.id, store)))
+      (noLabel && hasNoLabel(item)) ||
+      item.labels?.some(label => activeFilter.value.includes(labelName(props.list.id, label)))
   )
 })
 
@@ -182,34 +183,34 @@ async function toggleCompleted(item) {
   }
 }
 
-// Saved as soon as a store is tapped, apart from the name, and shown straight
+// Saved as soon as a label is tapped, apart from the name, and shown straight
 // away. Put back if saving fails.
-async function changeStores(item, ids) {
-  const previous = item.stores ?? []
-  const previousIds = previous.map(store => store.storeId)
+async function changeLabels(item, ids) {
+  const previous = item.labels ?? []
+  const previousIds = previous.map(label => label.labelId)
   const added = ids.filter(id => !previousIds.includes(id))
   const removed = previousIds.filter(id => !ids.includes(id))
 
   error.value = ''
-  // Stores not loaded yet keep the name the item had.
-  const own = (knownStores.value ?? [])
-    .filter(store => ids.includes(store.id))
-    .map(store => ({ storeId: store.id, name: store.name }))
+  // Labels not loaded yet keep the name the item had.
+  const own = (knownLabels.value ?? [])
+    .filter(label => ids.includes(label.id))
+    .map(label => ({ labelId: label.id, name: label.name }))
   const others = previous.filter(
-    itemStore => ids.includes(itemStore.storeId) && !own.some(o => o.storeId === itemStore.storeId)
+    itemLabel => ids.includes(itemLabel.labelId) && !own.some(o => o.labelId === itemLabel.labelId)
   )
   emit('item-updated', {
     ...item,
-    stores: [...own, ...others].sort((a, b) => a.name.localeCompare(b.name))
+    labels: [...own, ...others].sort((a, b) => a.name.localeCompare(b.name))
   })
 
   try {
     await Promise.all([
-      ...added.map(id => addItemStore(item.id, id)),
-      ...removed.map(id => removeItemStore(item.id, id))
+      ...added.map(id => addItemLabel(item.id, id)),
+      ...removed.map(id => removeItemLabel(item.id, id))
     ])
   } catch (e) {
-    emit('item-updated', { ...item, stores: previous })
+    emit('item-updated', { ...item, labels: previous })
     error.value = e.status === 429 ? 'errors.tooManyRequests' : 'lists.completeFailed'
   }
 }
@@ -226,7 +227,7 @@ async function submit() {
     const item = await createItem(
       props.list.id,
       name.value,
-      selectedStores.value.map(store => store.id)
+      selectedLabels.value.map(label => label.id)
     )
     emit('item-added', { ...item, completed: null })
     name.value = ''
@@ -246,36 +247,36 @@ async function submit() {
     <div class="scroll">
       <h2>{{ list.name }}</h2>
 
-      <div v-if="listStores.length" class="filter" role="group" :aria-label="t('stores.filter')">
+      <div v-if="listLabels.length" class="filter" role="group" :aria-label="t('labels.filter')">
         <button
-          v-for="store in listStores"
-          :key="store.id"
+          v-for="label in listLabels"
+          :key="label.id"
           type="button"
           class="filter-chip"
-          :class="{ active: activeFilter.includes(store.name) }"
-          :aria-pressed="activeFilter.includes(store.name)"
-          @click="toggleFilter(store.name)"
+          :class="{ active: activeFilter.includes(label.name) }"
+          :aria-pressed="activeFilter.includes(label.name)"
+          @click="toggleFilter(label.name)"
         >
-          <Icon name="store" />
-          {{ store.name }}
+          <Icon name="label" />
+          {{ label.name }}
         </button>
         <button
-          v-if="offerNoStore"
+          v-if="offerNoLabel"
           type="button"
-          class="filter-chip no-store"
-          :class="{ active: activeFilter.includes(NO_STORE) }"
-          :aria-pressed="activeFilter.includes(NO_STORE)"
-          @click="toggleFilter(NO_STORE)"
+          class="filter-chip no-label"
+          :class="{ active: activeFilter.includes(NO_LABEL) }"
+          :aria-pressed="activeFilter.includes(NO_LABEL)"
+          @click="toggleFilter(NO_LABEL)"
         >
-          {{ t('stores.noStore') }}
+          {{ t('labels.noLabel') }}
         </button>
         <button
           v-if="activeFilter.length"
           type="button"
           class="filter-chip show-all"
-          @click="storeFilter = []"
+          @click="labelFilter = []"
         >
-          {{ t('stores.showAll') }}
+          {{ t('labels.showAll') }}
         </button>
       </div>
 
@@ -330,9 +331,9 @@ async function submit() {
                       <span v-if="item.amount > 1" class="item-amount">{{ item.amount }} ×</span>
                       {{ item.name }}
                     </span>
-                    <span v-if="storeNames(item)" class="item-store">
-                      <Icon name="store" />
-                      {{ storeNames(item) }}
+                    <span v-if="labelNames(item)" class="item-label">
+                      <Icon name="label" />
+                      {{ labelNames(item) }}
                     </span>
                     <span v-if="item.links?.length || item.attachments?.length" class="item-extras">
                       <span
@@ -384,7 +385,7 @@ async function submit() {
       </template>
     </div>
 
-    <!-- The picker sits beside the form rather than in it, as editing a store
+    <!-- The picker sits beside the form rather than in it, as editing a label
          uses a form of its own. -->
     <div
       ref="addBar"
@@ -393,19 +394,19 @@ async function submit() {
       @keydown.esc="closePicker"
     >
       <p v-if="error" class="error" aria-live="polite">{{ t(error) }}</p>
-      <ul v-if="selectedStores.length && !picking" class="chosen-stores">
-        <li v-for="store in selectedStores" :key="store.id">
+      <ul v-if="selectedLabels.length && !picking" class="chosen-labels">
+        <li v-for="label in selectedLabels" :key="label.id">
           <button type="button" class="chosen" @mousedown.prevent @click="nameInput.focus()">
-            <Icon name="store" />
-            {{ store.name }}
+            <Icon name="label" />
+            {{ label.name }}
           </button>
           <button
             type="button"
             class="clear"
-            :aria-label="t('stores.clear', { name: store.name })"
-            :title="t('stores.clear', { name: store.name })"
+            :aria-label="t('labels.clear', { name: label.name })"
+            :title="t('labels.clear', { name: label.name })"
             @mousedown.prevent
-            @click="storeIds = storeIds.filter(id => id !== store.id)"
+            @click="labelIds = labelIds.filter(id => id !== label.id)"
           >
             <Icon name="x" />
           </button>
@@ -417,8 +418,8 @@ async function submit() {
         <button
           type="button"
           class="back"
-          :aria-label="picking ? t('stores.close') : t('lists.back')"
-          :title="picking ? t('stores.close') : t('lists.back')"
+          :aria-label="picking ? t('labels.close') : t('lists.back')"
+          :title="picking ? t('labels.close') : t('lists.back')"
           @mousedown.prevent
           @click="onBack"
         >
@@ -442,9 +443,9 @@ async function submit() {
           {{ t('lists.addItem') }}
         </button>
       </form>
-      <StorePicker
+      <LabelPicker
         v-if="picking"
-        v-model="storeIds"
+        v-model="labelIds"
         :list-id="list.id"
         :compact="narrow"
         @done="nameInput.focus()"
@@ -457,7 +458,7 @@ async function submit() {
       :item="editingItem"
       :list-id="list.id"
       @item-updated="item => emit('item-updated', item)"
-      @stores-changed="ids => changeStores(editingItem, ids)"
+      @labels-changed="ids => changeLabels(editingItem, ids)"
       @item-deleted="id => emit('item-deleted', id)"
       @close="editingId = null"
     />
@@ -621,13 +622,13 @@ h2 {
 }
 
 .completed-at,
-.item-store,
+.item-label,
 .item-extras {
   font-size: 0.8125rem;
   color: var(--color-text-muted);
 }
 
-.item-store,
+.item-label,
 .item-extras,
 .item-extras > span {
   display: flex;
@@ -640,7 +641,7 @@ h2 {
   gap: 0.625rem;
 }
 
-.item-store :deep(svg),
+.item-label :deep(svg),
 .item-extras :deep(svg) {
   width: 0.875rem;
   height: 0.875rem;
@@ -651,7 +652,7 @@ h2 {
   margin-top: 0.75rem;
 }
 
-.chosen-stores {
+.chosen-labels {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem 0.75rem;
@@ -660,7 +661,7 @@ h2 {
   list-style: none;
 }
 
-.chosen-stores li {
+.chosen-labels li {
   display: flex;
   align-items: center;
 }
@@ -718,7 +719,7 @@ h2 {
   color: var(--color-text-muted);
 }
 
-/* The stores used in the list, as chips that narrow the list down. */
+/* The labels used in the list, as chips that narrow the list down. */
 .filter {
   display: flex;
   flex-wrap: wrap;
@@ -753,8 +754,8 @@ h2 {
   border-color: var(--color-primary);
 }
 
-/* Not a store, so it has no store icon and a dashed edge. */
-.filter-chip.no-store:not(.active) {
+/* Not a label, so it has no label icon and a dashed edge. */
+.filter-chip.no-label:not(.active) {
   border-style: dashed;
 }
 

@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Icon from './Icon.vue'
-import StorePicker from './StorePicker.vue'
+import LabelPicker from './LabelPicker.vue'
 import {
   MAX_AMOUNT,
   MAX_FILE_BYTES,
@@ -17,8 +17,8 @@ import {
 } from '../api/items.js'
 import { formatTime, parseBackendTime } from '../time.js'
 
-// Everything about one item: its name, amount, stores, links and files.
-// Stores, links and files are saved as soon as they change; the name and the
+// Everything about one item: its name, amount, labels, links and files.
+// Labels, links and files are saved as soon as they change; the name and the
 // amount when Done is pressed. Escape closes without saving those. It opens with the focus on the
 // close button rather than the name, so a phone does not bring up the
 // keyboard until a field is tapped.
@@ -27,9 +27,9 @@ const props = defineProps({
   listId: { type: Number, required: true }
 })
 
-// 'item-updated' with the changed item, 'stores-changed' with the chosen store
+// 'item-updated' with the changed item, 'labels-changed' with the chosen label
 // ids (the list saves those), 'item-deleted' with the id, and 'close'.
-const emit = defineEmits(['item-updated', 'stores-changed', 'item-deleted', 'close'])
+const emit = defineEmits(['item-updated', 'labels-changed', 'item-deleted', 'close'])
 
 const { locale, t } = useI18n()
 
@@ -267,11 +267,11 @@ function formatSize(bytes) {
         </div>
       </section>
 
-      <StorePicker
+      <LabelPicker
         spacious
         :list-id="listId"
-        :model-value="(item.stores ?? []).map(store => store.storeId)"
-        @update:model-value="ids => emit('stores-changed', ids)"
+        :model-value="(item.labels ?? []).map(label => label.labelId)"
+        @update:model-value="ids => emit('labels-changed', ids)"
       />
 
       <section>
@@ -424,7 +424,7 @@ function formatSize(bytes) {
   color: var(--color-text-muted);
 }
 
-/* Matches the heading of the store picker. */
+/* Matches the heading of the label picker. */
 .heading {
   margin: 0 0 0.5rem;
   font-size: 0.8125rem;

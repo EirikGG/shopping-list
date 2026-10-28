@@ -68,12 +68,12 @@ public class ItemController {
 
 
 
-    record ItemStoreResponse(
-            int storeId, String name
+    record ItemLabelResponse(
+            int labelId, String name
     ) {}
-    private static List<ItemStoreResponse> toStoreResponses(Item item) {
-        return item.getStores().stream()
-                .map(store -> new ItemStoreResponse(store.getId().orElseThrow(), store.getName()))
+    private static List<ItemLabelResponse> toLabelResponses(Item item) {
+        return item.getLabels().stream()
+                .map(label -> new ItemLabelResponse(label.getId().orElseThrow(), label.getName()))
                 .toList();
     }
 
@@ -107,7 +107,7 @@ public class ItemController {
             int id
     ) {}
     record GetItemResponse(
-            int id, String name, int amount, LocalDateTime created, LocalDateTime completed, List<ItemStoreResponse> stores,
+            int id, String name, int amount, LocalDateTime created, LocalDateTime completed, List<ItemLabelResponse> labels,
             List<ItemLinkResponse> links, List<AttachmentResponse> attachments
     ) {}
     private static GetItemResponse toItemResponse(Item item) {
@@ -117,7 +117,7 @@ public class ItemController {
                 item.getAmount(),
                 item.getCreated(),
                 item.getCompleted().orElse(null),
-                toStoreResponses(item),
+                toLabelResponses(item),
                 toLinkResponses(item),
                 toAttachmentResponses(item)
         );
@@ -133,12 +133,12 @@ public class ItemController {
     }
 
 
-    // storeIds is optional, and amount is 1 if left out.
+    // labelIds is optional, and amount is 1 if left out.
     record PostItemRequest(
-            int itemListId, String name, List<Integer> storeIds, Integer amount
+            int itemListId, String name, List<Integer> labelIds, Integer amount
     ) {}
     record PostItemResponse(
-            int id, String name, int amount, LocalDateTime created, List<ItemStoreResponse> stores
+            int id, String name, int amount, LocalDateTime created, List<ItemLabelResponse> labels
     ) {}
     private void saveItem(Context ctx)
             throws JsonProcessingException, ResourceNotFoundException, NoAccessToResourceException,
@@ -146,14 +146,14 @@ public class ItemController {
         Person person = ctx.attribute(IngressFilter.PARAM_PERSON);
         PostItemRequest request = ctx.bodyAsClass(PostItemRequest.class);
         Item item = itemService.createItem(
-                person, request.itemListId(), request.name(), request.amount(), request.storeIds()
+                person, request.itemListId(), request.name(), request.amount(), request.labelIds()
         );
         PostItemResponse response = new PostItemResponse(
                 item.getId().orElseThrow(),
                 item.getName(),
                 item.getAmount(),
                 item.getCreated(),
-                toStoreResponses(item)
+                toLabelResponses(item)
         );
         ctx.status(HttpStatus.CREATED).json(mapper.writeValueAsString(response));
     }
@@ -172,7 +172,7 @@ public class ItemController {
             int id, String newName, Integer amount, boolean completed
     ) {}
     record PatchItemResponse(
-            int id, String name, int amount, LocalDateTime created, LocalDateTime completed, List<ItemStoreResponse> stores,
+            int id, String name, int amount, LocalDateTime created, LocalDateTime completed, List<ItemLabelResponse> labels,
             List<ItemLinkResponse> links, List<AttachmentResponse> attachments
     ) {}
     private void patchItem(Context ctx)
@@ -188,7 +188,7 @@ public class ItemController {
                 item.getAmount(),
                 item.getCreated(),
                 item.getCompleted().orElse(null),
-                toStoreResponses(item),
+                toLabelResponses(item),
                 toLinkResponses(item),
                 toAttachmentResponses(item)
         );

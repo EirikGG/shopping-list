@@ -6,12 +6,12 @@ import no.eirikgg.shoppinglist.Json;
 import no.eirikgg.shoppinglist.datamodel.Item;
 import no.eirikgg.shoppinglist.datamodel.ItemList;
 import no.eirikgg.shoppinglist.datamodel.Person;
-import no.eirikgg.shoppinglist.datamodel.Store;
+import no.eirikgg.shoppinglist.datamodel.Label;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.service.ItemService;
 import no.eirikgg.shoppinglist.service.ListChanges;
 import no.eirikgg.shoppinglist.service.PersonService;
-import no.eirikgg.shoppinglist.service.StoreService;
+import no.eirikgg.shoppinglist.service.LabelService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,7 +78,7 @@ public class MqttBridge implements ListChanges, MqttTransport.Listener {
     private final MqttTransport transport;
     private final Executor executor;
     private final ItemService itemService;
-    private final StoreService storeService;
+    private final LabelService labelService;
     private final PersonService personService;
     private Person mqttPerson;
 
@@ -96,7 +96,7 @@ public class MqttBridge implements ListChanges, MqttTransport.Listener {
         this.executor = executor;
         // Changes made through MQTT come back here, and are published too.
         this.itemService = new ItemService(db, this);
-        this.storeService = new StoreService(db, this);
+        this.labelService = new LabelService(db, this);
         this.personService = new PersonService(db);
     }
 
@@ -244,7 +244,7 @@ public class MqttBridge implements ListChanges, MqttTransport.Listener {
             entry.put("id", item.getId().orElseThrow());
             entry.put("name", item.getName());
             entry.put("amount", item.getAmount());
-            entry.put("stores", storeNames(item));
+            entry.put("labels", labelNames(item));
             return entry;
         }).toList());
         state.put("command_topic", commandTopic(id));
@@ -261,7 +261,7 @@ public class MqttBridge implements ListChanges, MqttTransport.Listener {
         payload.put("item_id", item.getId().orElseThrow());
         payload.put("item", item.getName());
         payload.put("amount", item.getAmount());
-        payload.put("stores", storeNames(item));
+        payload.put("labels", labelNames(item));
         payload.put("completed", item.getCompleted().isPresent());
         payload.put("by", null == by ? null : by.name());
         // The Home Assistant user, as on person entities' user_id. null for
@@ -270,8 +270,8 @@ public class MqttBridge implements ListChanges, MqttTransport.Listener {
         return payload;
     }
 
-    private static List<String> storeNames(Item item) {
-        return item.getStores().stream().map(Store::getName).toList();
+    private static List<String> labelNames(Item item) {
+        return item.getLabels().stream().map(Label::getName).toList();
     }
 
 
@@ -330,11 +330,11 @@ public class MqttBridge implements ListChanges, MqttTransport.Listener {
     }
 
     // JSON with an action:
-    //   {"action": "add", "name": "Milk", "amount": 2, "stores": ["Rema"]}
+    //   {"action": "add", "name": "Milk", "amount": 2, "labels": ["Rema"]}
     //   {"action": "complete", "name": "Milk"}
     //   {"action": "reopen", "name": "Milk"}
     //   {"action": "delete", "name": "Milk"}
-    // amount and stores are optional; stores the list does not have are
+    // amount and labels are optional; labels the list does not have are
     // skipped. Instead of name, item_id picks the item. Names are matched
     // without regard to case: complete takes the newest open item, reopen the
     // last completed one, and delete an open item before a completed one.
@@ -362,12 +362,14 @@ public class MqttBridge implements ListChanges, MqttTransport.Listener {
     private void add(int itemListId, JsonNode command) throws Exception {
         String name = command.path("name").asText("").trim();
         Integer amount = command.hasNonNull("amount") ? command.get("amount").asInt() : null;
-        List<String> stores = new ArrayList<>();
-        command.path("stores").forEach(store -> stores.add(store.asText()));
-        addItem(itemListId, name, amount, stores);
+        List<String> labels = new ArrayList<>();
+        // "stores" is what labels were called before 0.6.0, and still works.
+        JsonNode given = command.has("labels") ? command.path("labels") : command.path("stores");
+        given.forEach(label -> labels.add(label.asText()));
+        addItem(itemListId, name, amount, labels);
     }
 
-    private void addItem(int itemListId, String name, Integer amount, List<String> storeNames) throws Exception {
+    private void addItem(int itemListId, String name, Integer amount, List<String> labelNames) throws Exception {
         if (name.isEmpty()) {
             throw new IllegalArgumentException("the item has no name");
         }
@@ -375,20 +377,20 @@ public class MqttBridge implements ListChanges, MqttTransport.Listener {
             throw new IllegalArgumentException("the name is longer than " + MAX_NAME_LENGTH + " characters");
         }
 
-        List<Store> listStores = storeService.getStores(itemListId);
-        List<Integer> storeIds = new ArrayList<>();
-        for (String storeName : storeNames) {
-            Optional<Store> store = listStores.stream()
-                    .filter(candidate -> candidate.getName().equalsIgnoreCase(storeName.trim()))
+        List<Label> listLabels = labelService.getLabels(itemListId);
+        List<Integer> labelIds = new ArrayList<>();
+        for (String labelName : labelNames) {
+            Optional<Label> label = listLabels.stream()
+                    .filter(candidate -> candidate.getName().equalsIgnoreCase(labelName.trim()))
                     .findFirst();
-            if (store.isPresent()) {
-                storeIds.add(store.get().getId().orElseThrow());
+            if (label.isPresent()) {
+                labelIds.add(label.get().getId().orElseThrow());
             }
             else {
-                log.warn("The list {} has no store \"{}\", adding {} without it", itemListId, storeName, name);
+                log.warn("The list {} has no label \"{}\", adding {} without it", itemListId, labelName, name);
             }
         }
-        itemService.createItem(person(), itemListId, name, amount, storeIds);
+        itemService.createItem(person(), itemListId, name, amount, labelIds);
     }
 
     private static Predicate<Item> open() {
