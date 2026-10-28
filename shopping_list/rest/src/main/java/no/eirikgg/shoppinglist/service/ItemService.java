@@ -7,6 +7,8 @@ import no.eirikgg.shoppinglist.datamodel.Store;
 import no.eirikgg.shoppinglist.db.Db;
 import no.eirikgg.shoppinglist.db.repository.ItemRepository;
 import no.eirikgg.shoppinglist.db.repository.StoreRepository;
+import no.eirikgg.shoppinglist.errors.Error;
+import no.eirikgg.shoppinglist.errors.InvalidInputException;
 import no.eirikgg.shoppinglist.errors.NoAccessToResourceException;
 import no.eirikgg.shoppinglist.errors.ResourceNotFoundException;
 
@@ -132,12 +134,20 @@ public class ItemService {
         }
     }
 
-    public Item patchItem(int itemId, String newName, LocalDateTime completed) throws ResourceNotFoundException {
+    public static final int MAX_AMOUNT = 999;
+
+    // amount may be null, which keeps the item's amount.
+    public Item patchItem(int itemId, String newName, Integer amount, LocalDateTime completed)
+            throws ResourceNotFoundException, InvalidInputException {
+        if (null != amount && (amount < 1 || amount > MAX_AMOUNT)) {
+            throw new InvalidInputException(Error.INVALID_AMOUNT, "Amount must be from 1 to " + MAX_AMOUNT);
+        }
         try (Connection conn = db.getConnection()) {
-            if (itemRepository.getItem(conn, itemId).isEmpty()) {
-                throw new ResourceNotFoundException("Item not found");
-            }
-            itemRepository.patchItem(conn, itemId, newName, completed);
+            Item item = itemRepository.getItem(conn, itemId).orElseThrow(
+                    () -> new ResourceNotFoundException("Item not found")
+            );
+            int newAmount = null == amount ? item.getAmount() : amount;
+            itemRepository.patchItem(conn, itemId, newName, newAmount, completed);
             return itemRepository.getItem(conn, itemId).orElseThrow();
         }
         catch (SQLException e) {

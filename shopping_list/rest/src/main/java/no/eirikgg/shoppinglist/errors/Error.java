@@ -7,6 +7,8 @@ public enum Error {
 
     // A link that is not an http or https address.
     INVALID_URL,
+    // An item amount below 1 or above ItemService.MAX_AMOUNT.
+    INVALID_AMOUNT,
     // A file over the size limit, or an upload with no file.
     FILE_TOO_LARGE,
     NO_FILE

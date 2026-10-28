@@ -1,7 +1,7 @@
 import { request } from './request.js'
 
 // Every list, as every Home Assistant user sees all of them, each with its
-// items: [{ id, name, items: [{ id, name, created, completed, stores, links,
+// items: [{ id, name, items: [{ id, name, amount, created, completed, stores, links,
 // attachments }] }]
 // created is when the item was added; stores is [{ storeId, name }]; links is
 // [{ id, url, title }]; attachments is [{ id, fileName, contentType, size }].
@@ -16,20 +16,24 @@ export async function createItemList(name) {
   return response.json()
 }
 
-// Returns { id, name, created, stores: [{ storeId, name }] }.
+// Returns { id, name, amount, created, stores: [{ storeId, name }] }.
 export async function createItem(itemListId, name, storeIds = []) {
   const response = await request('POST', '/item', { itemListId, name, storeIds })
   return response.json()
 }
 
-// The backend sets both the name and the completed state on every call, so
-// both are always sent. Completing sets the completed time to now.
-// Returns { id, name, created, completed, stores, links, attachments }, where
-// completed is a timestamp or null.
-export async function updateItem(id, name, completed) {
-  const response = await request('PATCH', '/item', { id, newName: name, completed })
+// The backend sets the name, the amount and the completed state on every
+// call, so all are always sent. Completing sets the completed time to now.
+// amount is from 1 to MAX_AMOUNT (400 with code INVALID_AMOUNT otherwise).
+// Returns { id, name, amount, created, completed, stores, links, attachments },
+// where completed is a timestamp or null.
+export async function updateItem(id, name, amount, completed) {
+  const response = await request('PATCH', '/item', { id, newName: name, amount, completed })
   return response.json()
 }
+
+// How many of an item can be on the list, as the backend allows.
+export const MAX_AMOUNT = 999
 
 export async function deleteItem(id) {
   await request('DELETE', '/item', { id })

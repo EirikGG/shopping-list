@@ -7,4 +7,5 @@
 
     <include file="/db/updates/0001-schema.sql"/>
     <include file="/db/updates/0002-links-and-attachments.sql"/>
+    <include file="/db/updates/0003-item-amount.sql"/>
 </databaseChangeLog>

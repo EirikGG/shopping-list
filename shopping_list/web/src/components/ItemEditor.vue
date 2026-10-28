@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import Icon from './Icon.vue'
 import StorePicker from './StorePicker.vue'
 import {
+  MAX_AMOUNT,
   MAX_FILE_BYTES,
   addLink,
   attachmentUrl,
@@ -16,9 +17,9 @@ import {
 } from '../api/items.js'
 import { formatTime, parseBackendTime } from '../time.js'
 
-// Everything about one item: its name, stores, links and files. Stores, links
-// and files are saved as soon as they change; the name when Done is pressed.
-// Escape closes without saving a changed name. It opens with the focus on the
+// Everything about one item: its name, amount, stores, links and files.
+// Stores, links and files are saved as soon as they change; the name and the
+// amount when Done is pressed. Escape closes without saving those. It opens with the focus on the
 // close button rather than the name, so a phone does not bring up the
 // keyboard until a field is tapped.
 const props = defineProps({
@@ -34,6 +35,7 @@ const { locale, t } = useI18n()
 
 const dialog = ref(null)
 const name = ref(props.item.name)
+const amount = ref(props.item.amount ?? 1)
 const busy = ref(false)
 // A message key and its values, so the error follows a language change.
 const error = ref(null)
@@ -53,16 +55,26 @@ function time(value) {
   return formatTime(parseBackendTime(value), locale.value)
 }
 
-// Saves a changed name, then closes. A failed save keeps the editor open.
+function setAmount(value) {
+  const whole = Math.round(Number(value))
+  amount.value = Number.isFinite(whole) ? Math.min(MAX_AMOUNT, Math.max(1, whole)) : 1
+}
+
+// Saves a changed name or amount, then closes. A failed save keeps the editor
+// open.
 async function done() {
   const newName = name.value.trim()
-  if (newName && newName !== props.item.name) {
+  const oldAmount = props.item.amount ?? 1
+  if (newName && (newName !== props.item.name || amount.value !== oldAmount)) {
     busy.value = true
     error.value = null
     try {
-      emit('item-updated', await updateItem(props.item.id, newName, props.item.completed !== null))
+      emit(
+        'item-updated',
+        await updateItem(props.item.id, newName, amount.value, props.item.completed !== null)
+      )
     } catch (e) {
-      fail(e, 'edit.renameFailed')
+      fail(e, 'item.saveFailed')
       return
     } finally {
       busy.value = false
@@ -218,6 +230,42 @@ function formatSize(bytes) {
           · {{ t('lists.completedAt', { time: time(item.completed) }) }}
         </template>
       </p>
+
+      <section>
+        <h3 id="amount-heading" class="heading">{{ t('item.amount') }}</h3>
+        <div class="amount" role="group" aria-labelledby="amount-heading">
+          <button
+            type="button"
+            class="icon secondary"
+            :aria-label="t('item.decreaseAmount')"
+            :title="t('item.decreaseAmount')"
+            :disabled="amount <= 1"
+            @click="setAmount(amount - 1)"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /></svg>
+          </button>
+          <input
+            :value="amount"
+            type="number"
+            inputmode="numeric"
+            min="1"
+            :max="MAX_AMOUNT"
+            :aria-label="t('item.amount')"
+            @change="event => { setAmount(event.target.value); event.target.value = amount }"
+            @keydown.enter.prevent="event => { setAmount(event.target.value); done() }"
+          />
+          <button
+            type="button"
+            class="icon secondary"
+            :aria-label="t('item.increaseAmount')"
+            :title="t('item.increaseAmount')"
+            :disabled="amount >= MAX_AMOUNT"
+            @click="setAmount(amount + 1)"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+          </button>
+        </div>
+      </section>
 
       <StorePicker
         spacious
@@ -384,6 +432,34 @@ function formatSize(bytes) {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--color-text-muted);
+}
+
+/* − amount + */
+.amount {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.amount input {
+  width: 4.5rem;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+.amount input::-webkit-inner-spin-button,
+.amount input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.amount svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
 }
 
 ul {

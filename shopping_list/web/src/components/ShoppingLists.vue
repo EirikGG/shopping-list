@@ -38,6 +38,11 @@ const selectedList = computed(
   () => lists.value?.find(list => list.id === selectedId.value) ?? null
 )
 
+// The items still to buy, shown beside the list's name with how many it has.
+function openCount(list) {
+  return list.items.filter(item => item.completed === null).length
+}
+
 // The list being renamed or deleted, if any. One at a time.
 const editingId = ref(null)
 
@@ -193,7 +198,12 @@ async function create() {
               @click="open(list.id)"
             >
               <span class="list-name">{{ list.name }}</span>
-              <span class="count">{{ list.items.length }}</span>
+              <span
+                class="count"
+                :title="t('lists.openCount', { open: openCount(list), total: list.items.length })"
+              >
+                {{ openCount(list) }}/{{ list.items.length }}
+              </span>
             </button>
             <button
               class="edit"

@@ -156,7 +156,7 @@ async function toggleCompleted(item) {
   emit('item-updated', { ...item, completed: completed ? new Date().toISOString() : null })
 
   try {
-    emit('item-updated', await updateItem(item.id, item.name, completed))
+    emit('item-updated', await updateItem(item.id, item.name, item.amount ?? 1, completed))
   } catch (e) {
     emit('item-updated', { ...item, completed: previous })
     error.value = e.status === 429 ? 'errors.tooManyRequests' : 'lists.completeFailed'
@@ -298,7 +298,11 @@ async function submit() {
                     <Icon name="check" />
                   </span>
                   <span class="text">
-                    <span class="item-name">{{ item.name }}</span>
+                    <!-- The amount only when there is more than one. -->
+                    <span class="item-name">
+                      <span v-if="item.amount > 1" class="item-amount">{{ item.amount }} ×</span>
+                      {{ item.name }}
+                    </span>
                     <span v-if="storeNames(item)" class="item-store">
                       <Icon name="store" />
                       {{ storeNames(item) }}
@@ -578,6 +582,15 @@ h2 {
 
 .item-name {
   overflow-wrap: anywhere;
+}
+
+.item-amount {
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.items li.completed .item-amount {
+  color: inherit;
 }
 
 .completed-at,

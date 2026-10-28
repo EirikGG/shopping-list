@@ -24,7 +24,8 @@
     "addedAt": "Lagt til {time}",
     "allCompleted": "Alt på denne listen er gjort.",
     "completeFailed": "Kunne ikke oppdatere varen. Prøv igjen.",
-    "noFilteredItems": "Ingen varer for de valgte butikkene."
+    "noFilteredItems": "Ingen varer for de valgte butikkene.",
+    "openCount": "{open} av {total} igjen"
   },
   "stores": {
     "stores": "Butikker",
@@ -62,7 +63,11 @@
     "confirmDeleteFile": "Slette «{name}»?",
     "fileTooLarge": "{name} er for stor. Filer kan være opptil {max}.",
     "uploadFailed": "Kunne ikke laste opp {name}. Prøv igjen.",
-    "fileCount": "{count} fil | {count} filer"
+    "fileCount": "{count} fil | {count} filer",
+    "amount": "Antall",
+    "decreaseAmount": "Én mindre",
+    "increaseAmount": "Én til",
+    "saveFailed": "Kunne ikke lagre endringene. Prøv igjen."
   },
   "edit": {
     "edit": "Rediger",

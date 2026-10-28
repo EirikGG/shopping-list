@@ -122,6 +122,37 @@ class ItemControllerTest {
         });
     }
 
+    // A new item has 1. Leaving the amount out of a change keeps it.
+    @Test
+    void amount_isOneWhenAdded_andCanBeChanged() {
+        JavalinTest.test(app, testConfig, (server, client) -> {
+            ItemController.PostItemResponse item = createItem(client, "eggs");
+            assertEquals(1, item.amount());
+
+            assertEquals(12, patchItem(client, item.id(), "eggs", 12, false).amount());
+            assertEquals(12, getItem(client, item.id()).amount());
+
+            ItemController.PatchItemResponse completed = patchItem(client, item.id(), "eggs", true);
+            assertEquals(12, completed.amount());
+        });
+    }
+
+    @Test
+    void amount_outsideOneTo999_isRefused() {
+        JavalinTest.test(app, testConfig, (server, client) -> {
+            ItemController.PostItemResponse item = createItem(client, "butter");
+
+            for (int amount : new int[] {0, -1, 1000}) {
+                HttpResponse<String> response = sendPatch(
+                        client, new ItemController.PatchItemRequest(item.id(), "butter", amount, false)
+                );
+                assertEquals(400, response.statusCode());
+                assertTrue(response.body().contains("INVALID_AMOUNT"));
+            }
+            assertEquals(1, getItem(client, item.id()).amount());
+        });
+    }
+
     @Test
     void createItem_withStores() {
         JavalinTest.test(app, testConfig, (server, client) -> {
@@ -217,15 +248,15 @@ class ItemControllerTest {
     private ItemController.PatchItemResponse patchItem(HttpClient client, int itemId, String newName, boolean completed)
             throws IOException, InterruptedException
     {
-        ItemController.PatchItemRequest requestBody = new ItemController.PatchItemRequest(itemId, newName, completed);
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM))
-            .header(IngressFilter.HEADER_USER_ID, TestApp.USER_ID)
-            .method("PATCH", getBodyPublisher(requestBody))
-            .build();
+        return patchItem(client, itemId, newName, null, completed);
+    }
 
-        HttpResponse<String> response = java.net.http.HttpClient.newHttpClient().send(
-                request, HttpResponse.BodyHandlers.ofString()
+    private ItemController.PatchItemResponse patchItem(
+            HttpClient client, int itemId, String newName, Integer amount, boolean completed
+    ) throws IOException, InterruptedException
+    {
+        HttpResponse<String> response = sendPatch(
+                client, new ItemController.PatchItemRequest(itemId, newName, amount, completed)
         );
 
         ItemController.PatchItemResponse patchItemRequest = mapper.readValue(
@@ -235,6 +266,18 @@ class ItemControllerTest {
         assertEquals(200, response.statusCode());
         log.info("{}", patchItemRequest);
         return patchItemRequest;
+    }
+
+    private HttpResponse<String> sendPatch(HttpClient client, ItemController.PatchItemRequest requestBody)
+            throws IOException, InterruptedException
+    {
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(client.getOrigin() + ItemController.PATH_ITEM))
+            .header(IngressFilter.HEADER_USER_ID, TestApp.USER_ID)
+            .method("PATCH", getBodyPublisher(requestBody))
+            .build();
+
+        return java.net.http.HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
     }
 
     private ItemController.PostItemResponse createItem(HttpClient client, String itemName)

@@ -13,6 +13,7 @@ import no.eirikgg.shoppinglist.datamodel.ItemLink;
 import no.eirikgg.shoppinglist.datamodel.ItemList;
 import no.eirikgg.shoppinglist.datamodel.Person;
 import no.eirikgg.shoppinglist.db.Db;
+import no.eirikgg.shoppinglist.errors.InvalidInputException;
 import no.eirikgg.shoppinglist.errors.NoAccessToResourceException;
 import no.eirikgg.shoppinglist.errors.ResourceNotFoundException;
 import no.eirikgg.shoppinglist.service.ItemService;
@@ -105,13 +106,14 @@ public class ItemController {
             int id
     ) {}
     record GetItemResponse(
-            int id, String name, LocalDateTime created, LocalDateTime completed, List<ItemStoreResponse> stores,
+            int id, String name, int amount, LocalDateTime created, LocalDateTime completed, List<ItemStoreResponse> stores,
             List<ItemLinkResponse> links, List<AttachmentResponse> attachments
     ) {}
     private static GetItemResponse toItemResponse(Item item) {
         return new GetItemResponse(
                 item.getId().orElseThrow(),
                 item.getName(),
+                item.getAmount(),
                 item.getCreated(),
                 item.getCompleted().orElse(null),
                 toStoreResponses(item),
@@ -135,7 +137,7 @@ public class ItemController {
             int itemListId, String name, List<Integer> storeIds
     ) {}
     record PostItemResponse(
-            int id, String name, LocalDateTime created, List<ItemStoreResponse> stores
+            int id, String name, int amount, LocalDateTime created, List<ItemStoreResponse> stores
     ) {}
     private void saveItem(Context ctx)
             throws JsonProcessingException, ResourceNotFoundException, NoAccessToResourceException {
@@ -145,6 +147,7 @@ public class ItemController {
         PostItemResponse response = new PostItemResponse(
                 item.getId().orElseThrow(),
                 item.getName(),
+                item.getAmount(),
                 item.getCreated(),
                 toStoreResponses(item)
         );
@@ -160,20 +163,23 @@ public class ItemController {
     }
 
 
+    // amount is optional; leaving it out keeps the amount the item has.
     record PatchItemRequest(
-            int id, String newName, boolean completed
+            int id, String newName, Integer amount, boolean completed
     ) {}
     record PatchItemResponse(
-            int id, String name, LocalDateTime created, LocalDateTime completed, List<ItemStoreResponse> stores,
+            int id, String name, int amount, LocalDateTime created, LocalDateTime completed, List<ItemStoreResponse> stores,
             List<ItemLinkResponse> links, List<AttachmentResponse> attachments
     ) {}
-    private void patchItem(Context ctx) throws JsonProcessingException, ResourceNotFoundException {
+    private void patchItem(Context ctx)
+            throws JsonProcessingException, ResourceNotFoundException, InvalidInputException {
         PatchItemRequest request = mapper.readValue(ctx.body(), PatchItemRequest.class);
         LocalDateTime completedTime = request.completed ? LocalDateTime.now() : null;
-        Item item = itemService.patchItem(request.id(), request.newName(), completedTime);
+        Item item = itemService.patchItem(request.id(), request.newName(), request.amount(), completedTime);
         PatchItemResponse response = new PatchItemResponse(
                 item.getId().orElseThrow(),
                 item.getName(),
+                item.getAmount(),
                 item.getCreated(),
                 item.getCompleted().orElse(null),
                 toStoreResponses(item),

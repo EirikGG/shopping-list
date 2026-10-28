@@ -52,7 +52,7 @@ public class ItemRepository {
     // completed first. Timestamps are fixed-width text, so they sort as text.
     public List<Item> getItemsForItemList(Connection conn, int itemListId) {
         return dbUtils.select(conn, """
-            select item_id, name, created, completed
+            select item_id, name, amount, created, completed
             from item
             where item_list_id = ?
             and deleted is null
@@ -66,13 +66,14 @@ public class ItemRepository {
         );
     }
 
-    // Reads item_id, name, created and completed, and adds the item's stores,
+    // Reads item_id, name, amount, created and completed, and adds the item's stores,
     // links and files.
     private Item toItem(Connection conn, RSWrapper rs) {
         int itemId = rs.getInt("item_id").orElseThrow();
         Item item = new Item(
                 itemId,
                 rs.getString("name").orElseThrow(),
+                rs.getInt("amount").orElseThrow(),
                 rs.getLocalDateTime("created").orElseThrow(),
                 rs.getLocalDateTime("completed").orElse(null),
                 getStoresForItemList(conn, itemId)
@@ -163,7 +164,7 @@ public class ItemRepository {
     // Empty if the item or its list is deleted.
     public Optional<Item> getItem(Connection conn, int itemId) {
         return dbUtils.selectSingle(conn, """
-                select i.item_id, i.name, i.created, i.completed
+                select i.item_id, i.name, i.amount, i.created, i.completed
                 from item as i
                 join item_list as il
                     on il.item_list_id = i.item_list_id
@@ -206,14 +207,15 @@ public class ItemRepository {
     }
 
     public void patchItem(
-            Connection conn, int itemId, String newName, LocalDateTime completed
+            Connection conn, int itemId, String newName, int amount, LocalDateTime completed
     ) throws SQLException {
         dbUtils.update(conn, """
                 update item
-                set name = ?, completed = ?
+                set name = ?, amount = ?, completed = ?
                 where item_id = ?
                 """,
                 newName,
+                amount,
                 completed,
                 itemId
         );
