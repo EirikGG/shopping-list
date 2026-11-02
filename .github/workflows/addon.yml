@@ -1,9 +1,13 @@
 # Tests the add-on, and publishes its images to the GitHub container registry,
 # where Home Assistant downloads them (the image in shopping_list/config.yaml).
+# Then makes a GitHub release of the version, which HACS installs the
+# integration (custom_components/shopping_list_addon) from.
 #
 # Images are only published from main, and only for a version that has not
 # been published before: a released version never changes. To release, bump
-# version in shopping_list/config.yaml (and add to CHANGELOG.md).
+# version in shopping_list/config.yaml and
+# custom_components/shopping_list_addon/manifest.json (and add to
+# CHANGELOG.md).
 
 name: Add-on
 
@@ -32,6 +36,17 @@ jobs:
       - name: Test the backend
         working-directory: shopping_list/rest
         run: mvn -B test
+
+      # The add-on and the integration are released together, as one version.
+      - name: Check that the add-on and the integration have the same version
+        run: |
+          addon=$(yq '.version' shopping_list/config.yaml)
+          integration=$(jq -r '.version' custom_components/shopping_list_addon/manifest.json)
+          if [ "$addon" != "$integration" ]; then
+            echo "::error::The add-on is $addon but the integration is $integration"
+            exit 1
+          fi
+          python3 -m py_compile custom_components/shopping_list_addon/*.py
 
   image:
     needs: test
@@ -106,3 +121,30 @@ jobs:
           # they share one cache.
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  release:
+    needs: image
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # One release per version, with its part of CHANGELOG.md as the notes.
+      - name: Release the version on GitHub
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version=$(yq '.version' shopping_list/config.yaml)
+          tag="v${version}"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            echo "$tag is already released."
+            exit 0
+          fi
+          awk -v heading="## ${version}" '
+            $0 == heading { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' shopping_list/CHANGELOG.md > notes.md
+          gh release create "$tag" --title "$version" --notes-file notes.md --target "${{ github.sha }}"

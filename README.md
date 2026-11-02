@@ -6,23 +6,33 @@ sidebar through ingress; every HA user sees and edits every list.
 - `shopping_list/` is the add-on: its `config.yaml`, `Dockerfile` and docs,
   and the source it is built from: `rest/` (Java backend) and `web/` (Vue).
 - `repository.yaml` makes this repository an add-on repository.
+- `custom_components/shopping_list_addon/` is an integration, installed
+  through HACS (`hacs.json`), that makes every list a to-do list in Home
+  Assistant. It talks to the add-on through MQTT.
 
 ## Install in Home Assistant
 
 Settings > Apps > App store > ⋮ > Repositories, add
 `https://github.com/EirikGG/shopping-list`, then install "Shopping list".
 
+For the to-do lists, also add the same URL in HACS under ⋮ > Custom
+repositories, as an Integration, and download "Shopping list (add-on)".
+Restart Home Assistant, then add the integration under Settings > Devices &
+services. The add-on's documentation tab has more.
+
 ## Releasing
 
 GitHub Actions (`.github/workflows/addon.yml`) tests every push and pull
 request. On `main` it also builds the add-on for amd64 and aarch64 and
 publishes the images to the GitHub container registry, where Home Assistant
-downloads them.
+downloads them, and makes a GitHub release `v<version>`, which HACS installs
+the integration from.
 
 A version is only published once, so to release:
 
-1. Bump `version` in `shopping_list/config.yaml` and add it to
-   `shopping_list/CHANGELOG.md`.
+1. Bump `version` in `shopping_list/config.yaml` and
+   `custom_components/shopping_list_addon/manifest.json` (the workflow checks
+   that they match), and add it to `shopping_list/CHANGELOG.md`.
 2. Push to `main`, and wait for the workflow to finish (a few minutes) before
    updating in Home Assistant. Until then HA may offer the update but fail to
    download it.

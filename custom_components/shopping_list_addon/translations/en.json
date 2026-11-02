@@ -1,0 +1,14 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Shopping list",
+        "description": "Shows the lists of the Shopping list add-on as to-do lists. The add-on and the MQTT integration must be set up."
+      }
+    },
+    "abort": {
+      "mqtt_not_set_up": "Set up the MQTT integration first, with the same broker as the add-on.",
+      "single_instance_allowed": "The Shopping list integration is already set up."
+    }
+  }
+}

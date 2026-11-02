@@ -38,9 +38,6 @@ then shows up as a device under Settings > Devices & services > MQTT, with:
   made the change: `by` is their name, and `by_user_id` their Home Assistant
   user, the same as `user_id` on their person entity.
 - **Add item** (text): what you type in it is added to the list.
-- **Items** (sensor): the open items as one line, newest first, such as
-  `2 × Melk, Brød, Egg`, or `Tom` when there are none. Items that do not fit
-  in a state (255 characters) are counted at the end, as in `+3 til`.
 
 Without a broker the add-on works as before; the log says so when it starts.
 
@@ -94,28 +91,48 @@ other actions take the item's `name`, matched without regard to case, or its
 name, and `reopen` the last one completed. Changes made this way show
 "Home Assistant" as who made them.
 
+`update` changes an item given by its `item_id`: any of `name`, `amount` and
+`completed` (`true` or `false`), keeping what is left out:
+
+```json
+{"action": "update", "item_id": 5, "name": "Oat milk", "amount": 3, "completed": true}
+```
+
 Commands that cannot be carried out, such as completing an item that is not
 on the list, are skipped with a warning in the add-on's log.
 
+## To-do lists in Home Assistant (HACS)
+
+The Shopping list (add-on) integration makes every list a to-do list in Home
+Assistant: in its To-do page, in Assist ("add milk to Handleliste"), and in
+the Companion app's To-do List widget on the phone's home screen. It uses
+the MQTT entities above, so the add-on and the MQTT integration must be set
+up first.
+
+1. In HACS, choose ⋮ > Custom repositories, and add
+   `https://github.com/EirikGG/shopping-list` with the type Integration.
+2. Download **Shopping list (add-on)** in HACS, and restart Home Assistant.
+3. Go to Settings > Devices & services > Add integration, and choose
+   Shopping list (add-on). There is nothing to fill in.
+
+Every list is then a `todo.` entity, such as `todo.handleliste`. Items show
+their amount, as in `2 × Melk`, and their labels as the description. Typing
+`3 x Egg` or `3 × Egg` adds Egg with the amount 3. The 50 most recently
+completed items are shown as completed. Items can be added, ticked off,
+renamed and deleted; labels, links and files are only in the add-on.
+
 ### Widget on your phone
 
-The Home Assistant Companion app can show a list's items on the iPhone home
-screen, and open the list when tapped. It needs the MQTT entities above.
+On the iPhone, touch and hold the home screen, tap +, choose Home Assistant
+and the **To-do List** widget. Then touch and hold the widget, choose Edit
+widget, and pick the list. Items are ticked off and added in the widget;
+tapping the list's name opens it in the Companion app.
 
-1. Find the list's `list_id`: it is an attribute of its Open items sensor,
-   under Settings > Developer tools > States.
-2. Open the add-on from the sidebar in a browser and copy the path from the
-   address bar, such as `/a0d7b954_shopping_list`.
-3. In the Companion app, go to Settings > Companion app > Widgets > Create
-   widget. Add the list's **Items** sensor, and set its tap action to
-   Navigate, to the path from step 2 with the list's id:
-   `/a0d7b954_shopping_list?list=1`.
-4. On the home screen, add the Home Assistant **Custom** widget, then touch
-   and hold it, choose Edit widget, and pick the widget from step 3.
+### Opening a list in the add-on
 
-The add-on opens the list given by `?list=`, and the first list if there is
-no such list. The widget shows as much of the items as it has room for. iOS
-decides when widgets are updated, so a widget can be a few minutes behind.
+A link to the add-on with `?list=<id>` opens that list, where `<id>` is the
+`list_id` attribute of the list's Open items sensor. The path is the
+add-on's address in the sidebar, such as `/a0d7b954_shopping_list?list=1`.
 
 ## Access
 

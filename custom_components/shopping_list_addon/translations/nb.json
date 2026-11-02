@@ -1,0 +1,14 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Handleliste",
+        "description": "Viser listene i Shopping list-tillegget som gjøremålslister. Tillegget og MQTT-integrasjonen må være satt opp."
+      }
+    },
+    "abort": {
+      "mqtt_not_set_up": "Sett opp MQTT-integrasjonen først, med samme megler som tillegget.",
+      "single_instance_allowed": "Shopping list-integrasjonen er allerede satt opp."
+    }
+  }
+}

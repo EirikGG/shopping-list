@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.0
+
+- The Shopping list (add-on) integration, installed through HACS from this
+  repository, makes every list a to-do list in Home Assistant. They work in
+  the To-do page, in Assist and in the Companion app's To-do List widget.
+  See the documentation tab.
+- MQTT: the `update` command changes an item's name, amount or completed
+  state, by its `item_id`. The list's state also has its 50 most recently
+  completed items, as `completed_items`.
+- The Items sensor from 0.7.0 is removed; the To-do List widget replaces it.
+
 ## 0.7.0
 
 - Every list has an Items sensor in MQTT, with its open items as one line

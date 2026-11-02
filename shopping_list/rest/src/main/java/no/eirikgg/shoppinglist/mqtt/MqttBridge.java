@@ -32,7 +32,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 // The lists in Home Assistant, through MQTT. Every list is a device, found by
-// HA through MQTT discovery, with four entities:
+// HA through MQTT discovery, with three entities:
 //
 // - sensor "Open items": how many items are left. Its attributes have the
 //   total and the open items, from the retained JSON on shopping_list/list/<id>/state.
@@ -40,8 +40,10 @@ import java.util.regex.Pattern;
 //   and item_deleted, from shopping_list/list/<id>/event. Automations trigger
 //   on these.
 // - text "Add item": what is typed in it is added to the list.
-// - sensor "Items": the open items as one line of text, in Norwegian, for
-//   the phone widget, which shows states but no templates.
+//
+// The Shopping list integration (custom_components/shopping_list, through
+// HACS) reads the same state topic, with the recently completed items too,
+// and makes every list a to-do list in HA.
 //
 // Automations can change a list by publishing JSON to
 // shopping_list/list/<id>/command; see handleCommand. Changes made that way
@@ -73,8 +75,9 @@ public class MqttBridge implements ListChanges, MqttTransport.Listener {
     private static final int MAX_NAME_LENGTH = 512;
     // The longest value HA's text entity allows.
     private static final int MAX_TEXT_LENGTH = 255;
-    // The longest state HA keeps; a longer one makes the sensor unknown.
-    private static final int MAX_STATE_LENGTH = 255;
+    // How many completed items the state has, the last completed first. A
+    // list keeps every completed item, so not all of them.
+    static final int MAX_COMPLETED_ITEMS = 50;
 
     static final List<String> EVENT_TYPES =
             Arrays.stream(ItemEvent.values()).map(ItemEvent::eventType).toList();
@@ -178,6 +181,7 @@ public class MqttBridge implements ListChanges, MqttTransport.Listener {
             for (String[] entity : ENTITIES) {
                 transport.publish(discoveryTopic(entity[0], deletedId, entity[1]), "", true);
             }
+            removeRetiredEntities(deletedId);
             transport.publish(stateTopic(deletedId), "", true);
             transport.publish(addStateTopic(deletedId), "", true);
         }
@@ -188,7 +192,6 @@ public class MqttBridge implements ListChanges, MqttTransport.Listener {
             {"sensor", "open_items"},
             {"event", "changes"},
             {"text", "add_item"},
-            {"sensor", "items"},
     };
 
     private void publishDiscovery(ItemList list) {
@@ -213,10 +216,20 @@ public class MqttBridge implements ListChanges, MqttTransport.Listener {
         text.put("max", MAX_TEXT_LENGTH);
         transport.publish(discoveryTopic("text", id, "add_item"), json(text), true);
 
-        Map<String, Object> items = entity(list, "items", "Items", "mdi:format-list-bulleted");
-        items.put("state_topic", stateTopic(id));
-        items.put("value_template", "{{ value_json.summary }}");
-        transport.publish(discoveryTopic("sensor", id, "items"), json(items), true);
+        removeRetiredEntities(id);
+    }
+
+    // Entities of earlier versions, which an empty retained config removes.
+    private static final String[][] RETIRED_ENTITIES = {
+            // 0.7.0's one-line list for the Custom widget; the integration's
+            // to-do lists replace it.
+            {"sensor", "items"},
+    };
+
+    private void removeRetiredEntities(int itemListId) {
+        for (String[] entity : RETIRED_ENTITIES) {
+            transport.publish(discoveryTopic(entity[0], itemListId, entity[1]), "", true);
+        }
     }
 
     private static Map<String, Object> entity(ItemList list, String objectId, String name, String icon) {
@@ -239,49 +252,32 @@ public class MqttBridge implements ListChanges, MqttTransport.Listener {
         return config;
     }
 
-    // The sensor's state and attributes.
+    // The sensor's state and attributes, and the integration's to-do list.
     private void publishState(ItemList list) {
         int id = list.getId().orElseThrow();
-        List<Item> open = list.getItems().stream().filter(item -> item.getCompleted().isEmpty()).toList();
+        // Open items newest first, then completed ones last completed first.
+        List<Item> open = list.getItems().stream().filter(open()).toList();
+        List<Item> completed = list.getItems().stream().filter(open().negate())
+                .limit(MAX_COMPLETED_ITEMS).toList();
 
         Map<String, Object> state = new LinkedHashMap<>();
         state.put("list_id", id);
         state.put("list", list.getName());
         state.put("open", open.size());
         state.put("total", list.getItems().size());
-        state.put("items", open.stream().map(item -> {
-            Map<String, Object> entry = new LinkedHashMap<>();
-            entry.put("id", item.getId().orElseThrow());
-            entry.put("name", item.getName());
-            entry.put("amount", item.getAmount());
-            entry.put("labels", labelNames(item));
-            return entry;
-        }).toList());
-        state.put("summary", summary(open));
+        state.put("items", open.stream().map(MqttBridge::stateItem).toList());
+        state.put("completed_items", completed.stream().map(MqttBridge::stateItem).toList());
         state.put("command_topic", commandTopic(id));
         transport.publish(stateTopic(id), json(state), true);
     }
 
-    // The open items as they are shown in the app, newest first, such as
-    // "2 × Melk, Brød, Egg". The items that do not fit in a state are
-    // counted at the end, as in "+3 til".
-    static String summary(List<Item> open) {
-        if (open.isEmpty()) {
-            return "Tom";
-        }
-        List<String> names = open.stream()
-                .map(item -> item.getAmount() > 1 ? item.getAmount() + " × " + item.getName() : item.getName())
-                .toList();
-        for (int shown = names.size(); shown > 0; shown--) {
-            String text = String.join(", ", names.subList(0, shown));
-            if (shown < names.size()) {
-                text += " +" + (names.size() - shown) + " til";
-            }
-            if (text.length() <= MAX_STATE_LENGTH) {
-                return text;
-            }
-        }
-        return "+" + names.size() + " til";
+    private static Map<String, Object> stateItem(Item item) {
+        Map<String, Object> entry = new LinkedHashMap<>();
+        entry.put("id", item.getId().orElseThrow());
+        entry.put("name", item.getName());
+        entry.put("amount", item.getAmount());
+        entry.put("labels", labelNames(item));
+        return entry;
     }
 
     private static Map<String, Object> eventPayload(
@@ -367,14 +363,18 @@ public class MqttBridge implements ListChanges, MqttTransport.Listener {
     //   {"action": "complete", "name": "Milk"}
     //   {"action": "reopen", "name": "Milk"}
     //   {"action": "delete", "name": "Milk"}
+    //   {"action": "update", "item_id": 5, "name": "Oat milk", "amount": 3, "completed": true}
     // amount and labels are optional; labels the list does not have are
     // skipped. Instead of name, item_id picks the item. Names are matched
     // without regard to case: complete takes the newest open item, reopen the
     // last completed one, and delete an open item before a completed one.
+    // update needs item_id, as name is the new name; what it leaves out is
+    // kept.
     private void handleCommand(int itemListId, JsonNode command) throws Exception {
         String action = command.path("action").asText("").toLowerCase(Locale.ROOT);
         switch (action) {
             case "add" -> add(itemListId, command);
+            case "update" -> update(itemListId, command);
             case "complete" -> {
                 Item item = find(itemListId, command, open());
                 itemService.patchItem(person(), id(item), item.getName(), null, LocalDateTime.now());
@@ -388,8 +388,38 @@ public class MqttBridge implements ListChanges, MqttTransport.Listener {
                 itemService.deleteItem(person(), id(item));
             }
             default -> throw new IllegalArgumentException(
-                    "action must be add, complete, reopen or delete, not \"" + action + "\"");
+                    "action must be add, complete, reopen, delete or update, not \"" + action + "\"");
         }
+    }
+
+    private void update(int itemListId, JsonNode command) throws Exception {
+        if (!command.hasNonNull("item_id")) {
+            throw new IllegalArgumentException("update needs the item's item_id");
+        }
+        Item item = find(itemListId, command, open());
+
+        String name = item.getName();
+        if (command.hasNonNull("name")) {
+            name = command.get("name").asText().trim();
+            if (name.isEmpty()) {
+                throw new IllegalArgumentException("the item has no name");
+            }
+            if (name.length() > MAX_NAME_LENGTH) {
+                throw new IllegalArgumentException("the name is longer than " + MAX_NAME_LENGTH + " characters");
+            }
+        }
+        Integer amount = command.hasNonNull("amount") ? command.get("amount").asInt() : null;
+        // A completed item keeps when it was completed.
+        LocalDateTime completed = item.getCompleted().orElse(null);
+        if (command.hasNonNull("completed")) {
+            if (!command.get("completed").asBoolean()) {
+                completed = null;
+            }
+            else if (null == completed) {
+                completed = LocalDateTime.now();
+            }
+        }
+        itemService.patchItem(person(), id(item), name, amount, completed);
     }
 
     private void add(int itemListId, JsonNode command) throws Exception {

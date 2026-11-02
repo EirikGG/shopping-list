@@ -81,42 +81,29 @@ class MqttBridgeTest {
         assertEquals(1, state.path("total").asInt());
         assertEquals("Milk", state.path("items").get(0).path("name").asText());
         assertEquals(2, state.path("items").get(0).path("amount").asInt());
+        assertEquals(0, state.path("completed_items").size());
 
-        JsonNode items = transport.lastJson("homeassistant/sensor/shopping_list_" + listId + "/items/config");
-        assertEquals("shopping_list/list/" + listId + "/state", items.path("state_topic").asText());
-        assertEquals("{{ value_json.summary }}", items.path("value_template").asText());
-        assertEquals("2 × Milk", state.path("summary").asText());
+        // 0.7.0's Items sensor is removed.
+        Published retired = transport.last("homeassistant/sensor/shopping_list_" + listId + "/items/config");
+        assertEquals("", retired.payload());
+        assertTrue(retired.retained());
     }
 
     @Test
-    void summary_listsTheOpenItems_newestFirst() throws Exception {
-        Item milk = app.createItem(user, listId, "Melk", 2, List.of());
-        app.createItem(user, listId, "Brød", null, List.of());
-        app.createItem(user, listId, "Egg", null, List.of());
-        assertEquals("Egg, Brød, 2 × Melk", transport.lastJson(MqttBridge.stateTopic(listId)).path("summary").asText());
-
-        app.patchItem(user, milk.getId().orElseThrow(), "Melk", 2, LocalDateTime.now());
-        assertEquals("Egg, Brød", transport.lastJson(MqttBridge.stateTopic(listId)).path("summary").asText());
-    }
-
-    @Test
-    void summary_isTom_forAnEmptyList() {
-        assertEquals("Tom", MqttBridge.summary(List.of()));
-    }
-
-    @Test
-    void summary_countsTheItemsThatDoNotFit() {
-        List<Item> open = new ArrayList<>();
-        for (int n = 0; n < 40; n++) {
-            open.add(new Item(n, "Vare nummer " + n, 1, LocalDateTime.now(), null, List.of()));
+    void state_hasTheRecentlyCompletedItems_lastCompletedFirst() throws Exception {
+        for (int n = 0; n < MqttBridge.MAX_COMPLETED_ITEMS + 2; n++) {
+            Item item = app.createItem(user, listId, "Item " + n, null, List.of());
+            app.patchItem(user, item.getId().orElseThrow(), item.getName(), null, LocalDateTime.now().plusSeconds(n));
         }
-        String summary = MqttBridge.summary(open);
-        assertTrue(summary.length() <= 255, summary);
-        assertTrue(summary.startsWith("Vare nummer 0, Vare nummer 1, "), summary);
-        assertTrue(summary.matches(".*, Vare nummer \\d+ \\+\\d+ til"), summary);
+        app.createItem(user, listId, "Bread", null, List.of());
 
-        Item huge = new Item(1, "x".repeat(300), 1, LocalDateTime.now(), null, List.of());
-        assertEquals("+1 til", MqttBridge.summary(List.of(huge)));
+        JsonNode state = transport.lastJson(MqttBridge.stateTopic(listId));
+        assertEquals("Bread", state.path("items").get(0).path("name").asText());
+        assertEquals(1, state.path("items").size());
+        JsonNode completed = state.path("completed_items");
+        assertEquals(MqttBridge.MAX_COMPLETED_ITEMS, completed.size());
+        assertEquals("Item " + (MqttBridge.MAX_COMPLETED_ITEMS + 1), completed.get(0).path("name").asText());
+        assertEquals(MqttBridge.MAX_COMPLETED_ITEMS + 3, state.path("total").asInt());
     }
 
     @Test
@@ -202,6 +189,54 @@ class MqttBridgeTest {
                 "{\"action\": \"delete\", \"item_id\": " + eggs.getId().orElseThrow() + "}");
         assertTrue(items().isEmpty());
         assertEquals("item_deleted", transport.lastJson(MqttBridge.eventTopic(listId)).path("event_type").asText());
+    }
+
+    @Test
+    void update_changesWhatItIsGiven_andKeepsTheRest() throws Exception {
+        Item milk = app.createItem(user, listId, "Milk", 2, List.of());
+        int milkId = milk.getId().orElseThrow();
+        String commands = MqttBridge.commandTopic(listId);
+
+        transport.listener.messageArrived(commands,
+                "{\"action\": \"update\", \"item_id\": " + milkId + ", \"name\": \" Oat milk \"}");
+        Item renamed = items().getFirst();
+        assertEquals("Oat milk", renamed.getName());
+        assertEquals(2, renamed.getAmount());
+        assertTrue(renamed.getCompleted().isEmpty());
+        assertEquals("item_changed", transport.lastJson(MqttBridge.eventTopic(listId)).path("event_type").asText());
+
+        transport.listener.messageArrived(commands,
+                "{\"action\": \"update\", \"item_id\": " + milkId + ", \"amount\": 3, \"completed\": true}");
+        Item done = items().getFirst();
+        assertEquals("Oat milk", done.getName());
+        assertEquals(3, done.getAmount());
+        LocalDateTime completedAt = done.getCompleted().orElseThrow();
+
+        // Completing it again keeps when it was completed.
+        transport.listener.messageArrived(commands,
+                "{\"action\": \"update\", \"item_id\": " + milkId + ", \"completed\": true}");
+        assertEquals(completedAt, items().getFirst().getCompleted().orElseThrow());
+
+        transport.listener.messageArrived(commands,
+                "{\"action\": \"update\", \"item_id\": " + milkId + ", \"completed\": false}");
+        assertTrue(items().getFirst().getCompleted().isEmpty());
+        assertEquals("item_reopened", transport.lastJson(MqttBridge.eventTopic(listId)).path("event_type").asText());
+    }
+
+    @Test
+    void update_isIgnored_withoutAnItemIdOrWithABadName() throws Exception {
+        Item milk = app.createItem(user, listId, "Milk", null, List.of());
+        String commands = MqttBridge.commandTopic(listId);
+
+        transport.listener.messageArrived(commands, "{\"action\": \"update\", \"name\": \"Milk\", \"amount\": 4}");
+        transport.listener.messageArrived(commands,
+                "{\"action\": \"update\", \"item_id\": " + milk.getId().orElseThrow() + ", \"name\": \"  \"}");
+        transport.listener.messageArrived(commands,
+                "{\"action\": \"update\", \"item_id\": 99999, \"name\": \"Bread\"}");
+
+        Item unchanged = items().getFirst();
+        assertEquals("Milk", unchanged.getName());
+        assertEquals(1, unchanged.getAmount());
     }
 
     // Automations written before labels were called stores keep working.
