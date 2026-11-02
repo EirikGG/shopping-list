@@ -32,7 +32,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 // The lists in Home Assistant, through MQTT. Every list is a device, found by
-// HA through MQTT discovery, with three entities:
+// HA through MQTT discovery, with four entities:
 //
 // - sensor "Open items": how many items are left. Its attributes have the
 //   total and the open items, from the retained JSON on shopping_list/list/<id>/state.
@@ -40,6 +40,8 @@ import java.util.regex.Pattern;
 //   and item_deleted, from shopping_list/list/<id>/event. Automations trigger
 //   on these.
 // - text "Add item": what is typed in it is added to the list.
+// - sensor "Items": the open items as one line of text, in Norwegian, for
+//   the phone widget, which shows states but no templates.
 //
 // Automations can change a list by publishing JSON to
 // shopping_list/list/<id>/command; see handleCommand. Changes made that way
@@ -71,6 +73,8 @@ public class MqttBridge implements ListChanges, MqttTransport.Listener {
     private static final int MAX_NAME_LENGTH = 512;
     // The longest value HA's text entity allows.
     private static final int MAX_TEXT_LENGTH = 255;
+    // The longest state HA keeps; a longer one makes the sensor unknown.
+    private static final int MAX_STATE_LENGTH = 255;
 
     static final List<String> EVENT_TYPES =
             Arrays.stream(ItemEvent.values()).map(ItemEvent::eventType).toList();
@@ -184,6 +188,7 @@ public class MqttBridge implements ListChanges, MqttTransport.Listener {
             {"sensor", "open_items"},
             {"event", "changes"},
             {"text", "add_item"},
+            {"sensor", "items"},
     };
 
     private void publishDiscovery(ItemList list) {
@@ -207,6 +212,11 @@ public class MqttBridge implements ListChanges, MqttTransport.Listener {
         text.put("state_topic", addStateTopic(id));
         text.put("max", MAX_TEXT_LENGTH);
         transport.publish(discoveryTopic("text", id, "add_item"), json(text), true);
+
+        Map<String, Object> items = entity(list, "items", "Items", "mdi:format-list-bulleted");
+        items.put("state_topic", stateTopic(id));
+        items.put("value_template", "{{ value_json.summary }}");
+        transport.publish(discoveryTopic("sensor", id, "items"), json(items), true);
     }
 
     private static Map<String, Object> entity(ItemList list, String objectId, String name, String icon) {
@@ -247,8 +257,31 @@ public class MqttBridge implements ListChanges, MqttTransport.Listener {
             entry.put("labels", labelNames(item));
             return entry;
         }).toList());
+        state.put("summary", summary(open));
         state.put("command_topic", commandTopic(id));
         transport.publish(stateTopic(id), json(state), true);
+    }
+
+    // The open items as they are shown in the app, newest first, such as
+    // "2 × Melk, Brød, Egg". The items that do not fit in a state are
+    // counted at the end, as in "+3 til".
+    static String summary(List<Item> open) {
+        if (open.isEmpty()) {
+            return "Tom";
+        }
+        List<String> names = open.stream()
+                .map(item -> item.getAmount() > 1 ? item.getAmount() + " × " + item.getName() : item.getName())
+                .toList();
+        for (int shown = names.size(); shown > 0; shown--) {
+            String text = String.join(", ", names.subList(0, shown));
+            if (shown < names.size()) {
+                text += " +" + (names.size() - shown) + " til";
+            }
+            if (text.length() <= MAX_STATE_LENGTH) {
+                return text;
+            }
+        }
+        return "+" + names.size() + " til";
     }
 
     private static Map<String, Object> eventPayload(

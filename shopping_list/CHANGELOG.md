@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.0
+
+- Every list has an Items sensor in MQTT, with its open items as one line
+  in Norwegian, such as "2 × Melk, Brød, Egg".
+- A link with `?list=<id>` opens that list.
+- The documentation tab shows how to put a list on the iPhone home screen
+  with the Companion app's Custom widget, which opens the list when tapped.
+
 ## 0.6.0
 
 - Stores are now called labels (etiketter), with a tag icon, so they also

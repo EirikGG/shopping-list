@@ -81,6 +81,42 @@ class MqttBridgeTest {
         assertEquals(1, state.path("total").asInt());
         assertEquals("Milk", state.path("items").get(0).path("name").asText());
         assertEquals(2, state.path("items").get(0).path("amount").asInt());
+
+        JsonNode items = transport.lastJson("homeassistant/sensor/shopping_list_" + listId + "/items/config");
+        assertEquals("shopping_list/list/" + listId + "/state", items.path("state_topic").asText());
+        assertEquals("{{ value_json.summary }}", items.path("value_template").asText());
+        assertEquals("2 × Milk", state.path("summary").asText());
+    }
+
+    @Test
+    void summary_listsTheOpenItems_newestFirst() throws Exception {
+        Item milk = app.createItem(user, listId, "Melk", 2, List.of());
+        app.createItem(user, listId, "Brød", null, List.of());
+        app.createItem(user, listId, "Egg", null, List.of());
+        assertEquals("Egg, Brød, 2 × Melk", transport.lastJson(MqttBridge.stateTopic(listId)).path("summary").asText());
+
+        app.patchItem(user, milk.getId().orElseThrow(), "Melk", 2, LocalDateTime.now());
+        assertEquals("Egg, Brød", transport.lastJson(MqttBridge.stateTopic(listId)).path("summary").asText());
+    }
+
+    @Test
+    void summary_isTom_forAnEmptyList() {
+        assertEquals("Tom", MqttBridge.summary(List.of()));
+    }
+
+    @Test
+    void summary_countsTheItemsThatDoNotFit() {
+        List<Item> open = new ArrayList<>();
+        for (int n = 0; n < 40; n++) {
+            open.add(new Item(n, "Vare nummer " + n, 1, LocalDateTime.now(), null, List.of()));
+        }
+        String summary = MqttBridge.summary(open);
+        assertTrue(summary.length() <= 255, summary);
+        assertTrue(summary.startsWith("Vare nummer 0, Vare nummer 1, "), summary);
+        assertTrue(summary.matches(".*, Vare nummer \\d+ \\+\\d+ til"), summary);
+
+        Item huge = new Item(1, "x".repeat(300), 1, LocalDateTime.now(), null, List.of());
+        assertEquals("+1 til", MqttBridge.summary(List.of(huge)));
     }
 
     @Test

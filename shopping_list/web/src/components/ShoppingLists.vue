@@ -71,12 +71,37 @@ function deleteItem(list, id) {
 
 onMounted(load)
 
+// A link can open a list with ?list=<id>, as the phone widget does. Home
+// Assistant shows the add-on in an iframe and may not pass the query on to
+// it, so the page around it is read too; it has the same origin.
+function requestedListId() {
+  for (const target of [window, window.top]) {
+    let search
+    try {
+      search = target.location.search
+    } catch {
+      // A page around us from another origin cannot be read.
+      continue
+    }
+    const id = Number(new URLSearchParams(search).get('list'))
+    if (Number.isInteger(id) && id > 0) {
+      return id
+    }
+  }
+  return null
+}
+
 async function load() {
   loadError.value = ''
 
   try {
     lists.value = await getItemLists()
-    selectedId.value = lists.value[0]?.id ?? null
+    const requested = lists.value.find(list => list.id === requestedListId())
+    if (requested) {
+      open(requested.id)
+    } else {
+      selectedId.value = lists.value[0]?.id ?? null
+    }
     polling.resume()
   } catch (e) {
     loadError.value = e.status === 429 ? 'errors.tooManyRequests' : 'lists.loadFailed'

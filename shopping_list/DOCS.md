@@ -38,6 +38,9 @@ then shows up as a device under Settings > Devices & services > MQTT, with:
   made the change: `by` is their name, and `by_user_id` their Home Assistant
   user, the same as `user_id` on their person entity.
 - **Add item** (text): what you type in it is added to the list.
+- **Items** (sensor): the open items as one line, newest first, such as
+  `2 × Melk, Brød, Egg`, or `Tom` when there are none. Items that do not fit
+  in a state (255 characters) are counted at the end, as in `+3 til`.
 
 Without a broker the add-on works as before; the log says so when it starts.
 
@@ -93,6 +96,26 @@ name, and `reopen` the last one completed. Changes made this way show
 
 Commands that cannot be carried out, such as completing an item that is not
 on the list, are skipped with a warning in the add-on's log.
+
+### Widget on your phone
+
+The Home Assistant Companion app can show a list's items on the iPhone home
+screen, and open the list when tapped. It needs the MQTT entities above.
+
+1. Find the list's `list_id`: it is an attribute of its Open items sensor,
+   under Settings > Developer tools > States.
+2. Open the add-on from the sidebar in a browser and copy the path from the
+   address bar, such as `/a0d7b954_shopping_list`.
+3. In the Companion app, go to Settings > Companion app > Widgets > Create
+   widget. Add the list's **Items** sensor, and set its tap action to
+   Navigate, to the path from step 2 with the list's id:
+   `/a0d7b954_shopping_list?list=1`.
+4. On the home screen, add the Home Assistant **Custom** widget, then touch
+   and hold it, choose Edit widget, and pick the widget from step 3.
+
+The add-on opens the list given by `?list=`, and the first list if there is
+no such list. The widget shows as much of the items as it has room for. iOS
+decides when widgets are updated, so a widget can be a few minutes behind.
 
 ## Access
 
