@@ -8,7 +8,7 @@ import LabelPicker from './LabelPicker.vue'
 import SwipeToDelete from './SwipeToDelete.vue'
 import { createItem, deleteItem, updateItem } from '../api/items.js'
 import { addItemLabel, removeItemLabel, labelName, labelsOf } from '../api/labels.js'
-import { formatTime, parseBackendTime } from '../time.js'
+import { formatShortTime, formatTime, parseBackendTime } from '../time.js'
 
 const props = defineProps({
   list: { type: Object, required: true }
@@ -397,11 +397,11 @@ async function submit() {
                       {{ item.name }}
                     </span>
                     <!-- Its labels, links, files and time on one line, to keep rows
-                         short. -->
+                         short. Long label names are cut short to fit. -->
                     <span class="meta">
-                      <span v-if="labelNames(item)" class="item-label">
+                      <span v-if="labelNames(item)" class="item-label" :title="labelNames(item)">
                         <Icon name="label" />
-                        {{ labelNames(item) }}
+                        <span class="label-names">{{ labelNames(item) }}</span>
                       </span>
                       <span v-if="item.links?.length || item.attachments?.length" class="item-extras">
                         <span
@@ -420,20 +420,23 @@ async function submit() {
                         </span>
                       </span>
                       <!-- When it was bought, or for what is still to buy, when it
-                           was added. -->
+                           was added: the date, or the time for today. The full
+                           date and time are in the editor, and on hover. -->
                       <time
                         v-if="item.completed"
                         class="completed-at"
                         :datetime="parseBackendTime(item.completed).toISOString()"
+                        :title="formatTime(parseBackendTime(item.completed), locale)"
                       >
-                        {{ t('lists.completedAt', { time: formatTime(parseBackendTime(item.completed), locale) }) }}
+                        {{ t('lists.completedAt', { time: formatShortTime(parseBackendTime(item.completed), locale) }) }}
                       </time>
                       <time
                         v-else-if="item.created"
                         class="completed-at"
                         :datetime="parseBackendTime(item.created).toISOString()"
+                        :title="formatTime(parseBackendTime(item.created), locale)"
                       >
-                        {{ t('lists.addedAt', { time: formatTime(parseBackendTime(item.created), locale) }) }}
+                        {{ t('lists.addedAt', { time: formatShortTime(parseBackendTime(item.created), locale) }) }}
                       </time>
                     </span>
                   </span>
@@ -719,10 +722,10 @@ h2 {
   padding: 0.125rem 0;
 }
 
-/* The details under the name, side by side, wrapping only if they must. */
+/* The details under the name, side by side on one line. */
 .meta {
   display: flex;
-  flex-wrap: wrap;
+  min-width: 0;
   align-items: center;
   gap: 0 0.75rem;
   line-height: 1.3;
@@ -737,6 +740,22 @@ h2 {
 .meta .completed-at {
   margin-left: auto;
   white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* The labels give way first when the line is too narrow. */
+.meta .item-label {
+  min-width: 0;
+}
+
+.label-names {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.meta .item-extras {
+  flex-shrink: 0;
 }
 
 .item-name {

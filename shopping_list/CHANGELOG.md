@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.2
+
+- The line under an item's name always fits on one line: it shows the date
+  the item was added or completed, or the time for today, and long label
+  names are cut short. The full date and time are in the item editor.
+
 ## 0.10.1
 
 - Works around the Home Assistant app on iPhone sometimes showing a black

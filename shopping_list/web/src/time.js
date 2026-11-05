@@ -24,3 +24,17 @@ export function formatTime(date, locale) {
 
   return new Intl.DateTimeFormat(locale, options).format(date)
 }
+
+// Shorter, for the rows of a list: just the time for today, otherwise just
+// the date, with the year when it is not this year.
+export function formatShortTime(date, locale) {
+  const now = new Date()
+  if (date.toDateString() === now.toDateString()) {
+    return new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(date)
+  }
+  const options = { day: 'numeric', month: 'short' }
+  if (date.getFullYear() !== now.getFullYear()) {
+    options.year = 'numeric'
+  }
+  return new Intl.DateTimeFormat(locale, options).format(date)
+}
