@@ -732,6 +732,13 @@ h2 {
   display: none;
 }
 
+/* At the right end, so it is in the same place on every row, whatever
+   labels, links and files come before it. */
+.meta .completed-at {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
 .item-name {
   overflow-wrap: anywhere;
 }

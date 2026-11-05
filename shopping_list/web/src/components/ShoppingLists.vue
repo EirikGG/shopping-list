@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useDocumentVisibility, useIntervalFn } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import Icon from './Icon.vue'
@@ -12,6 +12,7 @@ import {
   renameItemList
 } from '../api/items.js'
 import { writeState } from '../api/request.js'
+import { repaint } from '../viewport.js'
 
 const { t } = useI18n()
 
@@ -103,6 +104,8 @@ async function load() {
       selectedId.value = lists.value[0]?.id ?? null
     }
     polling.resume()
+    // The first lists shown; see repaint.
+    nextTick(repaint)
   } catch (e) {
     loadError.value = e.status === 429 ? 'errors.tooManyRequests' : 'lists.loadFailed'
   }
@@ -172,6 +175,7 @@ function apply(fresh) {
   if (editingId.value !== null && !fresh.some(list => list.id === editingId.value)) {
     editingId.value = null
   }
+  nextTick(repaint)
 }
 
 async function create() {

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.1
+
+- Works around the Home Assistant app on iPhone sometimes showing a black
+  screen after the add-on has loaded, though tapping still worked. The page
+  is now drawn again after the lists load, when they change, and when the
+  app comes back to it.
+- An item's time is at the right end of the line under its name, so it is in
+  the same place on every row.
+
 ## 0.10.0
 
 - Five store sections for things that are not groceries: Tools and hardware,
