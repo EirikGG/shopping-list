@@ -1,6 +1,6 @@
 <script setup>
-import { computed, ref } from 'vue'
-import { useLocalStorage, useMediaQuery } from '@vueuse/core'
+import { computed, onBeforeUnmount, ref } from 'vue'
+import { useEventListener, useLocalStorage, useMediaQuery } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import Icon from './Icon.vue'
 import ItemEditor from './ItemEditor.vue'
@@ -211,15 +211,60 @@ const sections = computed(() => [
 // Items with a completion still being saved, so a double tap is not sent twice.
 const toggling = ref(new Set())
 
+// A completed item stays where it is, ticked, for a moment before it moves to
+// Completed, so a mistaken tap can be undone by tapping again. It is only
+// saved once that time is up, so Home Assistant never hears of a completion
+// that was undone. Item id to its timer.
+const HANG_MS = 2000
+const hanging = ref(new Map())
+
+function isDone(item) {
+  return item.completed !== null || hanging.value.has(item.id)
+}
+
+function toggleCompleted(item) {
+  if (hanging.value.has(item.id)) {
+    clearTimeout(hanging.value.get(item.id))
+    hanging.value.delete(item.id)
+  } else if (item.completed === null) {
+    hanging.value.set(item.id, setTimeout(() => finishCompleting(item.id), HANG_MS))
+  } else {
+    saveCompleted(item, false)
+  }
+}
+
+// Saves the item as it is now, as it may have been renamed meanwhile. One
+// deleted meanwhile is left alone.
+function finishCompleting(id) {
+  clearTimeout(hanging.value.get(id))
+  hanging.value.delete(id)
+  const item = props.list.items.find(other => other.id === id)
+  if (item && item.completed === null) {
+    saveCompleted(item, true)
+  }
+}
+
+// Leaving the list or the app saves what is waiting, so it is not lost.
+function finishAll() {
+  for (const id of [...hanging.value.keys()]) {
+    finishCompleting(id)
+  }
+}
+onBeforeUnmount(finishAll)
+useEventListener(document, 'visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    finishAll()
+  }
+})
+
 // Shown straight away, and put back if saving fails. The timestamp is a
 // stand-in until the backend returns its own.
-async function toggleCompleted(item) {
+async function saveCompleted(item, completed) {
   if (toggling.value.has(item.id)) {
     return
   }
 
   const previous = item.completed
-  const completed = previous === null
   error.value = ''
   toggling.value.add(item.id)
   emit('item-updated', { ...item, completed: completed ? new Date().toISOString() : null })
@@ -370,7 +415,7 @@ async function submit() {
           <li
             v-for="item in section.items"
             :key="item.id"
-            :class="{ completed: item.completed }"
+            :class="{ completed: isDone(item) }"
           >
             <SwipeToDelete
               :enabled="narrow"
@@ -382,9 +427,9 @@ async function submit() {
                 <button
                   type="button"
                   class="complete"
-                  :class="{ done: item.completed }"
+                  :class="{ done: isDone(item) }"
                   role="checkbox"
-                  :aria-checked="item.completed !== null"
+                  :aria-checked="isDone(item)"
                   @click="toggleCompleted(item)"
                 >
                   <span class="circle">

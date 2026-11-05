@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.11.0
+
+- A completed item stays where it is, ticked, for 4 seconds before it moves
+  to Completed. Tapping it again in that time unticks it, for when it was
+  tapped by mistake. It is saved when the time is up, so Home Assistant
+  never sees a completion that was undone; leaving the list or the app
+  saves it straight away.
+
 ## 0.10.2
 
 - The line under an item's name always fits on one line: it shows the date
