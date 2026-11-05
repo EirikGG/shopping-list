@@ -27,6 +27,22 @@
     "noFilteredItems": "No items for the chosen labels.",
     "openCount": "{open} of {total} left"
   },
+  "sections": {
+    "group": "Group by section",
+    "produce": "Fruit and vegetables",
+    "bakery": "Bread and bakery",
+    "dairy": "Dairy and eggs",
+    "meat_fish": "Meat and fish",
+    "frozen": "Frozen",
+    "dry_goods": "Dry goods",
+    "spices_sauces": "Spices and sauces",
+    "snacks": "Snacks and sweets",
+    "drinks": "Drinks",
+    "household": "Household",
+    "personal_care": "Personal care",
+    "baby_pet": "Baby and pets",
+    "uncategorised": "Uncategorised"
+  },
   "labels": {
     "labels": "Labels",
     "loading": "Loading your labels…",

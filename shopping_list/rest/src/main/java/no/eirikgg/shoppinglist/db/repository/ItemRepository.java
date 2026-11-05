@@ -52,7 +52,7 @@ public class ItemRepository {
     // completed first. Timestamps are fixed-width text, so they sort as text.
     public List<Item> getItemsForItemList(Connection conn, int itemListId) {
         return dbUtils.select(conn, """
-            select item_id, name, amount, created, completed
+            select item_id, name, amount, created, completed, category
             from item
             where item_list_id = ?
             and deleted is null
@@ -66,7 +66,7 @@ public class ItemRepository {
         );
     }
 
-    // Reads item_id, name, amount, created and completed, and adds the item's labels,
+    // Reads item_id, name, amount, created, completed and category, and adds the item's labels,
     // links and files.
     private Item toItem(Connection conn, RSWrapper rs) {
         int itemId = rs.getInt("item_id").orElseThrow();
@@ -76,6 +76,7 @@ public class ItemRepository {
                 rs.getInt("amount").orElseThrow(),
                 rs.getLocalDateTime("created").orElseThrow(),
                 rs.getLocalDateTime("completed").orElse(null),
+                rs.getString("category").orElse(null),
                 getLabelsForItemList(conn, itemId)
         );
         item.getLinks().addAll(itemLinkRepository.getLinksForItem(conn, itemId));
@@ -176,7 +177,7 @@ public class ItemRepository {
     // Empty if the item or its list is deleted.
     public Optional<Item> getItem(Connection conn, int itemId) {
         return dbUtils.selectSingle(conn, """
-                select i.item_id, i.name, i.amount, i.created, i.completed
+                select i.item_id, i.name, i.amount, i.created, i.completed, i.category
                 from item as i
                 join item_list as il
                     on il.item_list_id = i.item_list_id
@@ -189,7 +190,8 @@ public class ItemRepository {
         );
     }
 
-    public int createItem(Connection conn, int personId, int itemListId, String name, int amount)
+    // category is a Category key, or null if the item is not sorted yet.
+    public int createItem(Connection conn, int personId, int itemListId, String name, int amount, String category)
             throws SQLException {
         return dbUtils.insert(conn, """
                 insert into item (
@@ -197,17 +199,50 @@ public class ItemRepository {
                        person_id,
                        name,
                        amount,
-                       created
+                       created,
+                       category
                 )
-                values (?, ?, ?, ?, ?)
+                values (?, ?, ?, ?, ?, ?)
                 """,
                 itemListId,
                 personId,
                 name,
                 amount,
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                category
         ).orElseThrow();
     }
+
+    // Only if the item still has the name it was sorted by, so a sorting that
+    // finishes after a rename does not overwrite the newer one.
+    public void setCategory(Connection conn, int itemId, String name, String category) throws SQLException {
+        dbUtils.update(conn, """
+                update item
+                set category = ?
+                where item_id = ?
+                and name = ?
+                """,
+                category,
+                itemId,
+                name
+        );
+    }
+
+    // Items not sorted into a section yet, including deleted and completed
+    // ones, so nothing is left unsorted if it comes back.
+    public List<UnsortedItem> getUnsortedItems(Connection conn) {
+        return dbUtils.select(conn, """
+                select item_id, name
+                from item
+                where category is null
+                order by item_id desc
+                """,
+                new Object[] {},
+                rs -> new UnsortedItem(rs.getInt("item_id").orElseThrow(), rs.getString("name").orElseThrow())
+        );
+    }
+
+    public record UnsortedItem(int id, String name) {}
 
     public void deleteItem(Connection conn, int itemId) throws SQLException {
         dbUtils.update(conn, """
@@ -220,17 +255,20 @@ public class ItemRepository {
         );
     }
 
+    // category is the section for the new name, a Category key, or null if it
+    // is not sorted yet.
     public void patchItem(
-            Connection conn, int itemId, String newName, int amount, LocalDateTime completed
+            Connection conn, int itemId, String newName, int amount, LocalDateTime completed, String category
     ) throws SQLException {
         dbUtils.update(conn, """
                 update item
-                set name = ?, amount = ?, completed = ?
+                set name = ?, amount = ?, completed = ?, category = ?
                 where item_id = ?
                 """,
                 newName,
                 amount,
                 completed,
+                category,
                 itemId
         );
     }

@@ -27,6 +27,22 @@
     "noFilteredItems": "Ingen varer for de valgte etikettene.",
     "openCount": "{open} av {total} igjen"
   },
+  "sections": {
+    "group": "Grupper etter avdeling",
+    "produce": "Frukt og grønt",
+    "bakery": "Brød og bakevarer",
+    "dairy": "Meieri og egg",
+    "meat_fish": "Kjøtt og fisk",
+    "frozen": "Frysevarer",
+    "dry_goods": "Tørrvarer",
+    "spices_sauces": "Krydder og sauser",
+    "snacks": "Snacks og godteri",
+    "drinks": "Drikke",
+    "household": "Husholdning",
+    "personal_care": "Personlig pleie",
+    "baby_pet": "Baby og dyr",
+    "uncategorised": "Ukategorisert"
+  },
   "labels": {
     "labels": "Etiketter",
     "loading": "Henter etikettene dine…",

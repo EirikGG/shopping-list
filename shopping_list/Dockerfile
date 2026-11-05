@@ -23,10 +23,25 @@ RUN mvn -B -q -DskipTests package dependency:copy-dependencies -DincludeScope=ru
     && cp target/*.jar target/dependency/
 
 
+# multilingual-e5-small, which sorts items into store sections. The same files
+# on every architecture. Pinned to a revision and checked, so a build never
+# picks up a different model.
+FROM --platform=$BUILDPLATFORM alpine:3 AS model
+ARG MODEL_REVISION=761b726dd34fb83930e26aab4e9ac3899aa1fa78
+ARG MODEL_URL=https://huggingface.co/Xenova/multilingual-e5-small/resolve/$MODEL_REVISION
+RUN apk add --no-cache curl \
+    && mkdir /model \
+    && curl -sSfL -o /model/model.onnx $MODEL_URL/onnx/model_quantized.onnx \
+    && curl -sSfL -o /model/tokenizer.json $MODEL_URL/tokenizer.json \
+    && echo "f80102d3f2a1229f387d3c81909990d8945513e347b0eab049f7de3c6f98c193  /model/model.onnx" | sha256sum -c \
+    && echo "0b44a9d7b51c3c62626640cda0e2c2f70fdacdc25bbbd68038369d14ebdf4c39  /model/tokenizer.json" | sha256sum -c
+
+
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 COPY --from=rest /rest/target/dependency/ ./lib/
 COPY --from=web /web/dist/ ./web/
+COPY --from=model /model/ ./model/
 
 # debug would log every SQL query.
 ENV LOG_LEVEL=info \
@@ -40,5 +55,6 @@ CMD ["java", \
      "-DAPP.PORT=8099", \
      "-DDB.FILE=/data/shoppinglist.db", \
      "-DWEB.DIR=/app/web", \
+     "-DMODEL.DIR=/app/model", \
      "-cp", "/app/lib/*", \
      "no.eirikgg.shoppinglist.Main"]

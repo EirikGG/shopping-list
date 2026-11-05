@@ -13,16 +13,22 @@ public class Item extends DbIdentity {
     private int amount;
     private LocalDateTime created;
     private LocalDateTime completed;
+    // A Category key, or null until the item has been sorted.
+    private String category;
     private List<Label> labels;
     private final List<ItemLink> links = new LinkedList<>();
     private final List<Attachment> attachments = new LinkedList<>();
 
-    public Item(Integer id, String name, int amount, LocalDateTime created, LocalDateTime completed, List<Label> labels) {
+    public Item(
+            Integer id, String name, int amount, LocalDateTime created, LocalDateTime completed, String category,
+            List<Label> labels
+    ) {
         super(id);
         this.name = name;
         this.amount = amount;
         this.created = created;
         this.completed = completed;
+        this.category = category;
         this.labels = labels;
     }
 
@@ -51,6 +57,10 @@ public class Item extends DbIdentity {
 
     public List<Attachment> getAttachments() {
         return attachments;
+    }
+
+    public Optional<String> getCategory() {
+        return Optional.ofNullable(category);
     }
 
     public Optional<LocalDateTime> getCompleted() {

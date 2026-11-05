@@ -24,6 +24,23 @@ larger.
 Deleting a file removes it straight away. Files on deleted items and lists
 are removed the next time the add-on starts.
 
+## Store sections
+
+Open items are sorted into store sections (Fruit and vegetables, Bread and
+bakery, Dairy and eggs, Meat and fish, Frozen, Dry goods, Spices and sauces,
+Snacks and sweets, Drinks, Household, Personal care, Baby and pets) and shown
+in that order, with anything that fits none of them under Uncategorised, last.
+The button beside a list's name turns the sections off for that list, such as
+for lists that are not for shopping. The choice is kept in the browser.
+
+A small language model, multilingual-e5-small, does the sorting on the add-on
+itself, in Norwegian and English. It compares each item's name with a list of
+common items whose section is known. It is right for most groceries, but
+not all. Names that are not groceries at all, like "call the dentist", can
+end up in a section. Items are sorted again when renamed. The model takes up
+to a minute to load after the add-on starts; items added meanwhile, and items
+from before 0.9.0, are sorted once it has loaded.
+
 ## Home Assistant entities (MQTT)
 
 If Home Assistant has an MQTT broker, such as the Mosquitto broker add-on

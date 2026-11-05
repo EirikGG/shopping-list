@@ -1,5 +1,7 @@
 package no.eirikgg.shoppinglist.service;
 
+import no.eirikgg.shoppinglist.category.Category;
+import no.eirikgg.shoppinglist.category.Categoriser;
 import no.eirikgg.shoppinglist.datamodel.Item;
 import no.eirikgg.shoppinglist.datamodel.ItemList;
 import no.eirikgg.shoppinglist.datamodel.Person;
@@ -28,6 +30,7 @@ public class ItemService {
 
     private Db db;
     private ListChanges changes;
+    private Categoriser categoriser;
 
     private ItemRepository itemRepository = new ItemRepository();
     private LabelRepository labelRepository = new LabelRepository();
@@ -37,8 +40,14 @@ public class ItemService {
     }
 
     public ItemService(Db db, ListChanges changes) {
+        this(db, changes, Categoriser.NONE);
+    }
+
+    // categoriser sorts items into store sections as they are added or renamed.
+    public ItemService(Db db, ListChanges changes, Categoriser categoriser) {
         this.db = db;
         this.changes = changes;
+        this.categoriser = categoriser;
     }
 
     public ItemList createItemList(Person person, String name) {
@@ -126,6 +135,7 @@ public class ItemService {
     public Item createItem(Person person, int itemListId, String name, Integer amount, List<Integer> labelIds)
             throws ResourceNotFoundException, NoAccessToResourceException, InvalidInputException {
         int newAmount = null == amount ? 1 : validAmount(amount);
+        String category = categoryOf(name);
         try (Connection conn = db.getConnection()) {
             if (!itemRepository.itemListExists(conn, itemListId)) {
                 throw new ResourceNotFoundException("Item list not found");
@@ -145,7 +155,7 @@ public class ItemService {
             Item item;
             try {
                 conn.setAutoCommit(false);
-                int itemId = itemRepository.createItem(conn, person.id(), itemListId, name, newAmount);
+                int itemId = itemRepository.createItem(conn, person.id(), itemListId, name, newAmount, category);
                 for (int labelId : labels) {
                     labelRepository.mapLabelToItem(conn, labelId, itemId);
                 }
@@ -192,7 +202,11 @@ public class ItemService {
             );
             int itemListId = itemRepository.getItemListIdOfItem(conn, itemId).orElseThrow();
             int newAmount = null == amount ? before.getAmount() : amount;
-            itemRepository.patchItem(conn, itemId, newName, newAmount, completed);
+            // Sorted again only when renamed; a section not found before is tried again.
+            String category = Objects.equals(before.getName(), newName)
+                    ? before.getCategory().orElseGet(() -> categoryOf(newName))
+                    : categoryOf(newName);
+            itemRepository.patchItem(conn, itemId, newName, newAmount, completed, category);
             Item after = itemRepository.getItem(conn, itemId).orElseThrow();
 
             if (before.getCompleted().isEmpty() && after.getCompleted().isPresent()) {
@@ -209,6 +223,11 @@ public class ItemService {
         catch (SQLException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    // null if the categoriser is not ready; CategoryBackfill sorts the item later.
+    private String categoryOf(String name) {
+        return categoriser.categorise(name).map(Category::key).orElse(null);
     }
 
     private static int validAmount(int amount) throws InvalidInputException {

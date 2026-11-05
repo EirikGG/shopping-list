@@ -9,4 +9,5 @@
     <include file="/db/updates/0002-links-and-attachments.sql"/>
     <include file="/db/updates/0003-item-amount.sql"/>
     <include file="/db/updates/0004-labels.sql"/>
+    <include file="/db/updates/0005-item-category.sql"/>
 </databaseChangeLog>

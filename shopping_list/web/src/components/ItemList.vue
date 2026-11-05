@@ -152,8 +152,54 @@ const openItems = computed(() =>
 const completedItems = computed(() =>
   visibleItems.value.filter(item => item.completed !== null).sort(newestFirst(item => item.completed))
 )
+// The store sections the backend sorts items into, in the order a shop
+// usually has them. Items it has not sorted yet, or could not, come last.
+const SECTION_ORDER = [
+  'produce',
+  'bakery',
+  'dairy',
+  'meat_fish',
+  'frozen',
+  'dry_goods',
+  'spices_sauces',
+  'snacks',
+  'drinks',
+  'household',
+  'personal_care',
+  'baby_pet',
+  'uncategorised'
+]
+
+function sectionOf(item) {
+  return SECTION_ORDER.includes(item.category) ? item.category : 'uncategorised'
+}
+
+// Lists shown without sections, by id. Grouping is on unless turned off, and
+// remembered for each list, as not every list is for shopping.
+const ungroupedLists = useLocalStorage('shoppinglist.ungrouped-lists', [])
+const grouped = computed(() => !ungroupedLists.value.includes(props.list.id))
+
+function toggleGrouped() {
+  ungroupedLists.value = grouped.value
+    ? [...ungroupedLists.value, props.list.id]
+    : ungroupedLists.value.filter(id => id !== props.list.id)
+}
+
+// What is still to buy, under a heading for each section that has any, or as
+// one list when not grouped. Newest first within each.
+const openGroups = computed(() => {
+  if (!grouped.value) {
+    return [{ key: 'open', heading: null, items: openItems.value }]
+  }
+  return SECTION_ORDER.map(section => ({
+    key: `open-${section}`,
+    heading: `sections.${section}`,
+    items: openItems.value.filter(item => sectionOf(item) === section)
+  })).filter(group => group.items.length)
+})
+
 const sections = computed(() => [
-  { key: 'open', items: openItems.value },
+  ...openGroups.value,
   ...(completedItems.value.length ? [{ key: 'completed', items: completedItems.value }] : [])
 ])
 
@@ -245,7 +291,20 @@ async function submit() {
 <template>
   <section class="list">
     <div class="scroll">
-      <h2>{{ list.name }}</h2>
+      <div class="title-row">
+        <h2>{{ list.name }}</h2>
+        <button
+          type="button"
+          class="group-toggle"
+          :class="{ active: grouped }"
+          :aria-pressed="grouped"
+          :aria-label="t('sections.group')"
+          :title="t('sections.group')"
+          @click="toggleGrouped"
+        >
+          <Icon name="sections" />
+        </button>
+      </div>
 
       <div v-if="listLabels.length" class="filter" role="group" :aria-label="t('labels.filter')">
         <button
@@ -296,9 +355,10 @@ async function submit() {
           <Icon name="chevron" class="chevron" :class="{ open: showCompleted }" />
           {{ t('lists.completed', { count: section.items.length }) }}
         </button>
+        <h3 v-else-if="section.heading" class="section-heading">{{ t(section.heading) }}</h3>
 
         <ul
-          v-if="section.items.length && (section.key === 'open' || showCompleted)"
+          v-if="section.items.length && (section.key !== 'completed' || showCompleted)"
           :id="section.key === 'completed' ? 'completed-items' : undefined"
           class="items"
         >
@@ -480,10 +540,52 @@ async function submit() {
   margin-bottom: 1.25rem;
 }
 
-h2 {
+.title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
   margin: 0 0 1.25rem;
+}
+
+h2 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
   font-size: 1.5rem;
   overflow-wrap: anywhere;
+}
+
+.group-toggle,
+.group-toggle:hover:not(:disabled) {
+  display: flex;
+  flex-shrink: 0;
+  padding: 0.45rem;
+  color: var(--color-text-muted);
+  background: transparent;
+}
+
+.group-toggle:hover:not(:disabled) {
+  background: var(--color-background);
+}
+
+.group-toggle.active,
+.group-toggle.active:hover:not(:disabled) {
+  color: var(--color-primary);
+}
+
+/* The store section above its items. The first has no space above it. */
+.section-heading {
+  margin: 1.25rem 0 0.5rem;
+  padding: 0 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.section-heading:first-of-type {
+  margin-top: 0;
 }
 
 .row {

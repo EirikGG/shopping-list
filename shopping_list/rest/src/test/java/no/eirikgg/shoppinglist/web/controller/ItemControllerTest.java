@@ -8,6 +8,9 @@ import io.javalin.testtools.JavalinTest;
 import io.javalin.testtools.TestConfig;
 import no.eirikgg.shoppinglist.Json;
 import no.eirikgg.shoppinglist.TestApp;
+import no.eirikgg.shoppinglist.category.Categoriser;
+import no.eirikgg.shoppinglist.category.Category;
+import no.eirikgg.shoppinglist.category.CategoryBackfill;
 import no.eirikgg.shoppinglist.web.filter.IngressFilter;
 import no.eirikgg.shoppinglist.db.DbUtils;
 import no.eirikgg.shoppinglist.db.TestDb;
@@ -25,6 +28,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -134,6 +138,55 @@ class ItemControllerTest {
 
             ItemController.PatchItemResponse completed = patchItem(client, item.id(), "eggs", true);
             assertEquals(12, completed.amount());
+        });
+    }
+
+    // Knows milk and bread, and nothing else, as a model would only be slow.
+    private static final Categoriser FAKE_CATEGORISER = name -> Optional.of(switch (name) {
+        case "milk" -> Category.DAIRY;
+        case "bread" -> Category.BAKERY;
+        default -> Category.UNCATEGORISED;
+    });
+
+    // Sorted when added and when renamed; completing keeps the section.
+    @Test
+    void category_isSetWhenAdded_andFollowsRenames() {
+        Javalin sortingApp = TestApp.create(db, FAKE_CATEGORISER);
+        JavalinTest.test(sortingApp, testConfig, (server, client) -> {
+            ItemController.PostItemResponse item = createItem(client, "milk");
+            assertEquals("dairy", item.category());
+            assertEquals("dairy", getItem(client, item.id()).category());
+
+            assertEquals("bakery", patchItem(client, item.id(), "bread", false).category());
+            assertEquals("bakery", patchItem(client, item.id(), "bread", true).category());
+            assertEquals("uncategorised", patchItem(client, item.id(), "something odd", true).category());
+            assertEquals("uncategorised", getItem(client, item.id()).category());
+        });
+    }
+
+    // Without a model nothing is sorted, and items work as before.
+    @Test
+    void category_isNull_withoutCategoriser() {
+        JavalinTest.test(app, testConfig, (server, client) -> {
+            ItemController.PostItemResponse item = createItem(client, "milk");
+            assertNull(item.category());
+            assertNull(patchItem(client, item.id(), "bread", false).category());
+        });
+    }
+
+    // Items added before the model was ready are sorted once it is, and items
+    // already sorted are left alone.
+    @Test
+    void backfill_sortsOnlyItemsWithoutCategory() {
+        JavalinTest.test(app, testConfig, (server, client) -> {
+            int milk = createItem(client, "milk").id();
+            int bread = createItem(client, "bread").id();
+            deleteItem(client, bread);
+
+            assertEquals(2, new CategoryBackfill(db, FAKE_CATEGORISER).run());
+            assertEquals("dairy", getItem(client, milk).category());
+            assertEquals(0, new CategoryBackfill(db, FAKE_CATEGORISER).run());
+            assertEquals(0, new CategoryBackfill(db, Categoriser.NONE).run());
         });
     }
 

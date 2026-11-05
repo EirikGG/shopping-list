@@ -2,6 +2,9 @@ package no.eirikgg.shoppinglist;
 
 import io.javalin.Javalin;
 import io.javalin.json.JavalinJackson;
+import no.eirikgg.shoppinglist.category.Categoriser;
+import no.eirikgg.shoppinglist.category.CategoryBackfill;
+import no.eirikgg.shoppinglist.category.E5Categoriser;
 import no.eirikgg.shoppinglist.mqtt.MqttBridge;
 import no.eirikgg.shoppinglist.mqtt.MqttSettings;
 import no.eirikgg.shoppinglist.mqtt.PahoTransport;
@@ -35,6 +38,9 @@ public class Main {
     private static final String DEFAULT_FILES_DIR = "/data/files";
     // The port HA's ingress proxy connects to unless the add-on says otherwise.
     private static final String DEFAULT_APP_PORT = "8099";
+    // multilingual-e5-small, put there by the Dockerfile. Without it items are
+    // not sorted into store sections.
+    private static final String DEFAULT_MODEL_DIR = "/app/model";
 
     public static void main(String[] args) {
         log.info("Starting application...");
@@ -49,6 +55,17 @@ public class Main {
         Path filesDir = Path.of(System.getProperty("FILES.DIR", DEFAULT_FILES_DIR));
         log.info("Keeping uploaded files in {}", filesDir.toAbsolutePath());
         new AttachmentService(db, filesDir).removeUnusedFiles();
+        // Loads while the app starts, and then sorts the items that have no
+        // section yet.
+        Path modelDir = Path.of(System.getProperty("MODEL.DIR", DEFAULT_MODEL_DIR));
+        Categoriser categoriser = E5Categoriser.loadInBackground(modelDir, loaded -> {
+            try {
+                new CategoryBackfill(db, loaded).run();
+            }
+            catch (RuntimeException e) {
+                log.error("Could not sort the items without a section", e);
+            }
+        });
 
         log.info("Completed setup and migration");
         String trustedProxy = trustedProxy(System.getenv("INGRESS_PROXY"));
@@ -60,10 +77,12 @@ public class Main {
         }
         // Passes changes on to Home Assistant, if it has an MQTT broker.
         MqttBridge mqtt = MqttSettings.find()
-                .map(settings -> new MqttBridge(db, new PahoTransport(settings, MqttBridge.AVAILABILITY_TOPIC)))
+                .map(settings -> new MqttBridge(
+                        db, new PahoTransport(settings, MqttBridge.AVAILABILITY_TOPIC), categoriser
+                ))
                 .orElse(null);
         ListChanges changes = null == mqtt ? ListChanges.NONE : mqtt;
-        Javalin app = setupJavalinApp(db, trustedProxy, webDir, filesDir, changes);
+        Javalin app = setupJavalinApp(db, trustedProxy, webDir, filesDir, changes, categoriser);
         if (null != mqtt) {
             // HA stops the add-on with SIGTERM, which runs this, so the
             // entities show as unavailable rather than keep their last state.
@@ -88,12 +107,13 @@ public class Main {
     // is under /api; webDir, if set, is the built web app, served from /.
     // filesDir is where uploaded files are kept.
     public static Javalin setupJavalinApp(Db db, String trustedProxy, Path webDir, Path filesDir) {
-        return setupJavalinApp(db, trustedProxy, webDir, filesDir, ListChanges.NONE);
+        return setupJavalinApp(db, trustedProxy, webDir, filesDir, ListChanges.NONE, Categoriser.NONE);
     }
 
-    // changes is told about every change made through the API.
+    // changes is told about every change made through the API. categoriser
+    // sorts items into store sections.
     public static Javalin setupJavalinApp(
-            Db db, String trustedProxy, Path webDir, Path filesDir, ListChanges changes
+            Db db, String trustedProxy, Path webDir, Path filesDir, ListChanges changes, Categoriser categoriser
     ) {
         Javalin app = Javalin.create(config -> {
 
@@ -107,7 +127,7 @@ public class Main {
             IngressFilter.setup(config, db, trustedProxy);
 
             GeneralController.setup(config, db);
-            ItemController.setup(config, db, changes);
+            ItemController.setup(config, db, changes, categoriser);
             LabelController.setup(config, db, changes);
             ItemLinkController.setup(config, db);
             AttachmentController.setup(config, db, filesDir);

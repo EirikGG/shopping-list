@@ -1,0 +1,107 @@
+{
+  "produce": [
+    "epler", "bananer", "appelsiner", "klementiner", "pærer", "druer", "jordbær", "blåbær", "bringebær", "sitron",
+    "lime", "avokado", "mango", "ananas", "vannmelon", "kiwi", "poteter", "gulrøtter", "løk", "rødløk", "hvitløk",
+    "tomater", "cherrytomater", "agurk", "paprika", "brokkoli", "blomkål", "salat", "isbergsalat", "spinat",
+    "rucola", "squash", "sopp", "champignon", "purre", "selleri", "kål", "søtpoteter", "mais", "ingefær",
+    "frisk basilikum", "persille", "koriander", "vårløk", "reddik", "rødbeter", "aspargus", "sugarsnaps",
+    "apples", "bananas", "oranges", "grapes", "strawberries", "lemons", "avocado", "potatoes", "carrots",
+    "onions", "garlic", "tomatoes", "cucumber", "bell pepper", "broccoli", "lettuce", "spinach", "mushrooms",
+    "zucchini", "fresh herbs"
+  ],
+  "bakery": [
+    "brød", "grovbrød", "loff", "rundstykker", "baguette", "ciabatta", "knekkebrød", "lomper", "lefse",
+    "tortillalefser", "pitabrød", "naanbrød", "hamburgerbrød", "pølsebrød", "boller", "skoleboller",
+    "kanelboller", "croissant", "rugbrød", "kneipp", "wienerbrød", "kake", "muffins",
+    "bread", "whole grain bread", "white bread", "rolls", "bagels", "tortillas", "pita bread",
+    "hamburger buns", "hot dog buns", "croissants", "cinnamon buns", "crispbread", "cake",
+    "sourdough bread", "flatbread"
+  ],
+  "dairy": [
+    "melk", "lettmelk", "helmelk", "skummet melk", "havremelk", "laktosefri melk", "fløte", "matfløte",
+    "kremfløte", "rømme", "lettrømme", "crème fraîche", "yoghurt", "gresk yoghurt", "kesam", "cottage cheese",
+    "smør", "meierismør", "margarin", "brelett", "ost", "norvegia", "jarlsberg", "gulost", "brunost", "geitost",
+    "mozzarella", "parmesan", "fetaost", "kremost", "smøreost", "egg", "eggehviter", "kulturmelk", "kefir",
+    "skyr", "sjokolademelk", "milk", "skimmed milk", "oat milk", "cream", "heavy cream", "sour cream", "yogurt",
+    "butter", "cheese", "cheddar", "cream cheese", "eggs", "feta"
+  ],
+  "meat_fish": [
+    "kjøttdeig", "karbonadedeig", "kyllingfilet", "kyllinglår", "hel kylling", "kalkun", "svinekoteletter",
+    "ribbe", "pinnekjøtt", "bacon", "pølser", "grillpølser", "wienerpølser", "skinke", "kokt skinke", "salami",
+    "servelat", "leverpostei", "kjøttkaker", "biff", "entrecôte", "indrefilet", "lammekjøtt", "fårikålkjøtt",
+    "svinefilet", "laks", "laksefilet", "røkelaks", "torsk", "torskefilet", "sei", "fiskekaker", "fiskeboller",
+    "fiskepinner", "reker", "kongekrabbe", "sild", "tunfisk fersk", "kjøttpålegg",
+    "ground beef", "minced meat", "chicken breast", "chicken thighs", "pork chops", "sausages", "ham", "steak",
+    "salmon", "cod", "shrimp", "fish fillets", "turkey", "lamb"
+  ],
+  "frozen": [
+    "frossenpizza", "grandiosa", "frosne grønnsaker", "frossen brokkoli", "frosne erter", "wokgrønnsaker",
+    "frosne bær", "frosne blåbær", "frossen mais", "pommes frites", "frosne pommes frites", "is", "iskrem",
+    "pinneis", "isbåter", "frossen fisk", "frosne reker", "frossen kylling", "frosne kjøttboller",
+    "frosne vårruller", "frossenmiddag", "frossen deig", "frozen pizza", "frozen vegetables", "frozen peas",
+    "frozen berries", "french fries", "ice cream", "ice lollies", "frozen fish", "frozen shrimp",
+    "frozen chicken nuggets", "frozen meals", "frozen dumplings"
+  ],
+  "dry_goods": [
+    "pasta", "spaghetti", "makaroni", "penne", "lasagneplater", "nudler", "ris", "jasminris", "basmatiris",
+    "risottoris", "couscous", "bulgur", "quinoa", "havregryn", "müsli", "cornflakes", "frokostblanding",
+    "mel", "hvetemel", "sammalt hvete", "sukker", "melis", "brunt sukker", "bakepulver", "natron", "gjær",
+    "tørrgjær", "kakao", "hermetiske tomater", "hakkede tomater", "tomatpuré", "kikerter", "kidneybønner",
+    "linser", "bønner på boks", "makrell i tomat boks", "tunfisk på boks", "mais på boks", "kokosmelk",
+    "buljong", "buljongterninger", "posesuppe", "taco krydderblanding", "tacoskjell", "honning",
+    "syltetøy", "peanøttsmør", "nøttepålegg", "nugatti", "rice", "noodles", "oats", "breakfast cereal",
+    "flour", "sugar", "baking powder", "yeast", "canned tomatoes", "chickpeas", "beans", "lentils",
+    "coconut milk", "stock cubes", "jam", "peanut butter", "honey"
+  ],
+  "spices_sauces": [
+    "salt", "pepper", "sort pepper", "paprikapulver", "karri", "kanel", "kardemomme", "chiliflak", "oregano",
+    "basilikum tørket", "timian", "spisskummen", "gurkemeie", "hvitløkspulver", "krydder", "tacokrydder",
+    "olivenolje", "rapsolje", "matolje", "eddik", "balsamico", "soyasaus", "ketchup", "sennep", "majones",
+    "remulade", "pesto", "tacosaus", "salsa", "sweet chili saus", "hot sauce", "tomatsaus", "pastasaus",
+    "dressing", "brun saus", "sjysaus", "worcestershiresaus", "fiskesaus", "salt and pepper", "olive oil",
+    "vegetable oil", "vinegar", "soy sauce", "mustard", "mayonnaise", "spices", "cinnamon", "curry powder",
+    "chili flakes", "barbecue sauce", "salad dressing"
+  ],
+  "snacks": [
+    "potetgull", "chips", "smågodt", "godteri", "sjokolade", "melkesjokolade", "kvikk lunsj", "nøtter",
+    "peanøtter", "cashewnøtter", "mandler", "popcorn", "kjeks", "småkaker", "digestive", "kaker", "rosiner",
+    "tørket frukt", "nachos", "ostepop", "saltstenger", "lakris", "tyggegummi", "pastiller", "seigmenn",
+    "snacks", "candy", "chocolate", "crisps", "potato chips", "nuts", "cookies", "biscuits", "crackers",
+    "gummy bears", "licorice", "chewing gum", "dried fruit", "trail mix", "granola bars"
+  ],
+  "drinks": [
+    "vann", "mineralvann", "farris", "kullsyreholdig vann", "brus", "cola", "pepsi max", "solo", "fanta",
+    "juice", "appelsinjuice", "eplejuice", "saft", "husholdningssaft", "iste", "energidrikk", "red bull",
+    "kaffe", "filterkaffe", "kaffebønner", "kaffekapsler", "te", "grønn te", "øl", "pils", "alkoholfritt øl",
+    "vin", "rødvin", "hvitvin", "cider", "smoothie", "sportsdrikk", "water", "sparkling water", "soda",
+    "soft drinks", "orange juice", "apple juice", "coffee", "tea", "beer", "wine", "energy drink",
+    "lemonade"
+  ],
+  "household": [
+    "dopapir", "toalettpapir", "tørkerull", "kjøkkenrull", "servietter", "oppvaskmiddel", "oppvasktabletter",
+    "maskinoppvask", "vaskemiddel", "klesvask", "tøymykner", "såpe", "grønnsåpe", "rengjøringsmiddel",
+    "allrengjøring", "klorin", "glassrens", "svamper", "oppvaskbørste", "søppelsekker", "bæreposer",
+    "fryseposer", "matpapir", "plastfolie", "aluminiumsfolie", "bakepapir", "lyspærer", "batterier",
+    "stearinlys", "telys", "fyrstikker", "tørkeklut", "zalo", "omo", "toilet paper", "paper towels",
+    "napkins", "dish soap", "dishwasher tablets", "laundry detergent", "fabric softener", "cleaning spray",
+    "bleach", "sponges", "trash bags", "garbage bags", "freezer bags", "plastic wrap", "aluminium foil",
+    "baking paper", "light bulbs", "batteries", "candles"
+  ],
+  "personal_care": [
+    "sjampo", "balsam", "dusjsåpe", "håndsåpe", "tannkrem", "tannbørste", "tanntråd",
+    "munnskyll", "deodorant", "deo", "barberhøvel", "barberskum", "hudkrem", "fuktighetskrem", "solkrem",
+    "leppepomade", "bind", "tamponger", "truseinnlegg", "bomullspads", "q-tips", "vattpinner", "plaster",
+    "paracet", "ibux", "smertestillende", "hostesaft", "nesespray", "vitaminer", "hårstrikk",
+    "hårspray", "sminke", "mascara", "kontaktlinsevæske", "shampoo", "conditioner", "shower gel",
+    "hand soap", "toothpaste", "toothbrush", "dental floss", "razors", "shaving foam",
+    "moisturiser", "sunscreen", "lip balm", "sanitary pads", "tampons", "cotton buds", "band-aids",
+    "painkillers", "vitamins", "makeup"
+  ],
+  "baby_pet": [
+    "bleier", "våtservietter", "bleieposer", "morsmelkerstatning", "barnemat", "grøt til baby", "smokk",
+    "tåteflaske", "babysjampo", "babyolje", "pusleunderlag", "hundemat", "kattemat", "tørrfôr", "våtfôr",
+    "kattesand", "hundegodis", "kattegodis", "hundeposer", "dyrefôr", "fuglefrø", "fiskefôr", "tyggebein",
+    "diapers", "nappies", "baby wipes", "baby formula", "baby food", "pacifier", "baby bottle", "dog food",
+    "cat food", "cat litter", "dog treats", "cat treats", "poop bags", "pet food", "bird seed", "fish food"
+  ]
+}

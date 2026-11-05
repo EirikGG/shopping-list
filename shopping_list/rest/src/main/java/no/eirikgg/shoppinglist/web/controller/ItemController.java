@@ -7,6 +7,7 @@ import io.javalin.config.RoutesConfig;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import no.eirikgg.shoppinglist.Json;
+import no.eirikgg.shoppinglist.category.Categoriser;
 import no.eirikgg.shoppinglist.datamodel.Attachment;
 import no.eirikgg.shoppinglist.datamodel.Item;
 import no.eirikgg.shoppinglist.datamodel.ItemLink;
@@ -38,12 +39,12 @@ public class ItemController {
 
     private ItemService itemService;
 
-    public ItemController(Db db, ListChanges changes) {
-        itemService = new ItemService(db, changes);
+    public ItemController(Db db, ListChanges changes, Categoriser categoriser) {
+        itemService = new ItemService(db, changes, categoriser);
     }
 
-    public static void setup(JavalinConfig config, Db db, ListChanges changes) {
-        ItemController ic = new ItemController(db, changes);
+    public static void setup(JavalinConfig config, Db db, ListChanges changes, Categoriser categoriser) {
+        ItemController ic = new ItemController(db, changes, categoriser);
         RoutesConfig routes = config.routes;
 
 
@@ -106,8 +107,11 @@ public class ItemController {
     record GetItemRequest(
             int id
     ) {}
+    // category is the store section, a Category key, or null until the item is
+    // sorted; "uncategorised" if no section fit.
     record GetItemResponse(
-            int id, String name, int amount, LocalDateTime created, LocalDateTime completed, List<ItemLabelResponse> labels,
+            int id, String name, int amount, LocalDateTime created, LocalDateTime completed, String category,
+            List<ItemLabelResponse> labels,
             List<ItemLinkResponse> links, List<AttachmentResponse> attachments
     ) {}
     private static GetItemResponse toItemResponse(Item item) {
@@ -117,6 +121,7 @@ public class ItemController {
                 item.getAmount(),
                 item.getCreated(),
                 item.getCompleted().orElse(null),
+                item.getCategory().orElse(null),
                 toLabelResponses(item),
                 toLinkResponses(item),
                 toAttachmentResponses(item)
@@ -138,7 +143,7 @@ public class ItemController {
             int itemListId, String name, List<Integer> labelIds, Integer amount
     ) {}
     record PostItemResponse(
-            int id, String name, int amount, LocalDateTime created, List<ItemLabelResponse> labels
+            int id, String name, int amount, LocalDateTime created, String category, List<ItemLabelResponse> labels
     ) {}
     private void saveItem(Context ctx)
             throws JsonProcessingException, ResourceNotFoundException, NoAccessToResourceException,
@@ -153,6 +158,7 @@ public class ItemController {
                 item.getName(),
                 item.getAmount(),
                 item.getCreated(),
+                item.getCategory().orElse(null),
                 toLabelResponses(item)
         );
         ctx.status(HttpStatus.CREATED).json(mapper.writeValueAsString(response));
@@ -172,7 +178,8 @@ public class ItemController {
             int id, String newName, Integer amount, boolean completed
     ) {}
     record PatchItemResponse(
-            int id, String name, int amount, LocalDateTime created, LocalDateTime completed, List<ItemLabelResponse> labels,
+            int id, String name, int amount, LocalDateTime created, LocalDateTime completed, String category,
+            List<ItemLabelResponse> labels,
             List<ItemLinkResponse> links, List<AttachmentResponse> attachments
     ) {}
     private void patchItem(Context ctx)
@@ -188,6 +195,7 @@ public class ItemController {
                 item.getAmount(),
                 item.getCreated(),
                 item.getCompleted().orElse(null),
+                item.getCategory().orElse(null),
                 toLabelResponses(item),
                 toLinkResponses(item),
                 toAttachmentResponses(item)

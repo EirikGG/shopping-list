@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.0
+
+- Items are sorted into store sections, such as Fruit and vegetables or
+  Dairy and eggs, and shown under a heading for each, in the order a shop
+  usually has them. Items that fit no section are under Uncategorised, last.
+  The button beside the list name turns the sections off for that list.
+- The sorting is done on the add-on itself by a small language model
+  (multilingual-e5-small), which understands Norwegian and English. Nothing
+  is sent anywhere. Items already on the lists are sorted shortly after the
+  add-on starts.
+- The add-on image is about 300 MB larger, and uses about 200 MB more memory.
+
 ## 0.8.0
 
 - The Shopping list (add-on) integration, installed through HACS from this

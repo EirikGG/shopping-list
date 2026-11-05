@@ -2,6 +2,7 @@ package no.eirikgg.shoppinglist.mqtt;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import no.eirikgg.shoppinglist.category.Categoriser;
 import no.eirikgg.shoppinglist.Json;
 import no.eirikgg.shoppinglist.datamodel.Item;
 import no.eirikgg.shoppinglist.datamodel.ItemList;
@@ -89,8 +90,9 @@ public class MqttBridge implements ListChanges, MqttTransport.Listener {
     private final PersonService personService;
     private Person mqttPerson;
 
-    public MqttBridge(Db db, MqttTransport transport) {
-        this(db, transport, Executors.newSingleThreadExecutor(task -> {
+    // categoriser sorts the items added through MQTT into store sections.
+    public MqttBridge(Db db, MqttTransport transport, Categoriser categoriser) {
+        this(db, transport, categoriser, Executors.newSingleThreadExecutor(task -> {
             Thread thread = new Thread(task, "mqtt");
             thread.setDaemon(true);
             return thread;
@@ -99,10 +101,14 @@ public class MqttBridge implements ListChanges, MqttTransport.Listener {
 
     // Tests run everything straight away with Runnable::run.
     MqttBridge(Db db, MqttTransport transport, Executor executor) {
+        this(db, transport, Categoriser.NONE, executor);
+    }
+
+    private MqttBridge(Db db, MqttTransport transport, Categoriser categoriser, Executor executor) {
         this.transport = transport;
         this.executor = executor;
         // Changes made through MQTT come back here, and are published too.
-        this.itemService = new ItemService(db, this);
+        this.itemService = new ItemService(db, this, categoriser);
         this.labelService = new LabelService(db, this);
         this.personService = new PersonService(db);
     }
