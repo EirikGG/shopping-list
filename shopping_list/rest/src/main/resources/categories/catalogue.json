@@ -81,11 +81,11 @@
     "dopapir", "toalettpapir", "tørkerull", "kjøkkenrull", "servietter", "oppvaskmiddel", "oppvasktabletter",
     "maskinoppvask", "vaskemiddel", "klesvask", "tøymykner", "såpe", "grønnsåpe", "rengjøringsmiddel",
     "allrengjøring", "klorin", "glassrens", "svamper", "oppvaskbørste", "søppelsekker", "bæreposer",
-    "fryseposer", "matpapir", "plastfolie", "aluminiumsfolie", "bakepapir", "lyspærer", "batterier",
+    "fryseposer", "matpapir", "plastfolie", "aluminiumsfolie", "bakepapir",
     "stearinlys", "telys", "fyrstikker", "tørkeklut", "zalo", "omo", "toilet paper", "paper towels",
     "napkins", "dish soap", "dishwasher tablets", "laundry detergent", "fabric softener", "cleaning spray",
     "bleach", "sponges", "trash bags", "garbage bags", "freezer bags", "plastic wrap", "aluminium foil",
-    "baking paper", "light bulbs", "batteries", "candles"
+    "baking paper", "candles"
   ],
   "personal_care": [
     "sjampo", "balsam", "dusjsåpe", "håndsåpe", "tannkrem", "tannbørste", "tanntråd",
@@ -103,5 +103,43 @@
     "kattesand", "hundegodis", "kattegodis", "hundeposer", "dyrefôr", "fuglefrø", "fiskefôr", "tyggebein",
     "diapers", "nappies", "baby wipes", "baby formula", "baby food", "pacifier", "baby bottle", "dog food",
     "cat food", "cat litter", "dog treats", "cat treats", "poop bags", "pet food", "bird seed", "fish food"
+  ],
+  "tools_hardware": [
+    "skruer", "spiker", "plugger", "skrujern", "drill", "bor", "hammer", "sag", "tang", "skiftenøkkel",
+    "unbrakonøkkel", "vater", "målebånd", "tommestokk", "sandpapir", "maling", "pensel", "malerrull",
+    "maskeringstape", "gaffateip", "silikon", "fugemasse", "lim", "superlim", "trelim", "verktøykasse", "stige",
+    "hengelås", "kroker", "hyllebraketter", "wd-40", "arbeidshansker", "sparkel", "stikksag", "slipemaskin",
+    "screws", "nails", "screwdriver", "saw", "pliers", "wrench", "tape measure", "sandpaper", "paint",
+    "paintbrush", "duct tape", "glue", "ladder", "padlock", "drill bits", "bitssett", "screwdriver bits"
+  ],
+  "electrical": [
+    "skjøteledning", "skjøtekontakt", "grenuttak", "ledning", "kabel", "strømkabel", "støpsel", "stikkontakt",
+    "kabelkanal", "kabelstrips", "lyspærer", "led-pærer", "batterier", "oppladbare batterier", "lader",
+    "mobillader", "usb-kabel", "hdmi-kabel", "nettverkskabel", "adapter", "sikringer", "koblingsboks", "dimmer",
+    "lysbryter", "røykvarsler", "lommelykt", "hodelykt", "lysslynge", "ledlist", "smartplugg", "høyttaler",
+    "hodetelefoner", "extension cord", "power strip", "cable", "plug", "power outlet", "light bulbs",
+    "batteries", "charger", "usb cable", "hdmi cable", "fuse", "smoke detector", "flashlight", "headphones"
+  ],
+  "furniture_home": [
+    "nattbord", "sofa", "sofabord", "spisebord", "stol", "kontorstol", "seng", "madrass", "kommode",
+    "garderobeskap", "bokhylle", "hylle", "tv-benk", "skrivebord", "lampe", "taklampe", "gulvlampe", "speil",
+    "teppe", "gardiner", "gardinstang", "pute", "sofapute", "dyne", "sengetøy", "laken", "håndklær",
+    "bilderamme", "vase", "potteplante", "oppbevaringsboks", "kleshengere", "dørmatte", "bedside table",
+    "nightstand", "coffee table", "chair", "bed", "mattress", "wardrobe", "bookshelf", "desk", "lamp", "mirror",
+    "rug", "curtains", "cushion", "duvet", "bed sheets", "towels", "picture frame", "storage box"
+  ],
+  "clothing": [
+    "bukse", "jeans", "genser", "t-skjorte", "skjorte", "kjole", "skjørt", "jakke", "vinterjakke", "regnjakke",
+    "dress", "sokker", "strømpebukse", "undertøy", "truser", "bh", "boxershorts", "pysjamas", "lue", "skjerf",
+    "votter", "hansker", "sko", "joggesko", "støvler", "sandaler", "tøfler", "belte", "badetøy", "treningstøy",
+    "kåpe", "trousers", "sweater", "coat", "t-shirt", "shirt", "jacket", "socks", "underwear", "pyjamas", "hat", "scarf",
+    "gloves", "shoes", "sneakers", "boots"
+  ],
+  "car": [
+    "vinterdekk", "sommerdekk", "spylervæske", "motorolje", "frostvæske", "kjølevæske", "vindusviskere",
+    "viskerblader", "isskrape", "bilshampo", "bilvoks", "startkabler", "bilbatteri", "oljefilter",
+    "luftfilter", "tennplugger", "takboks", "sykkelstativ", "slepetau", "varseltrekant", "refleksvest",
+    "winter tyres", "summer tyres", "washer fluid", "motor oil", "antifreeze", "coolant", "wiper blades",
+    "ice scraper", "jumper cables", "car battery", "oil filter", "spark plugs", "tow rope"
   ]
 }

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.0
+
+- Five store sections for things that are not groceries: Tools and hardware,
+  Electrical, Furniture and home, Clothing and shoes, and Car. Before, items
+  like cables, plugs and furniture were put in the nearest grocery section.
+- Light bulbs and batteries are under Electrical rather than Household.
+- Slimmer rows: an item's labels, links, files and time are on one line under
+  its name, and the space around rows and section headings is smaller.
+
 ## 0.9.0
 
 - Items are sorted into store sections, such as Fruit and vegetables or

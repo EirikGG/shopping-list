@@ -56,11 +56,11 @@ public class Main {
         log.info("Keeping uploaded files in {}", filesDir.toAbsolutePath());
         new AttachmentService(db, filesDir).removeUnusedFiles();
         // Loads while the app starts, and then sorts the items that have no
-        // section yet.
+        // section yet, or every item if the catalogue has changed.
         Path modelDir = Path.of(System.getProperty("MODEL.DIR", DEFAULT_MODEL_DIR));
         Categoriser categoriser = E5Categoriser.loadInBackground(modelDir, loaded -> {
             try {
-                new CategoryBackfill(db, loaded).run();
+                new CategoryBackfill(db, loaded, E5Categoriser.version()).run();
             }
             catch (RuntimeException e) {
                 log.error("Could not sort the items without a section", e);

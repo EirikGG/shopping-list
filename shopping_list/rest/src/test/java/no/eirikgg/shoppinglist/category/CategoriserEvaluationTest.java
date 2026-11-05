@@ -46,10 +46,21 @@ class CategoriserEvaluationTest {
         expect(DRINKS, "cola", "pepsi max", "farris", "appelsinjuice", "kaffe", "te", "øl", "brus", "coffee",
                 "orange juice", "red wine");
         expect(HOUSEHOLD, "dopapir", "tørkerull", "oppvaskmiddel", "zalo", "vaskemiddel", "søppelposer",
-                "bakepapir", "batterier", "lyspære til gangen", "toilet paper", "dishwasher tabs");
+                "bakepapir", "toilet paper", "dishwasher tabs");
         expect(PERSONAL_CARE, "sjampo", "tannkrem", "tannbørste", "deodorant", "dusjsåpe", "solkrem", "plaster",
                 "paracet", "shampoo", "toothpaste");
         expect(BABY_PET, "bleier", "våtservietter", "kattemat", "hundemat", "kattesand", "diapers", "dog food");
+        expect(TOOLS_HARDWARE, "treskruer", "skrutrekker", "bormaskin", "malingsrull", "veggplugger", "spikerpistol",
+                "gulvmaling", "torx bits", "wood screws", "sawhorse");
+        expect(ELECTRICAL, "skjøteledning 5m", "usb-c lader", "lyspære til gangen", "led pære e27",
+                "dobbel stikkontakt", "kabelkanal hvit", "jordet støpsel", "ledning til lampe", "aa batterier",
+                "phone charger");
+        expect(FURNITURE_HOME, "nattbord hvitt", "spisestoler", "taklampe til stua", "dobbeltseng", "sengeteppe",
+                "hylleplate", "skohylle", "dining table");
+        expect(CLOTHING, "vintersko", "ullsokker", "regnbukse", "treningsbukse", "t-skjorter", "allværsjakke",
+                "winter coat", "rain boots");
+        expect(CAR, "piggdekk", "spylevæske", "olje til bilen", "vindusvisker", "startkabel", "dekkskift",
+                "car wax");
         expect(UNCATEGORISED, "ring mamma", "betale strømregning", "bursdagsgave til Ola", "hente pakke",
                 "bok", "call the dentist");
     }

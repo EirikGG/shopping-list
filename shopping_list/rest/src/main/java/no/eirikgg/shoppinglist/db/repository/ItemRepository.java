@@ -244,6 +244,30 @@ public class ItemRepository {
 
     public record UnsortedItem(int id, String name) {}
 
+    // Every item is to be sorted again.
+    public void clearCategories(Connection conn) throws SQLException {
+        dbUtils.update(conn, "update item set category = null where category is not null");
+    }
+
+    // A value in app_state, if it is set.
+    public Optional<String> getAppState(Connection conn, String key) {
+        return dbUtils.selectSingle(conn,
+                "select value from app_state where key = ?",
+                key,
+                rs -> rs.getString("value").orElseThrow()
+        );
+    }
+
+    public void setAppState(Connection conn, String key, String value) throws SQLException {
+        dbUtils.update(conn, """
+                insert into app_state (key, value) values (?, ?)
+                on conflict (key) do update set value = excluded.value
+                """,
+                key,
+                value
+        );
+    }
+
     public void deleteItem(Connection conn, int itemId) throws SQLException {
         dbUtils.update(conn, """
                 update item

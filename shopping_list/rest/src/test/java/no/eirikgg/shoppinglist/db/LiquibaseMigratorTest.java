@@ -26,7 +26,7 @@ class LiquibaseMigratorTest {
                     rs -> rs.getString("name").orElseThrow()
             );
             assertEquals(
-                    List.of("attachment", "item", "item_label_mapping", "item_link", "item_list", "label", "person"),
+                    List.of("app_state", "attachment", "item", "item_label_mapping", "item_link", "item_list", "label", "person"),
                     tables
             );
         }

@@ -19,6 +19,12 @@ public enum Category {
     HOUSEHOLD("household"),
     PERSONAL_CARE("personal_care"),
     BABY_PET("baby_pet"),
+    // For lists from shops other than grocers.
+    TOOLS_HARDWARE("tools_hardware"),
+    ELECTRICAL("electrical"),
+    FURNITURE_HOME("furniture_home"),
+    CLOTHING("clothing"),
+    CAR("car"),
     // Nothing in the catalogue was close enough.
     UNCATEGORISED("uncategorised");
 

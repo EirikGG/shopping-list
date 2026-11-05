@@ -183,10 +183,26 @@ class ItemControllerTest {
             int bread = createItem(client, "bread").id();
             deleteItem(client, bread);
 
-            assertEquals(2, new CategoryBackfill(db, FAKE_CATEGORISER).run());
+            assertEquals(2, new CategoryBackfill(db, FAKE_CATEGORISER, "v1").run());
             assertEquals("dairy", getItem(client, milk).category());
-            assertEquals(0, new CategoryBackfill(db, FAKE_CATEGORISER).run());
-            assertEquals(0, new CategoryBackfill(db, Categoriser.NONE).run());
+            assertEquals(0, new CategoryBackfill(db, FAKE_CATEGORISER, "v1").run());
+            assertEquals(0, new CategoryBackfill(db, Categoriser.NONE, "v1").run());
+        });
+    }
+
+    // A new catalogue sorts every item again, also those sorted before.
+    @Test
+    void backfill_sortsEverythingAgain_whenTheVersionChanges() {
+        Javalin sortingApp = TestApp.create(db, FAKE_CATEGORISER);
+        JavalinTest.test(sortingApp, testConfig, (server, client) -> {
+            int milk = createItem(client, "milk").id();
+            assertEquals(1, new CategoryBackfill(db, FAKE_CATEGORISER, "v1").run());
+            assertEquals(0, new CategoryBackfill(db, FAKE_CATEGORISER, "v1").run());
+
+            Categoriser everythingIsBread = name -> Optional.of(Category.BAKERY);
+            assertEquals(1, new CategoryBackfill(db, everythingIsBread, "v2").run());
+            assertEquals("bakery", getItem(client, milk).category());
+            assertEquals(0, new CategoryBackfill(db, everythingIsBread, "v2").run());
         });
     }
 

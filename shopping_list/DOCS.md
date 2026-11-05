@@ -28,8 +28,9 @@ are removed the next time the add-on starts.
 
 Open items are sorted into store sections (Fruit and vegetables, Bread and
 bakery, Dairy and eggs, Meat and fish, Frozen, Dry goods, Spices and sauces,
-Snacks and sweets, Drinks, Household, Personal care, Baby and pets) and shown
-in that order, with anything that fits none of them under Uncategorised, last.
+Snacks and sweets, Drinks, Household, Personal care, Baby and pets, Tools and
+hardware, Electrical, Furniture and home, Clothing and shoes, Car) and shown in
+that order, with anything that fits none of them under Uncategorised, last.
 The button beside a list's name turns the sections off for that list, such as
 for lists that are not for shopping. The choice is kept in the browser.
 

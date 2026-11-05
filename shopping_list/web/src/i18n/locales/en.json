@@ -41,6 +41,11 @@
     "household": "Household",
     "personal_care": "Personal care",
     "baby_pet": "Baby and pets",
+    "tools_hardware": "Tools and hardware",
+    "electrical": "Electrical",
+    "furniture_home": "Furniture and home",
+    "clothing": "Clothing and shoes",
+    "car": "Car",
     "uncategorised": "Uncategorised"
   },
   "labels": {

@@ -167,6 +167,11 @@ const SECTION_ORDER = [
   'household',
   'personal_care',
   'baby_pet',
+  'tools_hardware',
+  'electrical',
+  'furniture_home',
+  'clothing',
+  'car',
   'uncategorised'
 ]
 
@@ -391,42 +396,46 @@ async function submit() {
                       <span v-if="item.amount > 1" class="item-amount">{{ item.amount }} ×</span>
                       {{ item.name }}
                     </span>
-                    <span v-if="labelNames(item)" class="item-label">
-                      <Icon name="label" />
-                      {{ labelNames(item) }}
-                    </span>
-                    <span v-if="item.links?.length || item.attachments?.length" class="item-extras">
-                      <span
-                        v-if="item.links?.length"
-                        :title="t('item.linkCount', item.links.length)"
-                      >
-                        <Icon name="link" />
-                        {{ item.links.length }}
+                    <!-- Its labels, links, files and time on one line, to keep rows
+                         short. -->
+                    <span class="meta">
+                      <span v-if="labelNames(item)" class="item-label">
+                        <Icon name="label" />
+                        {{ labelNames(item) }}
                       </span>
-                      <span
-                        v-if="item.attachments?.length"
-                        :title="t('item.fileCount', item.attachments.length)"
-                      >
-                        <Icon name="paperclip" />
-                        {{ item.attachments.length }}
+                      <span v-if="item.links?.length || item.attachments?.length" class="item-extras">
+                        <span
+                          v-if="item.links?.length"
+                          :title="t('item.linkCount', item.links.length)"
+                        >
+                          <Icon name="link" />
+                          {{ item.links.length }}
+                        </span>
+                        <span
+                          v-if="item.attachments?.length"
+                          :title="t('item.fileCount', item.attachments.length)"
+                        >
+                          <Icon name="paperclip" />
+                          {{ item.attachments.length }}
+                        </span>
                       </span>
+                      <!-- When it was bought, or for what is still to buy, when it
+                           was added. -->
+                      <time
+                        v-if="item.completed"
+                        class="completed-at"
+                        :datetime="parseBackendTime(item.completed).toISOString()"
+                      >
+                        {{ t('lists.completedAt', { time: formatTime(parseBackendTime(item.completed), locale) }) }}
+                      </time>
+                      <time
+                        v-else-if="item.created"
+                        class="completed-at"
+                        :datetime="parseBackendTime(item.created).toISOString()"
+                      >
+                        {{ t('lists.addedAt', { time: formatTime(parseBackendTime(item.created), locale) }) }}
+                      </time>
                     </span>
-                    <!-- When it was bought, or for what is still to buy, when it
-                         was added. -->
-                    <time
-                      v-if="item.completed"
-                      class="completed-at"
-                      :datetime="parseBackendTime(item.completed).toISOString()"
-                    >
-                      {{ t('lists.completedAt', { time: formatTime(parseBackendTime(item.completed), locale) }) }}
-                    </time>
-                    <time
-                      v-else-if="item.created"
-                      class="completed-at"
-                      :datetime="parseBackendTime(item.created).toISOString()"
-                    >
-                      {{ t('lists.addedAt', { time: formatTime(parseBackendTime(item.created), locale) }) }}
-                    </time>
                   </span>
                 </button>
                 <button
@@ -575,7 +584,7 @@ h2 {
 
 /* The store section above its items. The first has no space above it. */
 .section-heading {
-  margin: 1.25rem 0 0.5rem;
+  margin: 0.875rem 0 0.375rem;
   padding: 0 0.25rem;
   font-size: 0.8125rem;
   font-weight: 600;
@@ -622,8 +631,8 @@ h2 {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  min-height: 3rem;
-  padding: 0.375rem 0.5rem 0.375rem 0.25rem;
+  min-height: 2.75rem;
+  padding: 0.125rem 0.5rem 0.125rem 0.25rem;
 }
 
 /* The circle and the name are one button, so tapping anywhere on the item
@@ -635,7 +644,7 @@ h2 {
   gap: 0.75rem;
   flex: 1;
   min-width: 0;
-  min-height: 2.75rem;
+  min-height: 2.5rem;
   padding: 0 0 0 0.75rem;
   font-weight: inherit;
   text-align: left;
@@ -707,7 +716,20 @@ h2 {
   flex-direction: column;
   flex: 1;
   min-width: 0;
-  padding: 0.25rem 0;
+  padding: 0.125rem 0;
+}
+
+/* The details under the name, side by side, wrapping only if they must. */
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 0.75rem;
+  line-height: 1.3;
+}
+
+.meta:empty {
+  display: none;
 }
 
 .item-name {

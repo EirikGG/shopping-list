@@ -41,6 +41,11 @@
     "household": "Husholdning",
     "personal_care": "Personlig pleie",
     "baby_pet": "Baby og dyr",
+    "tools_hardware": "Verktøy og jernvare",
+    "electrical": "Elektro",
+    "furniture_home": "Møbler og interiør",
+    "clothing": "Klær og sko",
+    "car": "Bil",
     "uncategorised": "Ukategorisert"
   },
   "labels": {

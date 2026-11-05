@@ -8,12 +8,16 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -158,6 +162,25 @@ public final class E5Categoriser implements Categoriser, AutoCloseable {
 
     static Category choose(List<Map.Entry<Category, Float>> scores) {
         return scores.get(0).getValue() >= MIN_SCORE ? scores.get(0).getKey() : Category.UNCATEGORISED;
+    }
+
+    // Changes when anything that decides the sections does: the catalogue, how
+    // it is scored, or the sections. Items are sorted again when it changes;
+    // see CategoryBackfill.
+    public static String version() {
+        try (InputStream in = E5Categoriser.class.getResourceAsStream(CATALOGUE)) {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            digest.update(in.readAllBytes());
+            digest.update((TOP + "/" + MIN_SCORE + "/" + Arrays.toString(Category.values()))
+                    .getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest.digest());
+        }
+        catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     static Map<Category, List<String>> readCatalogue() {
